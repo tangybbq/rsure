@@ -1,0 +1,18 @@
+[root]
+name = "rsure"
+version = "0.1.0"
+dependencies = [
+ "gcc 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "gcc"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "libc"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+

@@ -1,0 +1,12 @@
+[package]
+name = "rsure"
+version = "0.1.0"
+authors = ["David Brown <davidb@davidb.org>"]
+build = "build.rs"
+links = "rawlinux"
+
+[dependencies]
+libc = "*"
+
+[build-dependencies]
+gcc = "0.3"
