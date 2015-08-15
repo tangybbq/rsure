@@ -1,46 +1,57 @@
 // Playing with paths.
 
-use std::ffi::{CString};
-use std::io;
-use std::ptr;
+#[macro_use]
+extern crate clap;
 
-extern crate libc;
+use clap::{App, Arg, SubCommand};
+
 
 fn main() {
-    unsafe { blop() };
-    stuff().unwrap();
-}
+    let matches = App::new("rsure")
+        .arg(Arg::with_name("file")
+             .short("f")
+             .long("file")
+             .takes_value(true)
+             .help("Base of file name, default 2sure, will get .dat.gz appended"))
+        .arg(Arg::with_name("src")
+             .short("s")
+             .long("src")
+             .takes_value(true)
+             .help("Source .dat file for update"))
+        .subcommand_required(true)
+        .subcommand(SubCommand::with_name("scan")
+                    .about("Scan a directory for the first time"))
+        .subcommand(SubCommand::with_name("update")
+                    .about("Update the scan using the dat file"))
+        .subcommand(SubCommand::with_name("check")
+                    .about("Compare the directory with the dat file"))
+        .subcommand(SubCommand::with_name("signoff")
+                    .about("Compare the dat file with the bak file"))
+        .subcommand(SubCommand::with_name("show")
+                    .about("Pretty print the dat file"))
+        .get_matches();
 
-fn stuff() -> io::Result<()> {
-    let path = b"/usr/bin".to_vec();
-    let p = CString::new(path).unwrap();
-    let len = unsafe { libc::pathconf(p.as_ptr() as *mut _, libc::_PC_NAME_MAX) as usize };
-    let name_offset = unsafe { dir_name_offset() as usize };
-    println!("len: {}", len);
-    println!("offset: {}", name_offset);
+    let file = matches.value_of("file").unwrap_or("2sure");
+    let src = matches.value_of("src");
 
-    unsafe {
-        let dirp = libc::opendir(p.as_ptr());
-        if dirp.is_null() {
-            return Err(io::Error::last_os_error());
-        }
-        println!("dir: {:?}", dirp);
-
-        let mut buf: Vec<u8> = Vec::with_capacity(name_offset + len + 1);
-        let ptr = buf.as_mut_ptr() as *mut libc::dirent_t;
-        let mut entry_ptr = ptr::null_mut();
-        if libc::readdir_r(dirp, ptr, &mut entry_ptr) != 0 {
-            // Close dir?
-            return Err(io::Error::last_os_error());
-        }
-        if entry_ptr.is_null() {
-            println!("No more entries");
+    match matches.subcommand() {
+        ("scan", Some(_)) => {
+            println!("scan: {}", file);
+        },
+        ("update", Some(_)) => {
+            println!("udpate: {:?} -> {}", src, file);
+        },
+        ("check", Some(_)) => {
+            println!("check {}", file);
+        },
+        ("signoff", Some(_)) => {
+            println!("signoff {:?} -> {}", src, file);
+        },
+        ("show", Some(_)) => {
+            println!("show {}", file);
+        },
+        _ => {
+            panic!("Unsupported command.");
         }
     }
-    Ok(())
-}
-
-extern {
-    fn dir_name_offset() -> libc::size_t;
-    fn blop();
 }
