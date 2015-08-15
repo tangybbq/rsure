@@ -1,10 +1,23 @@
 // Playing with paths.
 
+extern crate flate2;
+extern crate rustc_serialize;
+
 #[macro_use]
 extern crate clap;
 
+#[macro_use]
+extern crate log;
+
 use clap::{App, Arg, SubCommand};
 
+use std::error;
+use std::result;
+
+pub type Result<T> = result::Result<T, Box<error::Error + Send + Sync>>;
+
+mod show;
+mod suretree;
 
 fn main() {
     let matches = App::new("rsure")
@@ -49,6 +62,7 @@ fn main() {
         },
         ("show", Some(_)) => {
             println!("show {}", file);
+            show::show(file).unwrap();
         },
         _ => {
             panic!("Unsupported command.");

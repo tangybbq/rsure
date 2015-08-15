@@ -5,3 +5,6 @@ authors = ["David Brown <davidb@davidb.org>"]
 
 [dependencies]
 clap = "*"
+flate2 = "*"
+log = "*"
+rustc-serialize = "*"
