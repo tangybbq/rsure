@@ -3,7 +3,6 @@
 use ::Result;
 
 use flate2::FlateReadExt;
-use flate2::read::GzDecoder;
 use rustc_serialize::hex::FromHex;
 use std::collections::BTreeMap;
 use std::ffi::OsString;
