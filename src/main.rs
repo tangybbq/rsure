@@ -3,6 +3,7 @@
 extern crate flate2;
 extern crate rustc_serialize;
 extern crate libc;
+extern crate openssl;
 
 #[macro_use]
 extern crate clap;
@@ -14,7 +15,9 @@ use clap::{App, Arg, SubCommand};
 
 use std::error;
 use std::result;
+use std::path::Path;
 use surefs::scan_fs;
+use hashes::SureHash;
 
 pub type Result<T> = result::Result<T, Box<error::Error + Send + Sync>>;
 
@@ -22,6 +25,7 @@ mod escape;
 mod show;
 mod suretree;
 mod surefs;
+mod hashes;
 
 #[allow(dead_code)]
 fn main() {
@@ -54,8 +58,10 @@ fn main() {
 
     match matches.subcommand() {
         ("scan", Some(_)) => {
-            let tree = scan_fs(".").unwrap();
+            let mut tree = scan_fs(".").unwrap();
             println!("scan: {} {} nodes", file, tree.count_nodes());
+            println!("hash: {:?}", tree.hash_estimate());
+            tree.hash_update(&Path::new("."));
             tree.save(file).unwrap();
         },
         ("update", Some(_)) => {
