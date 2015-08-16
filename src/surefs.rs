@@ -117,8 +117,9 @@ fn encode_atts(name: &Path, meta: &Metadata) -> BTreeMap<String, String> {
             base.insert("kind".to_string(), "dir".to_string());
         },
         libc::S_IFREG => {
-            base.insert("kind".to_string(), "reg".to_string());
+            base.insert("kind".to_string(), "file".to_string());
             base.insert("ino".to_string(), meta.ino().to_string());
+            base.insert("size".to_string(), meta.size().to_string());
             time_info(&mut base, meta);
             // Note that the 'sha1' attribute is computed later.
         },
