@@ -1,9 +1,11 @@
 // Show module.
 
-use ::suretree::SureTree;
-use ::Result;
+use std::path::Path;
 
-pub fn show(name: &str) -> Result<()> {
+use super::suretree::SureTree;
+use super::Result;
+
+pub fn show(name: &Path) -> Result<()> {
     let tree = try!(SureTree::load(name));
     println!("Nodes: {}", tree.count_nodes());
     // println!("{:#?}", tree);

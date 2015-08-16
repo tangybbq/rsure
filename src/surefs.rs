@@ -10,8 +10,8 @@ use std::os::unix::prelude::*;
 use std::path::{Path, PathBuf};
 use libc;
 
-pub fn scan_fs(root: &str) -> Result<SureTree> {
-    let root = PathBuf::from(root);
+pub fn scan_fs<P: AsRef<Path>>(root: P) -> Result<SureTree> {
+    let root = root.as_ref().to_path_buf();
 
     walk_root(&root)
 }

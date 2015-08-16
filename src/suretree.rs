@@ -8,6 +8,7 @@ use std::os::unix::ffi::OsStringExt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, BufReader, BufWriter};
+use std::path::Path;
 
 /// Represents a single directory entity.  The `String` values (name, or
 /// att properties) are `Escape` encoded, when they represent a name in the
@@ -27,7 +28,7 @@ pub struct SureFile {
 }
 
 impl SureTree {
-    pub fn load(name: &str) -> Result<SureTree> {
+    pub fn load<P: AsRef<Path>>(name: P) -> Result<SureTree> {
         let rd = try!(File::open(name));
         let rd = try!(rd.gz_decode());
         let rd = BufReader::new(rd);
@@ -95,7 +96,7 @@ impl SureTree {
             self.files.len()
     }
 
-    pub fn save(&self, name: &str) -> Result<()> {
+    pub fn save<P: AsRef<Path>>(&self, name: P) -> Result<()> {
         let wr = try!(File::create(name));
         let wr = flate2::write::GzEncoder::new(wr, Compression::Default);
         let mut wr = BufWriter::new(wr);  // Benchmark with and without, gz might buffer.
