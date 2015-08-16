@@ -2,12 +2,12 @@
 
 use ::Result;
 
-use flate2::FlateReadExt;
+use flate2::{self, Compression, FlateReadExt};
 use std::collections::BTreeMap;
 use std::os::unix::ffi::OsStringExt;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{self, BufReader};
+use std::io::{self, BufReader, BufWriter};
 
 /// Represents a single directory entity.  The `String` values (name, or
 /// att properties) are `Escape` encoded, when they represent a name in the
@@ -93,6 +93,41 @@ impl SureTree {
     pub fn count_nodes(&self) -> usize {
         self.children.iter().fold(0, |acc, item| acc + item.count_nodes()) +
             self.files.len()
+    }
+
+    pub fn save(&self, name: &str) -> Result<()> {
+        let wr = try!(File::create(name));
+        let wr = flate2::write::GzEncoder::new(wr, Compression::Default);
+        let mut wr = BufWriter::new(wr);  // Benchmark with and without, gz might buffer.
+
+        try!(writeln!(&mut wr, "asure-2.0"));
+        try!(writeln!(&mut wr, "-----"));
+
+        self.walk(&mut wr)
+    }
+
+    fn walk<W: Write>(&self, out: &mut W) -> Result<()> {
+        try!(self.header(out, 'd', &self.name, &self.atts));
+        for child in &self.children {
+            try!(child.walk(out));
+        }
+        try!(writeln!(out, "-"));
+        for child in &self.files {
+            try!(self.header(out, 'f', &child.name, &child.atts));
+        }
+        try!(writeln!(out, "u"));
+        Ok(())
+    }
+
+    fn header<W: Write>(&self, out: &mut W, kind: char, name: &str, atts: &BTreeMap<String, String>) -> Result<()> {
+        try!(write!(out, "{}{} [", kind, name));
+
+        // BTrees are sorted.
+        for (k, v) in atts {
+            try!(write!(out, "{} {} ", k, v));
+        }
+        try!(writeln!(out, "]"));
+        Ok(())
     }
 }
 

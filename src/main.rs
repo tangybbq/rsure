@@ -55,7 +55,8 @@ fn main() {
     match matches.subcommand() {
         ("scan", Some(_)) => {
             let tree = scan_fs(".").unwrap();
-            println!("scan: {} {:#?}", file, tree);
+            println!("scan: {} {} nodes", file, tree.count_nodes());
+            tree.save(file).unwrap();
         },
         ("update", Some(_)) => {
             println!("udpate: {:?} -> {}", src, file);
