@@ -3,29 +3,27 @@
 use ::Result;
 
 use flate2::FlateReadExt;
-use rustc_serialize::hex::FromHex;
 use std::collections::BTreeMap;
-use std::ffi::OsString;
 use std::os::unix::ffi::OsStringExt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, BufReader};
 
-// Unfortunately, this is very wasteful of memory, so isn't really a
-// practical way of doing this.  We'll probably still need to do this via
-// streaming.
+/// Represents a single directory entity.  The `String` values (name, or
+/// att properties) are `Escape` encoded, when they represent a name in the
+/// filesystem.
 #[derive(Debug)]
 pub struct SureTree {
-    pub name: OsString,
-    pub atts: BTreeMap<String, OsString>,
+    pub name: String,
+    pub atts: BTreeMap<String, String>,
     pub children: Vec<SureTree>,
     pub files: Vec<SureFile>,
 }
 
 #[derive(Debug)]
 pub struct SureFile {
-    pub name: OsString,
-    pub atts: BTreeMap<String, OsString>,
+    pub name: String,
+    pub atts: BTreeMap<String, String>,
 }
 
 impl SureTree {
@@ -91,12 +89,16 @@ impl SureTree {
             Some(l) => Ok(try!(l)),
         }
     }
+
+    pub fn count_nodes(&self) -> usize {
+        self.children.iter().fold(0, |acc, item| acc + item.count_nodes()) +
+            self.files.len()
+    }
 }
 
 // TODO: These should return Result to handle errors.
-fn decode_entity(text: &[u8]) -> (OsString, BTreeMap<String, OsString>) {
+fn decode_entity(text: &[u8]) -> (String, BTreeMap<String, String>) {
     let (name, mut text) = get_delim(text, ' ');
-    let name = to_osstring(name);
     trace!("name = '{:?}' ('{:?}')", name, String::from_utf8_lossy(&text));
     assert!(text[0] == '[' as u8);
     text = &text[1..];
@@ -105,38 +107,19 @@ fn decode_entity(text: &[u8]) -> (OsString, BTreeMap<String, OsString>) {
     while text[0] != ']' as u8 {
         let (key, t2) = get_delim(text, ' ');
         let (value, t2) = get_delim(t2, ' ');
-        trace!("  {} = {}", String::from_utf8_lossy(&key), String::from_utf8_lossy(&value));
+        trace!("  {} = {}", key, value);
         text = t2;
 
-        atts.insert(String::from_utf8(key.to_owned()).unwrap(), to_osstring(value));
+        atts.insert(key, value);
     }
 
     (name, atts)
 }
 
-fn to_osstring(text: &[u8]) -> OsString {
-    let mut buf = Vec::with_capacity(text.len());
-    let mut p = 0;
-    while p < text.len() {
-        if text[p] == '=' as u8 {
-            let num = String::from_utf8(text[p+1 .. p+3].to_owned()).unwrap();
-            let num = num.from_hex().unwrap();
-            assert!(num.len() == 1);
-            buf.push(num[0]);
-            p += 2;
-        } else {
-            buf.push(text[p]);
-        }
-        p += 1;
-    }
-
-    OsStringExt::from_vec(buf)
-}
-
-fn get_delim(text: &[u8], delim: char) -> (&[u8], &[u8]) {
+fn get_delim(text: &[u8], delim: char) -> (String, &[u8]) {
     let mut it = text.iter();
     let space = it.position(|&s| s == delim as u8).unwrap();
-    (&text[..space], &text[space + 1 ..])
+    (String::from_utf8(text[..space].to_owned()).unwrap(), &text[space + 1 ..])
 }
 
 fn fixed<I>(inp: &mut I, exp: &[u8]) -> Result<()>
