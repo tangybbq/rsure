@@ -10,13 +10,15 @@ use std::io::prelude::*;
 use std::io::{self, BufReader, BufWriter};
 use std::path::Path;
 
+pub type AttMap = BTreeMap<String, String>;
+
 /// Represents a single directory entity.  The `String` values (name, or
 /// att properties) are `Escape` encoded, when they represent a name in the
 /// filesystem.
 #[derive(Debug)]
 pub struct SureTree {
     pub name: String,
-    pub atts: BTreeMap<String, String>,
+    pub atts: AttMap,
     pub children: Vec<SureTree>,
     pub files: Vec<SureFile>,
 }
@@ -24,7 +26,7 @@ pub struct SureTree {
 #[derive(Debug)]
 pub struct SureFile {
     pub name: String,
-    pub atts: BTreeMap<String, String>,
+    pub atts: AttMap,
 }
 
 impl SureTree {
@@ -120,7 +122,7 @@ impl SureTree {
         Ok(())
     }
 
-    fn header<W: Write>(&self, out: &mut W, kind: char, name: &str, atts: &BTreeMap<String, String>) -> Result<()> {
+    fn header<W: Write>(&self, out: &mut W, kind: char, name: &str, atts: &AttMap) -> Result<()> {
         try!(write!(out, "{}{} [", kind, name));
 
         // BTrees are sorted.
@@ -133,13 +135,13 @@ impl SureTree {
 }
 
 // TODO: These should return Result to handle errors.
-fn decode_entity(text: &[u8]) -> (String, BTreeMap<String, String>) {
+fn decode_entity(text: &[u8]) -> (String, AttMap) {
     let (name, mut text) = get_delim(text, ' ');
     trace!("name = '{:?}' ('{:?}')", name, String::from_utf8_lossy(&text));
     assert!(text[0] == '[' as u8);
     text = &text[1..];
 
-    let mut atts = BTreeMap::new();
+    let mut atts = AttMap::new();
     while text[0] != ']' as u8 {
         let (key, t2) = get_delim(text, ' ');
         let (value, t2) = get_delim(t2, ' ');

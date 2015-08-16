@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use super::suretree::SureTree;
+use super::suretree::{AttMap, SureTree};
 
 pub trait TreeUpdate {
     /// Update any sha1 hashes in `self` using `old` as a reference.
@@ -28,7 +28,7 @@ fn walk(new: &mut SureTree, old: &SureTree) {
 
     // Walk the file nodes that are the same, and see if they can be
     // updated.
-    let old_files: BTreeMap<&String, &BTreeMap<String, String>> =
+    let old_files: BTreeMap<&String, &AttMap> =
         old.files.iter().map(|ch| (&ch.name, &ch.atts)).collect();
 
     for file in &mut new.files {

@@ -2,9 +2,8 @@
 
 use ::Result;
 use escape::*;
-use suretree::{SureFile, SureTree};
+use suretree::{AttMap, SureFile, SureTree};
 
-use std::collections::BTreeMap;
 use std::fs::{self, symlink_metadata, Metadata};
 use std::os::unix::prelude::*;
 use std::path::{Path, PathBuf};
@@ -26,7 +25,7 @@ fn walk_root(path: &Path) -> Result<SureTree> {
     walk("__root__".to_string(), path, encode_atts(path, &meta), &meta)
 }
 
-fn walk(my_name: String, path: &Path, my_atts: BTreeMap<String, String>, my_meta: &Metadata)
+fn walk(my_name: String, path: &Path, my_atts: AttMap, my_meta: &Metadata)
     -> Result<SureTree>
 {
     let mut entries = vec![];
@@ -100,11 +99,11 @@ fn walk(my_name: String, path: &Path, my_atts: BTreeMap<String, String>, my_meta
 // Encode the attributes for the given node.  Note that this returns, even
 // when there is an error (resolving a symlink).  It logs an error, and
 // returns a placeholder.
-fn encode_atts(name: &Path, meta: &Metadata) -> BTreeMap<String, String> {
+fn encode_atts(name: &Path, meta: &Metadata) -> AttMap {
     // let fname = name.file_name().unwrap().as_bytes().escaped();
     let mode = meta.mode() & libc::S_IFMT;
 
-    let mut base = BTreeMap::new();
+    let mut base = AttMap::new();
 
     // These attributes apply to every node.
     base.insert("uid".to_string(), meta.uid().to_string());
@@ -157,7 +156,7 @@ fn encode_atts(name: &Path, meta: &Metadata) -> BTreeMap<String, String> {
     base
 }
 
-fn add_dev(base: &mut BTreeMap<String, String>, meta: &Metadata) {
+fn add_dev(base: &mut AttMap, meta: &Metadata) {
     let rdev = meta.rdev();
     // This is defined in a macro, and hasn't made it into libc.  Given how
     // it is defined in the header, it is unlikely to change, at least on
@@ -166,7 +165,7 @@ fn add_dev(base: &mut BTreeMap<String, String>, meta: &Metadata) {
     base.insert("devmin".to_string(), (rdev & 0xff).to_string());
 }
 
-fn time_info(base: &mut BTreeMap<String, String>, meta: &Metadata) {
+fn time_info(base: &mut AttMap, meta: &Metadata) {
     // TODO: Handle the nsec part of the time.
     base.insert("mtime".to_string(), meta.mtime().to_string());
     base.insert("ctime".to_string(), meta.ctime().to_string());
@@ -176,5 +175,5 @@ fn time_info(base: &mut BTreeMap<String, String>, meta: &Metadata) {
 struct OneFile {
     path: PathBuf,
     meta: Metadata,
-    atts: BTreeMap<String, String>,
+    atts: AttMap,
 }
