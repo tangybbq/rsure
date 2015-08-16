@@ -16,9 +16,11 @@ use std::result;
 
 pub type Result<T> = result::Result<T, Box<error::Error + Send + Sync>>;
 
+mod escape;
 mod show;
 mod suretree;
 
+#[allow(dead_code)]
 fn main() {
     let matches = App::new("rsure")
         .arg(Arg::with_name("file")
