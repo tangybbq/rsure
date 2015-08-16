@@ -10,3 +10,6 @@ flate2 = "*"
 log = "*"
 openssl = "*"
 rustc-serialize = "*"
+
+# This will go away
+env_logger = "*"

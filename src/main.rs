@@ -4,6 +4,7 @@ extern crate flate2;
 extern crate rustc_serialize;
 extern crate libc;
 extern crate openssl;
+extern crate env_logger;
 
 #[macro_use]
 extern crate clap;
@@ -33,6 +34,8 @@ mod comp;
 
 #[allow(dead_code)]
 fn main() {
+    env_logger::init().unwrap();
+
     let matches = App::new("rsure")
         .arg(Arg::with_name("file")
              .short("f")
