@@ -2,6 +2,7 @@
 
 extern crate flate2;
 extern crate rustc_serialize;
+extern crate libc;
 
 #[macro_use]
 extern crate clap;
@@ -13,12 +14,14 @@ use clap::{App, Arg, SubCommand};
 
 use std::error;
 use std::result;
+use surefs::scan_fs;
 
 pub type Result<T> = result::Result<T, Box<error::Error + Send + Sync>>;
 
 mod escape;
 mod show;
 mod suretree;
+mod surefs;
 
 #[allow(dead_code)]
 fn main() {
@@ -51,7 +54,8 @@ fn main() {
 
     match matches.subcommand() {
         ("scan", Some(_)) => {
-            println!("scan: {}", file);
+            let tree = scan_fs(".").unwrap();
+            println!("scan: {} {:#?}", file, tree);
         },
         ("update", Some(_)) => {
             println!("udpate: {:?} -> {}", src, file);
