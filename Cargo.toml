@@ -2,6 +2,8 @@
 name = "rsure"
 version = "0.2.0"
 authors = ["David Brown <davidb@davidb.org>"]
+description = "File integrity"
+license = "MIT"
 
 [dependencies]
 libc = "*"

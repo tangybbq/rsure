@@ -1,0 +1,34 @@
+= Rsure file integrity =
+
+Rsure is a program to help you know if your data is still there.
+
+You've been told you need to test your backups, but how?
+
+== Running it ==
+
+----
+$ rsure --help
+rsure 0.2.0
+
+USAGE:
+	rsure [FLAGS] [OPTIONS] <SUBCOMMAND>
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+OPTIONS:
+    -d, --dir <dir>      Directory to scan, defaults to "."
+    -f, --file <file>    Base of file name, default 2sure, will get .dat.gz appended
+    -s, --src <src>      Source .dat file for update
+
+SUBCOMMANDS:
+    check      Compare the directory with the dat file
+    help       Prints this message
+    scan       Scan a directory for the first time
+    show       Pretty print the dat file
+    signoff    Compare the dat file with the bak file
+    update     Update the scan using the dat file
+----
+
+More docs to come...
