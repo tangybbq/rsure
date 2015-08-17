@@ -133,7 +133,7 @@ fn encode_atts(name: &Path, meta: &Metadata) -> AttMap {
                     From::from("???")
                 },
             };
-            base.insert("lnk".to_string(), link.as_os_str().as_bytes().escaped());
+            base.insert("targ".to_string(), link.as_os_str().as_bytes().escaped());
         },
         libc::S_IFIFO => {
             base.insert("kind".to_string(), "fifo".to_string());
