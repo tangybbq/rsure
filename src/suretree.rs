@@ -5,10 +5,13 @@ use ::Result;
 use flate2::{self, Compression, FlateReadExt};
 use std::collections::BTreeMap;
 use std::os::unix::ffi::OsStringExt;
+use std::ffi::OsString;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, BufReader, BufWriter};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use super::escape::*;
 
 pub type AttMap = BTreeMap<String, String>;
 
@@ -170,5 +173,45 @@ fn fixed<I>(inp: &mut I, exp: &[u8]) -> Result<()>
                                                      String::from_utf8_lossy(exp)))),
         Some(Err(e)) => Err(From::from(format!("Error reading surefile: {}", e))),
         None => Err(From::from(format!("Unexpected eof on surefile"))),
+    }
+}
+
+/// Files and trees both have names.  These names are escaped.
+trait Named {
+    // Return the escaped name of this entity.
+    fn get_name(&self) -> &str;
+}
+
+impl Named for SureTree {
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+}
+
+impl Named for SureFile {
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+}
+
+/// Tree and file nodes can add themselves to a path.
+pub trait PathAdd {
+    /// Given an existing path, add the component of this entity to that
+    /// path, and return the resulting PathBuf.
+    fn join(&self, path: &Path) -> PathBuf;
+}
+
+impl<T: Named> PathAdd for T {
+    fn join(&self, path: &Path) -> PathBuf {
+        let s: OsString = OsStringExt::from_vec(self.get_name().unescape().unwrap());
+        path.join(&s)
+    }
+}
+
+// Provide for strings as well, assuming they are also escaped.
+impl PathAdd for str {
+    fn join(&self, path: &Path) -> PathBuf {
+        let s: OsString = OsStringExt::from_vec(self.unescape().unwrap());
+        path.join(&s)
     }
 }

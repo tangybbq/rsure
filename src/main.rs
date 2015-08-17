@@ -21,7 +21,7 @@ use std::path::Path;
 use surefs::scan_fs;
 use hashes::SureHash;
 use suretree::SureTree;
-use comp::TreeUpdate;
+use comp::{TreeCompare, TreeUpdate};
 
 pub type Result<T> = result::Result<T, Box<error::Error + Send + Sync>>;
 
@@ -113,7 +113,10 @@ fn main() {
             println!("check {}", file);
         },
         ("signoff", Some(_)) => {
+            let old_tree = SureTree::load(&src).unwrap();
+            let new_tree = SureTree::load(&file).unwrap();
             println!("signoff {:?} -> {}", src, file);
+            new_tree.compare_from(&old_tree, &Path::new(dir));
         },
         ("show", Some(_)) => {
             println!("show {}", file);
