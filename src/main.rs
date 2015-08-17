@@ -37,6 +37,8 @@ fn main() {
     env_logger::init().unwrap();
 
     let matches = App::new("rsure")
+        .version(&crate_version!())
+        .global_version(true)
         .arg(Arg::with_name("file")
              .short("f")
              .long("file")
