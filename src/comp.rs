@@ -51,8 +51,7 @@ fn walk(new: &mut SureTree, old: &SureTree) {
         }
 
         if file.atts.get("ino") != atts.get("ino") ||
-            file.atts.get("ctime") != atts.get("ctime") ||
-            file.atts.get("size") != atts.get("size")
+            file.atts.get("ctime") != atts.get("ctime")
         {
             continue;
         }
