@@ -15,3 +15,7 @@ rustc-serialize = "*"
 
 # This will go away
 env_logger = "*"
+
+[[bin]]
+name = "rsure"
+test = false

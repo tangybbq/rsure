@@ -1,16 +1,13 @@
 // Playing with paths.
 
-extern crate flate2;
-extern crate rustc_serialize;
-extern crate libc;
-extern crate openssl;
+extern crate rsure;
 extern crate env_logger;
 
 #[macro_use]
-extern crate clap;
+extern crate log;
 
 #[macro_use]
-extern crate log;
+extern crate clap;
 
 use clap::{App, Arg, SubCommand};
 
@@ -18,19 +15,10 @@ use std::error;
 use std::fs::rename;
 use std::result;
 use std::path::Path;
-use surefs::scan_fs;
-use hashes::SureHash;
-use suretree::SureTree;
-use comp::{TreeCompare, TreeUpdate};
+
+use rsure::{scan_fs, show_tree, SureHash, SureTree, TreeCompare, TreeUpdate};
 
 pub type Result<T> = result::Result<T, Box<error::Error + Send + Sync>>;
-
-mod escape;
-mod show;
-mod suretree;
-mod surefs;
-mod hashes;
-mod comp;
 
 #[allow(dead_code)]
 fn main() {
@@ -122,7 +110,7 @@ fn main() {
         },
         ("show", Some(_)) => {
             println!("show {}", file);
-            show::show(&Path::new(&file)).unwrap();
+            show_tree(&Path::new(&file)).unwrap();
         },
         _ => {
             panic!("Unsupported command.");
