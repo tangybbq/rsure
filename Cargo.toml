@@ -1,6 +1,6 @@
 [package]
 name = "rsure"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["David Brown <davidb@davidb.org>"]
 description = "File integrity"
 license = "MIT"
@@ -12,6 +12,7 @@ flate2 = "*"
 log = "*"
 openssl = "*"
 rustc-serialize = "*"
+regex = "*"
 
 # This will go away
 env_logger = "*"
@@ -19,3 +20,4 @@ env_logger = "*"
 [[bin]]
 name = "rsure"
 test = false
+doc = false

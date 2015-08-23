@@ -2,6 +2,7 @@
 
 extern crate rsure;
 extern crate env_logger;
+extern crate regex;
 
 #[macro_use]
 extern crate log;
@@ -11,6 +12,7 @@ extern crate clap;
 
 use clap::{App, Arg, SubCommand};
 
+use regex::Regex;
 use std::error;
 use std::fs::rename;
 use std::result;
@@ -57,13 +59,11 @@ fn main() {
 
     let dir = matches.value_of("dir").unwrap_or(".");
 
-    let file = remove_suffix(matches.value_of("file").unwrap_or("2sure"));
-    let src = matches.value_of("src").map(|s| remove_suffix(s));
-    let src = src.unwrap_or_else(|| file.clone());
+    let file = augment_suffix(matches.value_of("file").unwrap_or("2sure"), ".dat.gz");
+    let src = matches.value_of("src").map(|s| augment_suffix(s, ".bak.gz"));
+    let src = src.unwrap_or_else(|| replace_suffix(&file, ".bak.gz"));
 
-    let tmp = file.clone() + ".tmp.gz";
-    let file = file + ".dat.gz";
-    let src = src + ".bak.gz";
+    let tmp = replace_suffix(&file, ".tmp.gz");
 
     match matches.subcommand() {
         ("scan", Some(_)) => {
@@ -118,14 +118,22 @@ fn main() {
     }
 }
 
-fn remove_suffix(name: &str) -> String {
-    if name.ends_with(".dat.gz") {
-        name[0.. name.len() - 7].to_string()
-    } else if name.ends_with(".bak.gz") {
-        name[0.. name.len() - 7].to_string()
-    } else if name.ends_with(".tmp.gz") {
-        name[0.. name.len() - 7].to_string()
-    } else {
+// Augment the name with the given extension (e.g. ".dat.gz").  If the name
+// already has some kind of extension, leave it alone, though.
+fn augment_suffix(name: &str, ext: &str) -> String {
+    let pat = Regex::new(r"\.(dat|bak)\.gz$").unwrap();
+    if pat.is_match(name) {
         name.to_string()
+    } else {
+        name.to_string() + ext
+    }
+}
+
+// Replace the suffix of the given name with the new one.
+fn replace_suffix(name: &str, ext: &str) -> String {
+    let pat = Regex::new(r"(.*)\.(dat|bak)\.gz$").unwrap();
+    match pat.captures(name) {
+        None => name.to_string() + ext,
+        Some(cap) => cap.at(1).unwrap().to_string() + ext,
     }
 }
