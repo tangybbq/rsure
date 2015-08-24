@@ -19,6 +19,7 @@ use std::result;
 use std::path::Path;
 
 use rsure::{scan_fs, show_tree, SureHash, SureTree, TreeCompare, TreeUpdate};
+use rsure::{Progress};
 
 pub type Result<T> = result::Result<T, Box<error::Error + Send + Sync>>;
 
@@ -71,8 +72,11 @@ fn main() {
             println!("Scan {:?}", path);
             let mut tree = scan_fs(&path).unwrap();
             println!("scan: {} {} nodes", file, tree.count_nodes());
-            println!("hash: {:?}", tree.hash_estimate());
-            tree.hash_update(&path);
+            let estimate = tree.hash_estimate();
+            println!("hash: {:?}", estimate);
+            let mut progress = Progress::new(estimate.files, estimate.bytes);
+            tree.hash_update(&path, &mut progress);
+            progress.flush();
             tree.save(&tmp).unwrap();
 
             // Rotate the names.
@@ -89,8 +93,11 @@ fn main() {
             let mut new_tree = scan_fs(&path).unwrap();
             new_tree.update_from(&old_tree);
             // Compare
-            println!("hash: {:?}", new_tree.hash_estimate());
-            new_tree.hash_update(&path);
+            let estimate = new_tree.hash_estimate();
+            println!("hash: {:?}", estimate);
+            let mut progress = Progress::new(estimate.files, estimate.bytes);
+            new_tree.hash_update(&path, &mut progress);
+            progress.flush();
             new_tree.save(&tmp).unwrap();
 
             // Rotate the names.

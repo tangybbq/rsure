@@ -13,6 +13,7 @@ log = "*"
 openssl = "*"
 rustc-serialize = "*"
 regex = "*"
+time = "*"
 
 # This will go away
 env_logger = "*"

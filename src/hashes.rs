@@ -18,6 +18,7 @@ use rustc_serialize::hex::ToHex;
 use super::Result;
 use super::suretree::{SureFile, SureTree};
 use super::escape::*;
+use super::progress::Progress;
 
 pub trait SureHash {
     /// Estimate how much work (files and bytes) need to be hashed.
@@ -25,13 +26,13 @@ pub trait SureHash {
 
     /// Update the hashes on any files that are missing them.
     /// Note that this only logs errors, and tries to continue.
-    fn hash_update(&mut self, path: &Path);
+    fn hash_update(&mut self, path: &Path, meter: &mut Progress);
 }
 
 #[derive(Debug)]
 pub struct Estimate {
-    files: u64,
-    bytes: u64,
+    pub files: u64,
+    pub bytes: u64,
 }
 
 impl SureHash for SureTree {
@@ -44,11 +45,11 @@ impl SureHash for SureTree {
         est
     }
 
-    fn hash_update(&mut self, path: &Path) {
+    fn hash_update(&mut self, path: &Path, meter: &mut Progress) {
         for d in &mut self.children {
             let s: OsString = OsStringExt::from_vec(d.name.unescape().unwrap());
             let cpath = path.join(&s);
-            d.hash_update(&cpath);
+            d.hash_update(&cpath, meter);
         }
 
         for f in &mut self.files {
@@ -75,6 +76,8 @@ impl SureHash for SureTree {
                     error!("Unable to open '{:?}' for hashing ({})", fpath, e);
                 }
             }
+
+            meter.update(1, f.atts["size"].parse().unwrap());
         }
     }
 }
