@@ -18,8 +18,7 @@ use std::fs::rename;
 use std::result;
 use std::path::Path;
 
-use rsure::{scan_fs, show_tree, SureHash, SureTree, TreeCompare, TreeUpdate};
-use rsure::{Progress};
+use rsure::{show_tree, SureTree, TreeCompare};
 
 pub type Result<T> = result::Result<T, Box<error::Error + Send + Sync>>;
 
@@ -68,16 +67,7 @@ fn main() {
 
     match matches.subcommand() {
         ("scan", Some(_)) => {
-            let path = Path::new(dir);
-            println!("Scan {:?}", path);
-            let mut tree = scan_fs(&path).unwrap();
-            println!("scan: {} {} nodes", file, tree.count_nodes());
-            let estimate = tree.hash_estimate();
-            println!("hash: {:?}", estimate);
-            let mut progress = Progress::new(estimate.files, estimate.bytes);
-            tree.hash_update(&path, &mut progress);
-            progress.flush();
-            tree.save(&tmp).unwrap();
+            rsure::update(&dir, rsure::no_path(), &tmp).unwrap();
 
             // Rotate the names.
             rename(&file, &src).unwrap_or(());
@@ -86,19 +76,7 @@ fn main() {
             });
         },
         ("update", Some(_)) => {
-            let path = Path::new(dir);
-            println!("Load old surefile");
-            let old_tree = SureTree::load(&file).unwrap();
-            println!("Scan {:?}", path);
-            let mut new_tree = scan_fs(&path).unwrap();
-            new_tree.update_from(&old_tree);
-            // Compare
-            let estimate = new_tree.hash_estimate();
-            println!("hash: {:?}", estimate);
-            let mut progress = Progress::new(estimate.files, estimate.bytes);
-            new_tree.hash_update(&path, &mut progress);
-            progress.flush();
-            new_tree.save(&tmp).unwrap();
+            rsure::update(&dir, Some(&file), &tmp).unwrap();
 
             // Rotate the names.
             rename(&file, &src).unwrap_or(());
