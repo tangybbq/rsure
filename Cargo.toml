@@ -6,17 +6,17 @@ description = "File integrity"
 license = "MIT"
 
 [dependencies]
-libc = "*"
-clap = "*"
-flate2 = "*"
-log = "*"
-openssl = "*"
-rustc-serialize = "*"
-regex = "*"
-time = "*"
+libc = "0.1.8"
+clap = "1.4"
+flate2 = "0.2"
+log = "0.3"
+openssl = "0.6"
+rustc-serialize = "0.3"
+regex = "0.1"
+time = "0.1"
 
 # This will go away
-env_logger = "*"
+env_logger = "0.3"
 
 [[bin]]
 name = "rsure"
