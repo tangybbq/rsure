@@ -1,14 +1,8 @@
 /// Computing hashes for files.
 
-use libc;
-
 use std::ffi::OsString;
-use std::fs::{OpenOptions};
-use std::io::{self};
 use std::io::prelude::*;
 use std::os::unix::ffi::OsStringExt;
-use std::fs::File;
-use std::mem;
 use std::path::Path;
 
 use openssl::crypto::hash::{self, Hasher};
@@ -131,37 +125,60 @@ fn hash_file<R: Read>(rd: &mut R) -> Result<Vec<u8>> {
     Ok(h.finish())
 }
 
+use self::atime_impl::noatime_open;
+
 /// Open the given file, trying to not update the atime if that is
 /// possible.
 /// Unfortunately, there isn't a clean way to do this with Rust's library,
 /// so we hack.  This isn't completely safe, because we rely on the
 /// structure being encoded the same way.
-fn noatime_open(name: &Path) -> io::Result<File> {
-    // Try opening it first with noatime, and if that fails, try the open
-    // again without the option.
-    match OpenOptions::new().read(true).noatime().open(name) {
-        Ok(f) => Ok(f),
-        Err(_) =>
-            OpenOptions::new().read(true).open(name)
-    }
-}
+#[cfg(target_os = "linux")]
+mod atime_impl {
+    use libc;
+    use std::fs::{File, OpenOptions};
+    use std::io;
+    use std::mem;
+    use std::path::Path;
 
-trait HackNoAtime {
-    fn noatime(&mut self) -> &mut Self;
-}
-
-impl HackNoAtime for OpenOptions {
-    fn noatime(&mut self) -> &mut Self {
-        unsafe {
-            let ptr: *mut MyOpenOption = mem::transmute(self as *mut OpenOptions);
-            (*ptr).0.flags |= 0o1000000;
+    pub fn noatime_open(name: &Path) -> io::Result<File> {
+        // Try opening it first with noatime, and if that fails, try the open
+        // again without the option.
+        match OpenOptions::new().read(true).noatime().open(name) {
+            Ok(f) => Ok(f),
+            Err(_) =>
+                OpenOptions::new().read(true).open(name)
         }
-        self
+    }
+
+    trait HackNoAtime {
+        fn noatime(&mut self) -> &mut Self;
+    }
+
+    impl HackNoAtime for OpenOptions {
+        fn noatime(&mut self) -> &mut Self {
+            unsafe {
+                let ptr: *mut MyOpenOption = mem::transmute(self as *mut OpenOptions);
+                (*ptr).0.flags |= 0o1000000;
+            }
+            self
+        }
+    }
+
+    struct MyOpenOption(MyOpenOptionImp);
+    struct MyOpenOptionImp {
+        flags: libc::c_int,
+        // ...
     }
 }
 
-struct MyOpenOption(MyOpenOptionImp);
-struct MyOpenOptionImp {
-    flags: libc::c_int,
-    // ...
+// Other platforms, just use normal open.
+#[cfg(not(target_os = "linux"))]
+mod atime_impl {
+    use std::fs::{File, OpenOptions};
+    use std::path::Path;
+    use std::io;
+
+    pub fn noatime_open(name: &Path) -> io::Result<File> {
+        OpenOptions::new().read(true).open(name)
+    }
 }
