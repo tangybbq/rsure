@@ -18,7 +18,7 @@ use std::fs::rename;
 use std::result;
 use std::path::Path;
 
-use rsure::{show_tree, SureTree, TreeCompare};
+use rsure::{show_tree, Progress, SureHash, SureTree, TreeCompare};
 
 pub type Result<T> = result::Result<T, Box<error::Error + Send + Sync>>;
 
@@ -85,7 +85,15 @@ fn main() {
             });
         },
         ("check", Some(_)) => {
-            println!("check {}", file);
+            let old_tree = SureTree::load(&src).unwrap();
+            let mut new_tree = rsure::scan_fs(&dir).unwrap();
+            let estimate = new_tree.hash_estimate();
+            let pdir = &Path::new(dir);
+            let mut progress = Progress::new(estimate.files, estimate.bytes);
+            new_tree.hash_update(pdir, &mut progress);
+            progress.flush();
+            println!("check {:?}", file);
+            new_tree.compare_from(&old_tree, pdir);
         },
         ("signoff", Some(_)) => {
             let old_tree = SureTree::load(&src).unwrap();
