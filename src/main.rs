@@ -85,7 +85,7 @@ fn main() {
             });
         },
         ("check", Some(_)) => {
-            let old_tree = SureTree::load(&src).unwrap();
+            let old_tree = SureTree::load(&file).unwrap();
             let mut new_tree = rsure::scan_fs(&dir).unwrap();
             let estimate = new_tree.hash_estimate();
             let pdir = &Path::new(dir);
