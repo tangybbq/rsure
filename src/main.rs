@@ -38,7 +38,12 @@ fn main() {
              .short("s")
              .long("src")
              .takes_value(true)
-             .help("Source .dat file for update"))
+             .help("Source .dat file for signoff"))
+        .arg(Arg::with_name("old")
+             .short("o")
+             .long("old")
+             .takes_value(true)
+             .help("Source .dat for update"))
         .arg(Arg::with_name("dir")
              .short("d")
              .long("dir")
@@ -63,6 +68,9 @@ fn main() {
     let src = matches.value_of("src").map(|s| augment_suffix(s, ".bak.gz"));
     let src = src.unwrap_or_else(|| replace_suffix(&file, ".bak.gz"));
 
+    let old = matches.value_of("old");
+    let old = old.unwrap_or(&file);
+
     let tmp = replace_suffix(&file, ".tmp.gz");
 
     match matches.subcommand() {
@@ -76,7 +84,7 @@ fn main() {
             });
         },
         ("update", Some(_)) => {
-            rsure::update(&dir, Some(&file), &tmp).unwrap();
+            rsure::update(&dir, Some(old), &tmp).unwrap();
 
             // Rotate the names.
             rename(&file, &src).unwrap_or(());
