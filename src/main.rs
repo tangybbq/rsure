@@ -10,7 +10,7 @@ extern crate log;
 #[macro_use]
 extern crate clap;
 
-use clap::{App, Arg, SubCommand};
+use clap::{App, AppSettings, Arg, SubCommand};
 
 use regex::Regex;
 use std::error;
@@ -27,8 +27,8 @@ fn main() {
     env_logger::init().unwrap();
 
     let matches = App::new("rsure")
-        .version(&crate_version!())
-        .global_version(true)
+        .version(crate_version!())
+        .setting(AppSettings::GlobalVersion)
         .arg(Arg::with_name("file")
              .short("f")
              .long("file")
@@ -49,7 +49,7 @@ fn main() {
              .long("dir")
              .takes_value(true)
              .help("Directory to scan, defaults to \".\""))
-        .subcommand_required(true)
+        .setting(AppSettings::SubcommandRequired)
         .subcommand(SubCommand::with_name("scan")
                     .about("Scan a directory for the first time"))
         .subcommand(SubCommand::with_name("update")

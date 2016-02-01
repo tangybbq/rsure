@@ -1,13 +1,13 @@
 [package]
 name = "rsure"
-version = "0.3.2"
+version = "0.3.3"
 authors = ["David Brown <davidb@davidb.org>"]
 description = "File integrity"
 license = "MIT"
 
 [dependencies]
-libc = "0.1.8"
-clap = "1.4"
+libc = "0.2.6"
+clap = "2.0.2"
 flate2 = "0.2"
 log = "0.3"
 openssl = "0.6"
