@@ -33,9 +33,15 @@ pub struct SureFile {
 }
 
 impl SureTree {
+    /// Load a sure tree from a standard gzip compressed surefile.
     pub fn load<P: AsRef<Path>>(name: P) -> Result<SureTree> {
         let rd = try!(File::open(name));
         let rd = try!(rd.gz_decode());
+        Self::load_from(rd)
+    }
+
+    /// Load a sure tree from the given reader.
+    pub fn load_from<R: Read>(rd: R) -> Result<SureTree> {
         let rd = BufReader::new(rd);
         let mut lines = rd.split('\n' as u8);
 
@@ -101,9 +107,15 @@ impl SureTree {
             self.files.len()
     }
 
+    /// Write a sure tree to a standard gzipped file of the given name.
     pub fn save<P: AsRef<Path>>(&self, name: P) -> Result<()> {
         let wr = try!(File::create(name));
         let wr = flate2::write::GzEncoder::new(wr, Compression::Default);
+        self.save_to(wr)
+    }
+
+    /// Write a sure tree to the given writer.
+    pub fn save_to<W: Write>(&self, wr: W) -> Result<()> {
         let mut wr = BufWriter::new(wr);  // Benchmark with and without, gz might buffer.
 
         try!(writeln!(&mut wr, "asure-2.0"));

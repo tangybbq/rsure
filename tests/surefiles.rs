@@ -29,3 +29,17 @@ fn save_and_load() {
     let t3 = rsure::scan_fs(tmp.path()).unwrap();
     t3.compare_from(&t2, tmp.path());
 }
+
+// Test writing to a block.
+#[test]
+fn save_writer() {
+    let tmp = TempDir::new("rsure").unwrap();
+    let t1 = rsure::scan_fs(tmp.path()).unwrap();
+
+    let mut sf1 = vec![];
+    t1.save_to(&mut sf1).unwrap();
+    println!("Wrote {} bytes", sf1.len());
+
+    let t2 = SureTree::load_from(&sf1[..]).unwrap();
+    t2.compare_from(&t1, tmp.path());
+}
