@@ -3,7 +3,7 @@
 extern crate rsure;
 extern crate tempdir;
 
-use rsure::bk;
+use rsure::bk::{self, BkDir};
 use std::path::Path;
 use std::process::Command;
 use tempdir::TempDir;
@@ -25,6 +25,20 @@ fn bk_create() {
     // necessary.
     let sub = tmp.path().join("first").join("second");
     bk::setup(&sub).unwrap();
+}
+
+#[test]
+fn bk_saves() {
+    let tmp = TempDir::new("rsure").unwrap();
+
+    bk::setup(tmp.path()).unwrap();
+    let bkdir = BkDir::new(tmp.path()).unwrap();
+
+    let tree = rsure::scan_fs(tmp.path()).unwrap();
+    bkdir.save(&tree, "self.dat", "first-version").unwrap();
+
+    let t2 = rsure::scan_fs(tmp.path()).unwrap();
+    bkdir.save(&t2, "self.dat", "second-version").unwrap();
 }
 
 fn verify_configs(base: &Path) {

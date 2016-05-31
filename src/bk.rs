@@ -10,8 +10,9 @@
 use Result;
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+use suretree::SureTree;
 
 /// Initialize a new BitKeeper-based storage directory.  The path should
 /// name a directory that is either empty or can be created with a single
@@ -56,4 +57,64 @@ pub fn setup<P: AsRef<Path>>(base: P) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// A manager for a tree of surefiles managed under BitKeeper.
+pub struct BkDir {
+    base: PathBuf,
+}
+
+impl BkDir {
+    /// Construct a new `BkDir` that can store and retrieve files from the
+    /// given path.  The directory must have already been created with the
+    /// `setup` function above.
+    pub fn new<P: AsRef<Path>>(base: P) -> Result<BkDir> {
+        Ok(BkDir {
+            base: base.as_ref().to_owned()
+        })
+    }
+
+    /// Write a SureTree to a surefile of the given name (generally of the
+    /// convention "fsname.dat").  If this is the first file written by
+    /// this name, it will be checked in initially into BitKeeper.  If it
+    /// is an update, the BitKeeper file will be edited, and a cset made to
+    /// record this.  The `info` text should be a short piece of text to
+    /// describe this revision.  It will be used as the commit text within
+    /// BitKeeper, and also used (exactly) to retrieve this version later.
+    pub fn save(&self, tree: &SureTree, name: &str, info: &str) -> Result<()> {
+        let y_arg = format!("-y{}", info);
+
+        // Try checking out the file.  BitKeeper will fail if it doesn't
+        // exist.
+        let initial = match self.bk_do(&["edit", name]) {
+            Ok(_) => false,
+            Err(_) => true,
+        };
+
+        {
+            let mut wr = try!(File::create(&self.base.join(name)));
+            try!(tree.save_to(&mut wr));
+        }
+
+        if initial {
+            try!(self.bk_do(&["ci", "-i", &y_arg, name]));
+        } else {
+            try!(self.bk_do(&["ci", &y_arg, name]));
+        }
+
+        try!(self.bk_do(&["commit", &y_arg, name]));
+
+        Ok(())
+    }
+
+    fn bk_do(&self, args: &[&str]) -> Result<()> {
+        let status = try!(Command::new("bk")
+                          .args(args)
+                          .current_dir(&self.base)
+                          .status());
+        if !status.success() {
+            return Err(format!("Error running bk: {:?}", status).into());
+        }
+        Ok(())
+    }
 }
