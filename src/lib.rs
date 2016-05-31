@@ -29,6 +29,7 @@ mod surefs;
 mod hashes;
 mod comp;
 mod progress;
+pub mod bk;
 
 // Some common operations, abstracted here.
 
