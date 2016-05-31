@@ -177,7 +177,7 @@ fn fixed<I>(inp: &mut I, exp: &[u8]) -> Result<()>
 }
 
 /// Files and trees both have names.  These names are escaped.
-trait Named {
+pub trait Named {
     // Return the escaped name of this entity.
     fn get_name(&self) -> &str;
 }
