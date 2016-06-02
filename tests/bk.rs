@@ -4,6 +4,7 @@ extern crate rsure;
 extern crate tempdir;
 
 use rsure::bk::{self, BkDir};
+use rsure::TreeCompare;
 use std::path::Path;
 use std::process::Command;
 use tempdir::TempDir;
@@ -39,6 +40,35 @@ fn bk_saves() {
 
     let t2 = rsure::scan_fs(tmp.path()).unwrap();
     bkdir.save(&t2, "self.dat", "second-version").unwrap();
+
+    // tmp.into_path();
+    println!("Running query!!!");
+    let qy = bkdir.query().unwrap();
+    let mut found = 0;
+    for ent in &qy {
+        if ent.file == "self.dat" {
+            if ent.name == "first-version" {
+                found |= 1;
+            } else if ent.name == "second-version" {
+                found |= 2;
+            }
+        }
+    }
+    assert_eq!(found, 3);
+
+    match bkdir.load("none.dat", "first-version") {
+        Err(_) => (),
+        Ok(_) => panic!("Shouldn't be able to find node."),
+    }
+
+    match bkdir.load("self.dat", "third-version") {
+        Err(_) => (),
+        Ok(_) => panic!("Shouldn't be able to find node."),
+    }
+
+    let tt1 = bkdir.load("self.dat", "first-version").unwrap();
+    let tt2 = bkdir.load("self.dat", "second-version").unwrap();
+    tt2.compare_from(&tt1, tmp.path());
 }
 
 fn verify_configs(base: &Path) {

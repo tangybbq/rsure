@@ -3,6 +3,7 @@
 extern crate flate2;
 extern crate libc;
 extern crate openssl;
+extern crate regex;
 extern crate rustc_serialize;
 extern crate time;
 

@@ -7,11 +7,12 @@
 //! to take nearly 2GB of individually compressed surefiles (several
 //! hundred), and encode them in less than 50MB.
 
+use regex::Regex;
 use Result;
 use std::fs::File;
-use std::io::Write;
+use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use suretree::SureTree;
 
 /// Initialize a new BitKeeper-based storage directory.  The path should
@@ -62,6 +63,7 @@ pub fn setup<P: AsRef<Path>>(base: P) -> Result<()> {
 /// A manager for a tree of surefiles managed under BitKeeper.
 pub struct BkDir {
     base: PathBuf,
+    change_re: Regex,
 }
 
 impl BkDir {
@@ -70,7 +72,8 @@ impl BkDir {
     /// `setup` function above.
     pub fn new<P: AsRef<Path>>(base: P) -> Result<BkDir> {
         Ok(BkDir {
-            base: base.as_ref().to_owned()
+            base: base.as_ref().to_owned(),
+            change_re: Regex::new(r"^  ([^ ]+) ([\d\.]+) (.*)$").unwrap(),
         })
     }
 
@@ -107,6 +110,67 @@ impl BkDir {
         Ok(())
     }
 
+    /// Query to determine all file versions that have been saved.
+    pub fn query(&self) -> Result<Vec<BkSureFile>> {
+        let output = try!(Command::new("bk")
+                          .args(&["changes", "-v",
+                                "-d:INDENT::DPN: :REV: :C:\n"])
+                          .current_dir(&self.base)
+                          .output());
+        if !output.stderr.is_empty() {
+            println!("BK error: {:?}", String::from_utf8_lossy(&output.stderr));
+            return Err(format!("Error running bk: {:?}", output.status).into());
+        }
+        if !output.status.success() {
+            return Err(format!("Error running bk: {:?}", output.status).into());
+        }
+
+        let mut result = vec![];
+
+        for line in (&output.stdout[..]).lines() {
+            let line = try!(line);
+            match self.change_re.captures(&line) {
+                None => (),
+                Some(cap) => {
+                    let file = cap.at(1).unwrap();
+                    let rev = cap.at(2).unwrap();
+                    let name = cap.at(3).unwrap();
+                    if !file.ends_with(".dat") {
+                        continue;
+                    }
+                    result.push(BkSureFile {
+                        file: file.to_owned(),
+                        rev: rev.to_owned(),
+                        name: name.to_owned(),
+                    });
+                },
+            }
+        }
+        Ok(result)
+    }
+
+    pub fn load(&self, file: &str, name: &str) -> Result<SureTree> {
+        let files = try!(self.query());
+        let rev = match files.iter().find(|&x| x.file == file && x.name == name) {
+            None => return Err(format!("Couldn't find file: {:?} name: {:?}", file, name).into()),
+            Some(x) => &x.rev[..],
+        };
+
+        let mut child = try!(Command::new("bk")
+                             .args(&["co", "-p",
+                                   &format!("-r{}", rev),
+                                   file])
+                             .current_dir(&self.base)
+                             .stdout(Stdio::piped())
+                             .spawn());
+        let tree = try!(SureTree::load_from(child.stdout.as_mut().unwrap()));
+        let status = try!(child.wait());
+        if !status.success() {
+            return Err(format!("Error running bk: {:?}", status).into());
+        }
+        Ok(tree)
+    }
+
     fn bk_do(&self, args: &[&str]) -> Result<()> {
         let status = try!(Command::new("bk")
                           .args(args)
@@ -117,4 +181,10 @@ impl BkDir {
         }
         Ok(())
     }
+}
+
+pub struct BkSureFile {
+    pub file: String,
+    pub rev: String,
+    pub name: String,
 }
