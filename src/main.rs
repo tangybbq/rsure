@@ -20,6 +20,8 @@ use std::path::Path;
 
 use rsure::{show_tree, Progress, SureHash, SureTree, TreeCompare};
 
+mod bkcmd;
+
 pub type Result<T> = result::Result<T, Box<error::Error + Send + Sync>>;
 
 #[allow(dead_code)]
@@ -60,6 +62,11 @@ fn main() {
                     .about("Compare the dat file with the bak file"))
         .subcommand(SubCommand::with_name("show")
                     .about("Pretty print the dat file"))
+        .subcommand(SubCommand::with_name("bknew")
+                    .about("Create a new bitkeeper-based sure store")
+                    .arg(Arg::with_name("dir")
+                         .required(true)
+                         .help("Directory to create bk-based store")))
         .get_matches();
 
     let dir = matches.value_of("dir").unwrap_or(".");
@@ -112,6 +119,10 @@ fn main() {
         ("show", Some(_)) => {
             println!("show {}", file);
             show_tree(&Path::new(&file)).unwrap();
+        },
+        ("bknew", Some(sub)) => {
+            let bkdir = sub.value_of("dir").unwrap();
+            bkcmd::new(bkdir).unwrap();
         },
         _ => {
             panic!("Unsupported command.");
