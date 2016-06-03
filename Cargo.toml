@@ -1,6 +1,6 @@
 [package]
 name = "rsure"
-version = "0.3.4"
+version = "0.3.5"
 authors = ["David Brown <davidb@davidb.org>"]
 description = "File integrity"
 license = "MIT"
