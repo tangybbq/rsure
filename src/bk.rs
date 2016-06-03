@@ -183,6 +183,7 @@ impl BkDir {
     }
 }
 
+#[derive(Debug)]
 pub struct BkSureFile {
     pub file: String,
     pub rev: String,

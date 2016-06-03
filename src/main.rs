@@ -67,6 +67,16 @@ fn main() {
                     .arg(Arg::with_name("dir")
                          .required(true)
                          .help("Directory to create bk-based store")))
+        .subcommand(SubCommand::with_name("bkimport")
+                    .about("Import a tree of surefiles into a bk store")
+                    .arg(Arg::with_name("src")
+                         .long("src")
+                         .takes_value(true)
+                         .required(true))
+                    .arg(Arg::with_name("dest")
+                         .long("dest")
+                         .takes_value(true)
+                         .required(true)))
         .get_matches();
 
     let dir = matches.value_of("dir").unwrap_or(".");
@@ -123,6 +133,11 @@ fn main() {
         ("bknew", Some(sub)) => {
             let bkdir = sub.value_of("dir").unwrap();
             bkcmd::new(bkdir).unwrap();
+        },
+        ("bkimport", Some(sub)) => {
+            let src = sub.value_of("src").unwrap();
+            let dest = sub.value_of("dest").unwrap();
+            bkcmd::import(src, dest).unwrap();
         },
         _ => {
             panic!("Unsupported command.");

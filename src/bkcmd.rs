@@ -1,7 +1,11 @@
 // Bitkeeper command line utilities.
 
+use regex::Regex;
 use Result;
-use rsure::bk;
+use rsure::bk::{self, BkDir};
+use rsure::SureTree;
+use std::collections::HashSet;
+use std::os::linux::fs::MetadataExt;
 use std::path::Path;
 
 pub fn new(path: &str) -> Result<()> {
@@ -28,4 +32,59 @@ pub fn ensure_dir<P: AsRef<Path>>(path: P) -> Result<()> {
     } else {
         Ok(())
     }
+}
+
+/// Import a bunch of files from `src` and include them in the bkdir.
+pub fn import<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dest: P2) -> Result<()> {
+    let src = src.as_ref();
+    let bkd = try!(BkDir::new(dest));
+
+    let re = Regex::new(r"^([^-]+)-(.*)\.dat\.gz$").unwrap();
+
+    let mut namedir = vec![];
+
+    let present = try!(bkd.query());
+    let present = present.iter().map(|p| (&p.name, &p.file)).collect::<HashSet<_>>();
+
+    println!("Present: {:?}", present);
+    for ent in try!(src.read_dir()) {
+        let ent = try!(ent);
+        let name = ent.file_name();
+        let name = match name.to_str() {
+            None => continue,
+            Some(name) => name,
+        };
+        match re.captures(name) {
+            None => continue,
+            Some(cap) => {
+                // println!("ent: {:?} name {:?}",
+                //          cap.at(1).unwrap(),
+                //          cap.at(2).unwrap());
+                let mtime = try!(ent.metadata()).st_mtime();
+                namedir.push(ImportNode {
+                    mtime: mtime,
+                    name: cap.at(2).unwrap().to_owned(),
+                    file: cap.at(1).unwrap().to_owned(),
+                });
+            },
+        }
+    }
+    namedir.sort();
+    for node in namedir {
+        if present.contains(&(&node.name, &node.file)) {
+            continue;
+        }
+        let name = format!("{}-{}.dat.gz", node.file, node.name);
+        println!("Importing: {:?}", name);
+        let tree = try!(SureTree::load(&src.join(name)));
+        try!(bkd.save(&tree, &node.file, &node.name));
+    }
+    Ok(())
+}
+
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+struct ImportNode {
+    mtime: i64,
+    name: String,
+    file: String,
 }
