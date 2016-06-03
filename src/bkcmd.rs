@@ -46,7 +46,7 @@ pub fn import<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dest: P2) -> Result<()>
     let present = try!(bkd.query());
     let present = present.iter().map(|p| (&p.name, &p.file)).collect::<HashSet<_>>();
 
-    println!("Present: {:?}", present);
+    println!("{} surefiles already present", present.len());
     for ent in try!(src.read_dir()) {
         let ent = try!(ent);
         let name = ent.file_name();
