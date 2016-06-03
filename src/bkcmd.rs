@@ -71,13 +71,14 @@ pub fn import<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dest: P2) -> Result<()>
     }
     namedir.sort();
     for node in namedir {
-        if present.contains(&(&node.name, &node.file)) {
+        let file = format!("{}.dat", node.file);
+        if present.contains(&(&node.name, &file)) {
             continue;
         }
         let name = format!("{}-{}.dat.gz", node.file, node.name);
-        println!("Importing: {:?}", name);
+        println!("Importing: {:?} ({:?}, {:?})", name, node.name, file);
         let tree = try!(SureTree::load(&src.join(name)));
-        try!(bkd.save(&tree, &node.file, &node.name));
+        try!(bkd.save(&tree, &file, &node.name));
     }
     Ok(())
 }
