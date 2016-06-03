@@ -102,7 +102,7 @@ impl BkDir {
         if initial {
             try!(self.bk_do(&["ci", "-i", &y_arg, name]));
         } else {
-            try!(self.bk_do(&["ci", &y_arg, name]));
+            try!(self.bk_do(&["ci", "-f", &y_arg, name]));
         }
 
         try!(self.bk_do(&["commit", &y_arg, name]));
