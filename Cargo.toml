@@ -6,8 +6,8 @@ description = "File integrity"
 license = "MIT"
 
 [dependencies]
-libc = "0.2.6"
-clap = "2.0.2"
+libc = "0.2.11"
+clap = "2.5.2"
 flate2 = "0.2"
 log = "0.3"
 openssl = "0.7"
