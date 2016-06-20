@@ -14,8 +14,6 @@
 //! means, for example, that a 2-byte encoded UTF-8 sequence will expand to
 //! take 6 bytes.
 
-use std::error;
-use std::fmt;
 use std::io::prelude::*;
 
 pub trait Escape {
@@ -26,27 +24,26 @@ pub trait Unescape {
     fn unescape(&self) -> Result<Vec<u8>, EscapeError>;
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum EscapeError {
-    /// The input contained a '=' escape with an invalid hex character.
-    InvalidHexCharacter,
-    /// The input contained a '=' escape with insufficient following
-    /// characters.
-    InvalidHexLength,
-}
-
-impl error::Error for EscapeError {
-    fn description(&self) -> &str {
-        match *self {
-            EscapeError::InvalidHexCharacter => "Invalid hex character",
-            EscapeError::InvalidHexLength => "Invalid length following '='",
-        }
+error_chain! {
+    types {
+        EscapeError, EscapeErrorKind, EscapChainError, EscapeResult;
     }
-}
 
-impl fmt::Display for EscapeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(&self, f)
+    links {
+    }
+
+    foreign_links {
+    }
+
+    errors {
+        InvalidHexCharacter {
+            description("Invalid hex character")
+            display("Invalid hex character")
+        }
+        InvalidHexLength {
+            description("Invalid hex length")
+            display("Invalid hex length")
+        }
     }
 }
 
@@ -88,7 +85,7 @@ impl Unescape for str {
                     b'A'...b'F' => tmp |= byte - b'A' + 10,
                     b'a'...b'f' => tmp |= byte - b'a' + 10,
                     b'0'...b'f' => tmp |= byte - b'0',
-                    _ => return Err(EscapeError::InvalidHexCharacter),
+                    _ => return Err(EscapeErrorKind::InvalidHexCharacter.into()),
                 }
                 phase += 1;
                 if phase == 3 {
@@ -100,7 +97,7 @@ impl Unescape for str {
         }
 
         if phase != 0 {
-            return Err(EscapeError::InvalidHexLength);
+            return Err(EscapeErrorKind::InvalidHexLength.into());
         }
 
         Ok(buf)
@@ -109,10 +106,19 @@ impl Unescape for str {
 
 #[test]
 fn test_unescape() {
-    assert_eq!("=00".unescape(), Ok(vec![0]));
-    assert_eq!("=00=0".unescape(), Err(EscapeError::InvalidHexLength));
-    assert_eq!("=00=".unescape(), Err(EscapeError::InvalidHexLength));
-    assert_eq!("=4g".unescape(), Err(EscapeError::InvalidHexCharacter));
+    macro_rules! assert_error_kind {
+        ( $expr:expr, $kind:path ) => {
+            match $expr.unwrap_err().into_kind() {
+                $kind => (),
+                _ => panic!("Unexpected error kind"),
+            }
+        }
+    }
+
+    assert_eq!("=00".unescape().unwrap(), vec![0]);
+    assert_error_kind!("=00=0".unescape(), EscapeErrorKind::InvalidHexLength);
+    assert_error_kind!("=00=".unescape(), EscapeErrorKind::InvalidHexLength);
+    assert_error_kind!("=4g".unescape(), EscapeErrorKind::InvalidHexCharacter);
 }
 
 #[test]

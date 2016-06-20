@@ -1,5 +1,6 @@
 // Errors.
 
+use escape;
 use std::io;
 
 error_chain! {
@@ -8,6 +9,7 @@ error_chain! {
     }
 
     links {
+        escape::EscapeError, escape::EscapeErrorKind, Escape;
     }
 
     foreign_links {
