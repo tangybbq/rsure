@@ -36,9 +36,9 @@ error_chain! {
     }
 
     errors {
-        InvalidHexCharacter {
+        InvalidHexCharacter(ch: u8) {
             description("Invalid hex character")
-            display("Invalid hex character")
+            display("Invalid hex character: {:?}", ch)
         }
         InvalidHexLength {
             description("Invalid hex length")
@@ -85,7 +85,7 @@ impl Unescape for str {
                     b'A'...b'F' => tmp |= byte - b'A' + 10,
                     b'a'...b'f' => tmp |= byte - b'a' + 10,
                     b'0'...b'f' => tmp |= byte - b'0',
-                    _ => return Err(EscapeErrorKind::InvalidHexCharacter.into()),
+                    _ => return Err(EscapeErrorKind::InvalidHexCharacter(byte).into()),
                 }
                 phase += 1;
                 if phase == 3 {
@@ -107,10 +107,10 @@ impl Unescape for str {
 #[test]
 fn test_unescape() {
     macro_rules! assert_error_kind {
-        ( $expr:expr, $kind:path ) => {
+        ( $expr:expr, $kind:pat ) => {
             match $expr.unwrap_err().into_kind() {
                 $kind => (),
-                _ => panic!("Unexpected error kind"),
+                e => panic!("Unexpected error kind: {:?} (want {})", e, stringify!($kind)),
             }
         }
     }
@@ -118,7 +118,7 @@ fn test_unescape() {
     assert_eq!("=00".unescape().unwrap(), vec![0]);
     assert_error_kind!("=00=0".unescape(), EscapeErrorKind::InvalidHexLength);
     assert_error_kind!("=00=".unescape(), EscapeErrorKind::InvalidHexLength);
-    assert_error_kind!("=4g".unescape(), EscapeErrorKind::InvalidHexCharacter);
+    assert_error_kind!("=4g".unescape(), EscapeErrorKind::InvalidHexCharacter(b'g'));
 }
 
 #[test]
