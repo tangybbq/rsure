@@ -10,9 +10,10 @@ extern crate time;
 #[macro_use]
 extern crate log;
 
-use std::error;
+#[macro_use]
+extern crate error_chain;
+
 use std::path::Path;
-use std::result;
 
 pub use surefs::scan_fs;
 pub use hashes::SureHash;
@@ -21,8 +22,9 @@ pub use comp::{TreeCompare, TreeUpdate};
 pub use show::show_tree;
 pub use progress::Progress;
 
-pub type Result<T> = result::Result<T, Box<error::Error + Send + Sync>>;
+pub use errors::{Error, ErrorKind, ChainErr, Result};
 
+mod errors;
 mod escape;
 mod show;
 mod suretree;

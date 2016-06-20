@@ -13,16 +13,15 @@ extern crate clap;
 use clap::{App, AppSettings, Arg, SubCommand};
 
 use regex::Regex;
-use std::error;
 use std::fs::rename;
-use std::result;
 use std::path::Path;
 
 use rsure::{show_tree, Progress, SureHash, SureTree, TreeCompare};
 
 mod bkcmd;
 
-pub type Result<T> = result::Result<T, Box<error::Error + Send + Sync>>;
+// For now, just use the crate's error type.
+pub use rsure::Result;
 
 #[allow(dead_code)]
 fn main() {
