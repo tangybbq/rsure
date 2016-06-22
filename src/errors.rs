@@ -2,6 +2,7 @@
 
 use escape;
 use std::io;
+use std::process::ExitStatus;
 
 error_chain! {
     types {
@@ -17,5 +18,9 @@ error_chain! {
     }
 
     errors {
+        BkError(status: ExitStatus, msg: String) {
+            description("Error running BitKeeper")
+            display("Error running BitKeeper: {:?} ({:?}", status, msg)
+        }
     }
 }

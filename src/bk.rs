@@ -7,6 +7,7 @@
 //! to take nearly 2GB of individually compressed surefiles (several
 //! hundred), and encode them in less than 50MB.
 
+use errors::ErrorKind;
 use regex::Regex;
 use Result;
 use std::fs::File;
@@ -31,7 +32,7 @@ pub fn setup<P: AsRef<Path>>(base: P) -> Result<()> {
     cmd.arg(base.as_os_str());
     let status = try!(cmd.status());
     if !status.success() {
-        return Err(format!("Error running bk: {:?}", status).into());
+        return Err(ErrorKind::BkError(status, "".into()).into());
     }
 
     // Construct a README file in this directory, since there won't appear
@@ -46,7 +47,7 @@ pub fn setup<P: AsRef<Path>>(base: P) -> Result<()> {
                       .current_dir(base)
                       .status());
     if !status.success() {
-        return Err(format!("Error running bk: {:?}", status).into());
+        return Err(ErrorKind::BkError(status, "".into()).into());
     }
 
     let status = try!(Command::new("bk")
@@ -54,7 +55,7 @@ pub fn setup<P: AsRef<Path>>(base: P) -> Result<()> {
                       .current_dir(base)
                       .status());
     if !status.success() {
-        return Err(format!("Error running bk: {:?}", status).into());
+        return Err(ErrorKind::BkError(status, "".into()).into());
     }
 
     Ok(())
@@ -118,11 +119,11 @@ impl BkDir {
                           .current_dir(&self.base)
                           .output());
         if !output.stderr.is_empty() {
-            println!("BK error: {:?}", String::from_utf8_lossy(&output.stderr));
-            return Err(format!("Error running bk: {:?}", output.status).into());
+            return Err(ErrorKind::BkError(output.status,
+                                          String::from_utf8_lossy(&output.stderr).into_owned()).into());
         }
         if !output.status.success() {
-            return Err(format!("Error running bk: {:?}", output.status).into());
+            return Err(ErrorKind::BkError(output.status, "".into()).into());
         }
 
         let mut result = vec![];
@@ -166,7 +167,7 @@ impl BkDir {
         let tree = try!(SureTree::load_from(child.stdout.as_mut().unwrap()));
         let status = try!(child.wait());
         if !status.success() {
-            return Err(format!("Error running bk: {:?}", status).into());
+            return Err(ErrorKind::BkError(status, "".into()).into());
         }
         Ok(tree)
     }
@@ -177,7 +178,7 @@ impl BkDir {
                           .current_dir(&self.base)
                           .status());
         if !status.success() {
-            return Err(format!("Error running bk: {:?}", status).into());
+            return Err(ErrorKind::BkError(status, "".into()).into());
         }
         Ok(())
     }
