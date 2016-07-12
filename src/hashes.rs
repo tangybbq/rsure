@@ -129,45 +129,28 @@ use self::atime_impl::noatime_open;
 
 /// Open the given file, trying to not update the atime if that is
 /// possible.
-/// Unfortunately, there isn't a clean way to do this with Rust's library,
-/// so we hack.  This isn't completely safe, because we rely on the
-/// structure being encoded the same way.
+/// The `custom_flags` method is only stable since Rust 1.10.0.
 #[cfg(target_os = "linux")]
 mod atime_impl {
-    use libc;
     use std::fs::{File, OpenOptions};
+    use std::os::unix::fs::OpenOptionsExt;
     use std::io;
-    use std::mem;
     use std::path::Path;
+
+    // From linux's fcntl.h, not exported in the libc crate.
+    const O_NOATIME: i32 = 0o1000000;
 
     pub fn noatime_open(name: &Path) -> io::Result<File> {
         // Try opening it first with noatime, and if that fails, try the open
         // again without the option.
-        match OpenOptions::new().read(true).noatime().open(name) {
+        match OpenOptions::new().read(true)
+            .custom_flags(O_NOATIME)
+            .open(name)
+        {
             Ok(f) => Ok(f),
             Err(_) =>
                 OpenOptions::new().read(true).open(name)
         }
-    }
-
-    trait HackNoAtime {
-        fn noatime(&mut self) -> &mut Self;
-    }
-
-    impl HackNoAtime for OpenOptions {
-        fn noatime(&mut self) -> &mut Self {
-            unsafe {
-                let ptr: *mut MyOpenOption = mem::transmute(self as *mut OpenOptions);
-                (*ptr).0.flags |= 0o1000000;
-            }
-            self
-        }
-    }
-
-    struct MyOpenOption(MyOpenOptionImp);
-    struct MyOpenOptionImp {
-        flags: libc::c_int,
-        // ...
     }
 }
 
