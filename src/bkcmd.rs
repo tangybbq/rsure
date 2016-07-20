@@ -5,8 +5,9 @@ use Result;
 use rsure::bk::{self, BkDir};
 use rsure::SureTree;
 use std::collections::HashSet;
-use std::os::linux::fs::MetadataExt;
 use std::path::Path;
+
+use std::os::unix::fs::MetadataExt;
 
 pub fn new(path: &str) -> Result<()> {
     try!(ensure_dir(path));
@@ -60,7 +61,7 @@ pub fn import<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dest: P2) -> Result<()>
                 // println!("ent: {:?} name {:?}",
                 //          cap.at(1).unwrap(),
                 //          cap.at(2).unwrap());
-                let mtime = try!(ent.metadata()).st_mtime();
+                let mtime = try!(ent.metadata()).mtime();
                 namedir.push(ImportNode {
                     mtime: mtime,
                     name: cap.at(2).unwrap().to_owned(),

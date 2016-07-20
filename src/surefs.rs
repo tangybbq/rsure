@@ -101,17 +101,17 @@ fn walk(my_name: String, path: &Path, my_atts: AttMap, my_meta: &Metadata)
 // returns a placeholder.
 fn encode_atts(name: &Path, meta: &Metadata) -> AttMap {
     // let fname = name.file_name().unwrap().as_bytes().escaped();
-    let mode = meta.mode() & libc::S_IFMT;
+    let mode = meta.mode() as libc::mode_t & libc::S_IFMT;
 
     let mut base = AttMap::new();
 
     // These attributes apply to every node.
     base.insert("uid".to_string(), meta.uid().to_string());
     base.insert("gid".to_string(), meta.gid().to_string());
-    base.insert("perm".to_string(), (meta.mode() & !libc::S_IFMT).to_string());
+    base.insert("perm".to_string(), (meta.mode() as libc::mode_t & !libc::S_IFMT).to_string());
 
     // Other permissions are based on the type of the node.
-    match mode {
+    match mode as libc::mode_t {
         libc::S_IFDIR => {
             base.insert("kind".to_string(), "dir".to_string());
         },
