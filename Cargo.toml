@@ -1,9 +1,20 @@
 [package]
 name = "rsure"
-version = "0.3.6"
+version = "0.4.0"
 authors = ["David Brown <davidb@davidb.org>"]
-description = "File integrity"
+description = """
+Rsure captures hashes and metadata about a tree of files, and can
+later verify these hashes and metadata to determine if the files have
+changed.  It supports incremental updates, and includes an standalone
+executable for scanning and checking trees.
+"""
 license = "MIT"
+readme = "README.rst"
+repository = "https://github.com/d3zd3z/rsure"
+
+exclude = [
+    "2sure.*.gz"
+]
 
 [dependencies]
 libc = "0.2.11"
