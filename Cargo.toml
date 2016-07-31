@@ -1,6 +1,6 @@
 [package]
 name = "rsure"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["David Brown <davidb@davidb.org>"]
 description = """
 Rsure captures hashes and metadata about a tree of files, and can
@@ -25,7 +25,7 @@ openssl = "0.7"
 rustc-serialize = "0.3"
 regex = "0.1"
 time = "0.1"
-error-chain = "0.1.12"
+error-chain = "0.2"
 
 # This will go away
 env_logger = "0.3"
