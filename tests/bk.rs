@@ -4,7 +4,7 @@ extern crate rsure;
 extern crate tempdir;
 
 use rsure::bk::{self, BkDir};
-use rsure::{PrintCompare, TreeCompare};
+use rsure::{TreeCompare, stdout_visitor};
 use std::path::Path;
 use std::process::Command;
 use tempdir::TempDir;
@@ -68,8 +68,7 @@ fn bk_saves() {
 
     let tt1 = bkdir.load("self.dat", "first-version").unwrap();
     let tt2 = bkdir.load("self.dat", "second-version").unwrap();
-    let mut comp = PrintCompare;
-    tt2.compare_from(&mut comp, &tt1, tmp.path());
+    tt2.compare_from(&mut stdout_visitor(), &tt1, tmp.path());
 }
 
 fn verify_configs(base: &Path) {

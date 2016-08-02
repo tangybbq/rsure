@@ -18,7 +18,9 @@ use std::path::Path;
 pub use surefs::scan_fs;
 pub use hashes::SureHash;
 pub use suretree::SureTree;
-pub use comp::{CompareAction, PrintCompare, TreeCompare, TreeUpdate};
+pub use comp::{TreeCompare, TreeUpdate};
+pub use compvisit::{CompareVisitor, CompareType, CompareAction, PrintVisitor,
+                    stdout_visitor, stderr_visitor};
 pub use show::show_tree;
 pub use progress::Progress;
 
@@ -31,6 +33,7 @@ mod suretree;
 mod surefs;
 mod hashes;
 mod comp;
+mod compvisit;
 mod progress;
 pub mod bk;
 

@@ -1,7 +1,7 @@
 // Comparisons between trees.
 
+use compvisit::{CompareVisitor, CompareType, CompareAction};
 use std::collections::BTreeMap;
-use std::io::prelude::*;
 use std::path::Path;
 
 use super::suretree::{AttMap, SureTree, PathAdd};
@@ -66,59 +66,19 @@ fn walk(new: &mut SureTree, old: &SureTree) {
     }
 }
 
-/// A `CompareAction` receives information about the changes made in two
-/// trees.
-pub trait CompareAction {
-    fn add_dir(&mut self, name: &Path);
-    fn del_dir(&mut self, name: &Path);
-    fn add_file(&mut self, name: &Path);
-    fn del_file(&mut self, name: &Path);
-    fn att_change(&mut self, name: &Path, atts: &[String]);
-}
-
-/// `PrintCompare` just prints out the differences.
-pub struct PrintCompare;
-
-impl CompareAction for PrintCompare {
-    fn add_dir(&mut self, name: &Path) {
-        println!("+ {:22} {}", "dir", name.to_string_lossy());
-    }
-
-    fn del_dir(&mut self, name: &Path) {
-        println!("- {:22} {}", "dir", name.to_string_lossy());
-    }
-
-    fn add_file(&mut self, name: &Path) {
-        println!("+ {:22} {}", "file", name.to_string_lossy());
-    }
-
-    fn del_file(&mut self, name: &Path) {
-        println!("- {:22} {}", "file", name.to_string_lossy());
-    }
-
-    fn att_change(&mut self, name: &Path, atts: &[String]) {
-        let mut message = vec![];
-        for ent in atts {
-            write!(&mut message, ",{}", ent).unwrap();
-        }
-        let message = String::from_utf8(message).unwrap();
-        println!("  [{:<20}] {}", &message[1..], name.to_string_lossy());
-    }
-}
-
 pub trait TreeCompare {
     /// Compare two trees, reporting (to stdout) any differences between
     /// them.
-    fn compare_from<C: CompareAction>(&self, action: &mut C, old: &Self, path: &Path);
+    fn compare_from<V: CompareVisitor>(&self, visitor: &mut V, old: &Self, path: &Path);
 }
 
 impl TreeCompare for SureTree {
-    fn compare_from<C: CompareAction>(&self, action: &mut C, old: &Self, path: &Path) {
-        compwalk(self, old, action, path);
+    fn compare_from<V: CompareVisitor>(&self, visitor: &mut V, old: &Self, path: &Path) {
+        compwalk(self, old, visitor, path);
     }
 }
 
-fn compwalk<C: CompareAction>(new: &SureTree, old: &SureTree, action: &mut C, path: &Path) {
+fn compwalk<V: CompareVisitor>(new: &SureTree, old: &SureTree, visitor: &mut V, path: &Path) {
     // Walk and compare directories.
     let mut old_children: BTreeMap<&String, &SureTree> =
         old.children.iter().map(|ch| (&ch.name, ch)).collect();
@@ -126,8 +86,8 @@ fn compwalk<C: CompareAction>(new: &SureTree, old: &SureTree, action: &mut C, pa
     for ch in &new.children {
         let cpath = ch.join(&path);
         match old_children.get(&ch.name) {
-            None => action.add_dir(&cpath),
-            Some(och) => compwalk(ch, och, action, &cpath),
+            None => visitor.visit(&cpath, CompareType::Dir, CompareAction::Add, None),
+            Some(och) => compwalk(ch, och, visitor, &cpath),
         }
         old_children.remove(&ch.name);
     }
@@ -135,7 +95,7 @@ fn compwalk<C: CompareAction>(new: &SureTree, old: &SureTree, action: &mut C, pa
     // Print out any directories that have been removed.
     // TODO: This print out of order.
     for &name in old_children.keys() {
-        action.del_dir(&name.join(&path));
+        visitor.visit(&name.join(&path), CompareType::Dir, CompareAction::Delete, None);
     }
 
     // Walk and compare files.
@@ -145,20 +105,20 @@ fn compwalk<C: CompareAction>(new: &SureTree, old: &SureTree, action: &mut C, pa
     for file in &new.files {
         let fpath = file.join(&path);
         match old_files.get(&file.name[..]) {
-            None => action.add_file(&fpath),
-            Some(atts) => attr_comp(atts, &file.atts, action, &fpath),
+            None => visitor.visit(&fpath, CompareType::NonDir, CompareAction::Add, None),
+            Some(atts) => attr_comp(atts, &file.atts, visitor, &fpath),
         }
         old_files.remove(&file.name[..]);
     }
 
     // Print out any files that have been removed.
     for name in old_files.keys() {
-        action.del_file(&name.join(&path));
+        visitor.visit(&name.join(&path), CompareType::NonDir, CompareAction::Delete, None);
     }
 }
 
 // Compare the old and new attributes, formatting a message if they differ.
-fn attr_comp<C: CompareAction>(old: &AttMap, new: &AttMap, action: &mut C, name: &Path) {
+fn attr_comp<V: CompareVisitor>(old: &AttMap, new: &AttMap, visitor: &mut V, name: &Path) {
     let mut new = new.clone();
     let mut old = old.clone();
     let mut diffs = vec![];
@@ -185,6 +145,6 @@ fn attr_comp<C: CompareAction>(old: &AttMap, new: &AttMap, action: &mut C, name:
     }
 
     if diffs.len() > 0 {
-        action.att_change(name, &diffs);
+        visitor.visit(name, CompareType::NonDir, CompareAction::Modify, Some(&diffs));
     }
 }

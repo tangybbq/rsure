@@ -16,7 +16,7 @@ use regex::Regex;
 use std::fs::rename;
 use std::path::Path;
 
-use rsure::{show_tree, PrintCompare, Progress, SureHash, SureTree, TreeCompare};
+use rsure::{show_tree, Progress, SureHash, SureTree, TreeCompare, stdout_visitor};
 
 mod bkcmd;
 
@@ -117,15 +117,13 @@ fn main() {
             new_tree.hash_update(pdir, &mut progress);
             progress.flush();
             println!("check {:?}", file);
-            let mut comp = PrintCompare;
-            new_tree.compare_from(&mut comp, &old_tree, pdir);
+            new_tree.compare_from(&mut stdout_visitor(), &old_tree, pdir);
         },
         ("signoff", Some(_)) => {
             let old_tree = SureTree::load(&src).unwrap();
             let new_tree = SureTree::load(&file).unwrap();
             println!("signoff {:?} -> {}", src, file);
-            let mut comp = PrintCompare;
-            new_tree.compare_from(&mut comp, &old_tree, &Path::new(dir));
+            new_tree.compare_from(&mut stdout_visitor(), &old_tree, &Path::new(dir));
         },
         ("show", Some(_)) => {
             println!("show {}", file);

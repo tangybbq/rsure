@@ -3,7 +3,7 @@
 extern crate rsure;
 extern crate tempdir;
 
-use rsure::{PrintCompare, SureTree, TreeCompare};
+use rsure::{SureTree, TreeCompare, stdout_visitor};
 use tempdir::TempDir;
 
 // Test that the API is usable.  Currently, the output only generates a
@@ -23,13 +23,11 @@ fn save_and_load() {
 
     // Load it back in.
     let t2 = SureTree::load(&sfile).unwrap();
-    let mut comp = PrintCompare;
-    t2.compare_from(&mut comp, &tree, &sfile);
+    t2.compare_from(&mut stdout_visitor(), &tree, &sfile);
 
     // Rescan (should catch the newly added surefile).
     let t3 = rsure::scan_fs(tmp.path()).unwrap();
-    let mut comp = PrintCompare;
-    t3.compare_from(&mut comp, &t2, tmp.path());
+    t3.compare_from(&mut stdout_visitor(), &t2, tmp.path());
 }
 
 // Test writing to a block.
@@ -43,6 +41,5 @@ fn save_writer() {
     println!("Wrote {} bytes", sf1.len());
 
     let t2 = SureTree::load_from(&sf1[..]).unwrap();
-    let mut comp = PrintCompare;
-    t2.compare_from(&mut comp, &t1, tmp.path());
+    t2.compare_from(&mut stdout_visitor(), &t1, tmp.path());
 }
