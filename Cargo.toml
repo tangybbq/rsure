@@ -25,7 +25,7 @@ openssl = "0.7"
 rustc-serialize = "0.3"
 regex = "0.1"
 time = "0.1"
-error-chain = "0.2"
+error-chain = "0.5"
 
 # This will go away
 env_logger = "0.3"
