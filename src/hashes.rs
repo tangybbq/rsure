@@ -115,12 +115,12 @@ fn hash_file<R: Read>(rd: &mut R) -> Result<Vec<u8>> {
     let mut buf = vec![0u8; 8192];
 
     loop {
-        let count = try!(rd.read(&mut buf));
+        let count = rd.read(&mut buf)?;
         if count == 0 {
             break;
         }
 
-        try!(h.write_all(&buf[0..count]));
+        h.write_all(&buf[0..count])?;
     }
     Ok(h.finish())
 }

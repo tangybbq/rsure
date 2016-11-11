@@ -30,7 +30,7 @@ pub fn setup<P: AsRef<Path>>(base: P) -> Result<()> {
     // of the surefiles in the work directory.
     cmd.args(&["setup", "-f", "-FBAM=off", "-Fcheckout=none"]);
     cmd.arg(base.as_os_str());
-    let status = try!(cmd.status());
+    let status = cmd.status()?;
     if !status.success() {
         return Err(ErrorKind::BkError(status, "".into()).into());
     }
@@ -38,22 +38,22 @@ pub fn setup<P: AsRef<Path>>(base: P) -> Result<()> {
     // Construct a README file in this directory, since there won't appear
     // to be files in it, other than the BitKeeper directory.
     {
-        let mut ofd = try!(File::create(base.join("README")));
-        try!(ofd.write_all(include_bytes!("../etc/template-bk-readme.txt")));
+        let mut ofd = File::create(base.join("README"))?;
+        ofd.write_all(include_bytes!("../etc/template-bk-readme.txt"))?;
     }
 
-    let status = try!(Command::new("bk")
-                      .args(&["ci", "-iu", "README"])
-                      .current_dir(base)
-                      .status());
+    let status = Command::new("bk")
+        .args(&["ci", "-iu", "README"])
+        .current_dir(base)
+        .status()?;
     if !status.success() {
         return Err(ErrorKind::BkError(status, "".into()).into());
     }
 
-    let status = try!(Command::new("bk")
-                      .args(&["commit", "-yInitial README"])
-                      .current_dir(base)
-                      .status());
+    let status = Command::new("bk")
+        .args(&["commit", "-yInitial README"])
+        .current_dir(base)
+        .status()?;
     if !status.success() {
         return Err(ErrorKind::BkError(status, "".into()).into());
     }
@@ -96,28 +96,28 @@ impl BkDir {
         };
 
         {
-            let mut wr = try!(File::create(&self.base.join(name)));
-            try!(tree.save_to(&mut wr));
+            let mut wr = File::create(&self.base.join(name))?;
+            tree.save_to(&mut wr)?;
         }
 
         if initial {
-            try!(self.bk_do(&["ci", "-i", &y_arg, name]));
+            self.bk_do(&["ci", "-i", &y_arg, name])?;
         } else {
-            try!(self.bk_do(&["ci", "-f", &y_arg, name]));
+            self.bk_do(&["ci", "-f", &y_arg, name])?;
         }
 
-        try!(self.bk_do(&["commit", &y_arg, name]));
+        self.bk_do(&["commit", &y_arg, name])?;
 
         Ok(())
     }
 
     /// Query to determine all file versions that have been saved.
     pub fn query(&self) -> Result<Vec<BkSureFile>> {
-        let output = try!(Command::new("bk")
-                          .args(&["changes", "-v",
-                                "-d:INDENT::DPN: :REV: :C:\n"])
-                          .current_dir(&self.base)
-                          .output());
+        let output = Command::new("bk")
+            .args(&["changes", "-v",
+                  "-d:INDENT::DPN: :REV: :C:\n"])
+            .current_dir(&self.base)
+            .output()?;
         if !output.stderr.is_empty() {
             return Err(ErrorKind::BkError(output.status,
                                           String::from_utf8_lossy(&output.stderr).into_owned()).into());
@@ -129,7 +129,7 @@ impl BkDir {
         let mut result = vec![];
 
         for line in (&output.stdout[..]).lines() {
-            let line = try!(line);
+            let line = line?;
             match self.change_re.captures(&line) {
                 None => (),
                 Some(cap) => {
@@ -151,21 +151,21 @@ impl BkDir {
     }
 
     pub fn load(&self, file: &str, name: &str) -> Result<SureTree> {
-        let files = try!(self.query());
+        let files = self.query()?;
         let rev = match files.iter().find(|&x| x.file == file && x.name == name) {
             None => return Err(format!("Couldn't find file: {:?} name: {:?}", file, name).into()),
             Some(x) => &x.rev[..],
         };
 
-        let mut child = try!(Command::new("bk")
-                             .args(&["co", "-p",
-                                   &format!("-r{}", rev),
-                                   file])
-                             .current_dir(&self.base)
-                             .stdout(Stdio::piped())
-                             .spawn());
-        let tree = try!(SureTree::load_from(child.stdout.as_mut().unwrap()));
-        let status = try!(child.wait());
+        let mut child = Command::new("bk")
+            .args(&["co", "-p",
+                  &format!("-r{}", rev),
+                  file])
+            .current_dir(&self.base)
+            .stdout(Stdio::piped())
+            .spawn()?;
+        let tree = SureTree::load_from(child.stdout.as_mut().unwrap())?;
+        let status = child.wait()?;
         if !status.success() {
             return Err(ErrorKind::BkError(status, "".into()).into());
         }
@@ -173,10 +173,10 @@ impl BkDir {
     }
 
     fn bk_do(&self, args: &[&str]) -> Result<()> {
-        let status = try!(Command::new("bk")
-                          .args(args)
-                          .current_dir(&self.base)
-                          .status());
+        let status = Command::new("bk")
+            .args(args)
+            .current_dir(&self.base)
+            .status()?;
         if !status.success() {
             return Err(ErrorKind::BkError(status, "".into()).into());
         }

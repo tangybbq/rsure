@@ -35,8 +35,8 @@ pub struct SureFile {
 impl SureTree {
     /// Load a sure tree from a standard gzip compressed surefile.
     pub fn load<P: AsRef<Path>>(name: P) -> Result<SureTree> {
-        let rd = try!(File::open(name));
-        let rd = try!(rd.gz_decode());
+        let rd = File::open(name)?;
+        let rd = rd.gz_decode()?;
         Self::load_from(rd)
     }
 
@@ -45,10 +45,10 @@ impl SureTree {
         let rd = BufReader::new(rd);
         let mut lines = rd.split('\n' as u8);
 
-        try!(fixed(&mut lines, b"asure-2.0"));
-        try!(fixed(&mut lines, b"-----"));
+        fixed(&mut lines, b"asure-2.0")?;
+        fixed(&mut lines, b"-----")?;
 
-        let first = try!(Self::get_line(&mut lines));
+        let first = Self::get_line(&mut lines)?;
         Self::subload(first, &mut lines)
     }
 
@@ -57,14 +57,14 @@ impl SureTree {
         let (name, atts) = decode_entity(&first[1..]);
         let mut children = vec![];
 
-        let mut line = try!(Self::get_line(inp));
+        let mut line = Self::get_line(inp)?;
         loop {
             if line[0] != 'd' as u8 {
                 break;
             }
-            let tree = try!(Self::subload(line, &mut inp));
+            let tree = Self::subload(line, &mut inp)?;
             children.push(tree);
-            line = try!(Self::get_line(&mut inp));
+            line = Self::get_line(&mut inp)?;
         }
 
         if line != &['-' as u8] {
@@ -72,14 +72,14 @@ impl SureTree {
         }
 
         let mut files = vec![];
-        line = try!(Self::get_line(inp));
+        line = Self::get_line(inp)?;
         loop {
             if line[0] != 'f' as u8 {
                 break;
             }
             let (fname, fatts) = decode_entity(&line[1..]);
             files.push(SureFile { name: fname, atts: fatts });
-            line = try!(Self::get_line(inp));
+            line = Self::get_line(inp)?;
         }
 
         if line != &['u' as u8] {
@@ -98,7 +98,7 @@ impl SureTree {
     {
         match inp.next() {
             None => return Err(From::from("surefile is truncated")),
-            Some(l) => Ok(try!(l)),
+            Some(l) => Ok(l?),
         }
     }
 
@@ -109,7 +109,7 @@ impl SureTree {
 
     /// Write a sure tree to a standard gzipped file of the given name.
     pub fn save<P: AsRef<Path>>(&self, name: P) -> Result<()> {
-        let wr = try!(File::create(name));
+        let wr = File::create(name)?;
         let wr = flate2::write::GzEncoder::new(wr, Compression::Default);
         self.save_to(wr)
     }
@@ -118,33 +118,33 @@ impl SureTree {
     pub fn save_to<W: Write>(&self, wr: W) -> Result<()> {
         let mut wr = BufWriter::new(wr);  // Benchmark with and without, gz might buffer.
 
-        try!(writeln!(&mut wr, "asure-2.0"));
-        try!(writeln!(&mut wr, "-----"));
+        writeln!(&mut wr, "asure-2.0")?;
+        writeln!(&mut wr, "-----")?;
 
         self.walk(&mut wr)
     }
 
     fn walk<W: Write>(&self, out: &mut W) -> Result<()> {
-        try!(self.header(out, 'd', &self.name, &self.atts));
+        self.header(out, 'd', &self.name, &self.atts)?;
         for child in &self.children {
-            try!(child.walk(out));
+            child.walk(out)?;
         }
-        try!(writeln!(out, "-"));
+        writeln!(out, "-")?;
         for child in &self.files {
-            try!(self.header(out, 'f', &child.name, &child.atts));
+            self.header(out, 'f', &child.name, &child.atts)?;
         }
-        try!(writeln!(out, "u"));
+        writeln!(out, "u")?;
         Ok(())
     }
 
     fn header<W: Write>(&self, out: &mut W, kind: char, name: &str, atts: &AttMap) -> Result<()> {
-        try!(write!(out, "{}{} [", kind, name));
+        write!(out, "{}{} [", kind, name)?;
 
         // BTrees are sorted.
         for (k, v) in atts {
-            try!(write!(out, "{} {} ", k, v));
+            write!(out, "{} {} ", k, v)?;
         }
-        try!(writeln!(out, "]"));
+        writeln!(out, "]")?;
         Ok(())
     }
 }

@@ -16,7 +16,7 @@ pub fn scan_fs<P: AsRef<Path>>(root: P) -> Result<SureTree> {
 }
 
 fn walk_root(path: &Path) -> Result<SureTree> {
-    let meta = try!(symlink_metadata(path));
+    let meta = symlink_metadata(path)?;
 
     if !meta.is_dir() {
         return Err(From::from("Root must be a directory"));
@@ -33,8 +33,8 @@ fn walk(my_name: String, path: &Path, my_atts: AttMap, my_meta: &Metadata)
     // TODO: Instead of failing everything because of read failure, just
     // fail some things.
 
-    for entry in try!(fs::read_dir(path)) {
-        let entry = try!(entry);
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
         entries.push(entry);
     }
 
@@ -81,7 +81,7 @@ fn walk(my_name: String, path: &Path, my_atts: AttMap, my_meta: &Metadata)
     for ch in files {
         if ch.meta.is_dir() {
             let child_name = ch.path.file_name().unwrap().as_bytes().escaped();
-            let child = try!(walk(child_name, &ch.path, ch.atts, &ch.meta));
+            let child = walk(child_name, &ch.path, ch.atts, &ch.meta)?;
             node.children.push(child);
         } else {
             let child_name = ch.path.file_name().unwrap().as_bytes().escaped();

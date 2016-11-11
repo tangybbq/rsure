@@ -51,12 +51,12 @@ pub fn update<P1, P2, P3>(dir: P1, src: Option<P2>, dest: P3) -> Result<()>
     let src = src.as_ref().map(|p| p.as_ref());
     let dest = dest.as_ref();
 
-    let mut new_tree = try!(scan_fs(dir));
+    let mut new_tree = scan_fs(dir)?;
 
     match src {
         None => (),
         Some(src) => {
-            let old_tree = try!(SureTree::load(src));
+            let old_tree = SureTree::load(src)?;
             new_tree.update_from(&old_tree);
         },
     }
@@ -65,7 +65,7 @@ pub fn update<P1, P2, P3>(dir: P1, src: Option<P2>, dest: P3) -> Result<()>
     let mut progress = Progress::new(estimate.files, estimate.bytes);
     new_tree.hash_update(dir, &mut progress);
     progress.flush();
-    try!(new_tree.save(dest));
+    new_tree.save(dest)?;
     Ok(())
 }
 

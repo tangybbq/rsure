@@ -10,8 +10,8 @@ use std::path::Path;
 use std::os::unix::fs::MetadataExt;
 
 pub fn new(path: &str) -> Result<()> {
-    try!(ensure_dir(path));
-    try!(bk::setup(path));
+    ensure_dir(path)?;
+    bk::setup(path)?;
     Ok(())
 }
 
@@ -22,8 +22,8 @@ pub fn ensure_dir<P: AsRef<Path>>(path: P) -> Result<()> {
     let path = path.as_ref();
 
     if path.is_dir() {
-        for ent in try!(path.read_dir()) {
-            let ent = try!(ent);
+        for ent in path.read_dir()? {
+            let ent = ent?;
             return Err(format!("Directory {:?} is not empty (contains {:?}",
                                path, ent.path()).into());
         }
@@ -38,18 +38,18 @@ pub fn ensure_dir<P: AsRef<Path>>(path: P) -> Result<()> {
 /// Import a bunch of files from `src` and include them in the bkdir.
 pub fn import<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dest: P2) -> Result<()> {
     let src = src.as_ref();
-    let bkd = try!(BkDir::new(dest));
+    let bkd = BkDir::new(dest)?;
 
     let re = Regex::new(r"^([^-]+)-(.*)\.dat\.gz$").unwrap();
 
     let mut namedir = vec![];
 
-    let present = try!(bkd.query());
+    let present = bkd.query()?;
     let present = present.iter().map(|p| (&p.name, &p.file)).collect::<HashSet<_>>();
 
     println!("{} surefiles already present", present.len());
-    for ent in try!(src.read_dir()) {
-        let ent = try!(ent);
+    for ent in src.read_dir()? {
+        let ent = ent?;
         let name = ent.file_name();
         let name = match name.to_str() {
             None => continue,
@@ -61,7 +61,7 @@ pub fn import<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dest: P2) -> Result<()>
                 // println!("ent: {:?} name {:?}",
                 //          cap.at(1).unwrap(),
                 //          cap.at(2).unwrap());
-                let mtime = try!(ent.metadata()).mtime();
+                let mtime = ent.metadata()?.mtime();
                 namedir.push(ImportNode {
                     mtime: mtime,
                     name: cap.at(2).unwrap().to_owned(),
@@ -78,8 +78,8 @@ pub fn import<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dest: P2) -> Result<()>
         }
         let name = format!("{}-{}.dat.gz", node.file, node.name);
         println!("Importing: {:?} ({:?}, {:?})", name, node.name, file);
-        let tree = try!(SureTree::load(&src.join(name)));
-        try!(bkd.save(&tree, &file, &node.name));
+        let tree = SureTree::load(&src.join(name))?;
+        bkd.save(&tree, &file, &node.name)?;
     }
     Ok(())
 }
