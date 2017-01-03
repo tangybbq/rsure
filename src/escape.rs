@@ -21,7 +21,7 @@ pub trait Escape {
 }
 
 pub trait Unescape {
-    fn unescape(&self) -> Result<Vec<u8>, EscapeError>;
+    fn unescape(&self) -> EscapeResult<Vec<u8>>;
 }
 
 error_chain! {
@@ -66,7 +66,7 @@ impl Escape for [u8] {
 }
 
 impl Unescape for str {
-    fn unescape(&self) -> Result<Vec<u8>, EscapeError> {
+    fn unescape(&self) -> EscapeResult<Vec<u8>> {
         // Will overestimate.
         let mut buf = Vec::with_capacity(self.len() / 2);
         let mut phase = 0;
