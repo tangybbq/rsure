@@ -11,12 +11,12 @@ error_chain! {
     }
 
     links {
-        escape::EscapeError, escape::EscapeErrorKind, Escape;
+        Escape(escape::EscapeError, escape::EscapeErrorKind);
     }
 
     foreign_links {
-        io::Error, IoError;
-        openssl::error::ErrorStack, OpensslError;
+        IoError(io::Error);
+        OpensslError(openssl::error::ErrorStack);
     }
 
     errors {

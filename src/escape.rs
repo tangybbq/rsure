@@ -108,7 +108,7 @@ impl Unescape for str {
 fn test_unescape() {
     macro_rules! assert_error_kind {
         ( $expr:expr, $kind:pat ) => {
-            match $expr.unwrap_err().into_kind() {
+            match $expr.unwrap_err().0 {
                 $kind => (),
                 e => panic!("Unexpected error kind: {:?} (want {})", e, stringify!($kind)),
             }
