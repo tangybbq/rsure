@@ -18,12 +18,12 @@ exclude = [
 
 [dependencies]
 libc = "0.2.11"
-clap = "2.5.2"
+clap = "2.21"
 flate2 = "0.2"
 log = "0.3"
 openssl = "0.9"
 rustc-serialize = "0.3"
-regex = "0.1"
+regex = "0.2"
 time = "0.1"
 error-chain = "0.5"
 
@@ -31,7 +31,7 @@ error-chain = "0.5"
 env_logger = "0.3"
 
 [dev-dependencies]
-tempdir = "0.3.4"
+tempdir = "0.3"
 
 [[bin]]
 name = "rsure"
