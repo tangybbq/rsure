@@ -160,6 +160,6 @@ fn replace_suffix(name: &str, ext: &str) -> String {
     let pat = Regex::new(r"(.*)\.(dat|bak)\.gz$").unwrap();
     match pat.captures(name) {
         None => name.to_string() + ext,
-        Some(cap) => cap.at(1).unwrap().to_string() + ext,
+        Some(cap) => cap.get(1).unwrap().as_str().to_string() + ext,
     }
 }

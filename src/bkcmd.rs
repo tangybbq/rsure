@@ -64,8 +64,8 @@ pub fn import<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dest: P2) -> Result<()>
                 let mtime = ent.metadata()?.mtime();
                 namedir.push(ImportNode {
                     mtime: mtime,
-                    name: cap.at(2).unwrap().to_owned(),
-                    file: cap.at(1).unwrap().to_owned(),
+                    name: cap.get(2).unwrap().as_str().to_owned(),
+                    file: cap.get(1).unwrap().as_str().to_owned(),
                 });
             },
         }

@@ -133,9 +133,9 @@ impl BkDir {
             match self.change_re.captures(&line) {
                 None => (),
                 Some(cap) => {
-                    let file = cap.at(1).unwrap();
-                    let rev = cap.at(2).unwrap();
-                    let name = cap.at(3).unwrap();
+                    let file = cap.get(1).unwrap().as_str();
+                    let rev = cap.get(2).unwrap().as_str();
+                    let name = cap.get(3).unwrap().as_str();
                     if !file.ends_with(".dat") {
                         continue;
                     }
