@@ -1,6 +1,7 @@
 // Errors.
 
 use escape;
+use openssl;
 use std::io;
 use std::process::ExitStatus;
 
@@ -15,6 +16,7 @@ error_chain! {
 
     foreign_links {
         io::Error, IoError;
+        openssl::error::ErrorStack, OpensslError;
     }
 
     errors {
