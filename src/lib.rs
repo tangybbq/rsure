@@ -13,6 +13,7 @@ extern crate log;
 #[macro_use]
 extern crate error_chain;
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 pub use surefs::scan_fs;
@@ -26,6 +27,8 @@ pub use progress::Progress;
 
 pub use errors::{Error, ErrorKind, ChainErr, Result};
 
+pub use store::{StoreTags, Store, Version, parse_store};
+
 mod errors;
 mod escape;
 mod show;
@@ -35,40 +38,28 @@ mod hashes;
 mod comp;
 mod compvisit;
 mod progress;
+mod store;
 pub mod bk;
 
 // Some common operations, abstracted here.
 
-/// Perform an update scan, using the information in 'src' to possibly
-/// reduce the hash effort needed when scanning 'dir'.  If 'src' is None,
-/// consider this a fresh scan, and hash all files.
-pub fn update<P1, P2, P3>(dir: P1, src: Option<P2>, dest: P3) -> Result<()>
-    where P1: AsRef<Path>,
-          P2: AsRef<Path>,
-          P3: AsRef<Path>
-{
+/// Perform an update scan, using the given store.  If 'update' is true, use the hashes from a
+/// previous run, otherwise perform a fresh scan.
+pub fn update<P: AsRef<Path>>(dir: P, store: &Store, is_update: bool) -> Result<()> {
     let dir = dir.as_ref();
-    let src = src.as_ref().map(|p| p.as_ref());
-    let dest = dest.as_ref();
 
     let mut new_tree = scan_fs(dir)?;
 
-    match src {
-        None => (),
-        Some(src) => {
-            let old_tree = SureTree::load(src)?;
-            new_tree.update_from(&old_tree);
-        },
+    if is_update {
+        let old_tree = store.load(Version::Latest)?;
+        new_tree.update_from(&old_tree);
     }
 
     let estimate = new_tree.hash_estimate();
     let mut progress = Progress::new(estimate.files, estimate.bytes);
     new_tree.hash_update(dir, &mut progress);
     progress.flush();
-    new_tree.save(dest)?;
+
+    store.write_new(&new_tree, &BTreeMap::new())?;
     Ok(())
 }
-
-/// Until feature default_type_parameter_fallback comes into stable, this
-/// function will return a `None` appropriately typed for `update` above.
-pub fn no_path() -> Option<&'static str> { None }

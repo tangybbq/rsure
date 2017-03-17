@@ -12,11 +12,9 @@ extern crate clap;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 
-use regex::Regex;
-use std::fs::rename;
 use std::path::Path;
 
-use rsure::{show_tree, Progress, SureHash, SureTree, TreeCompare, stdout_visitor};
+use rsure::{show_tree, Progress, SureHash, TreeCompare, stdout_visitor, parse_store, Version};
 
 mod bkcmd;
 
@@ -80,49 +78,31 @@ fn main() {
 
     let dir = matches.value_of("dir").unwrap_or(".");
 
-    let file = augment_suffix(matches.value_of("file").unwrap_or("2sure"), ".dat.gz");
-    let src = matches.value_of("src").map(|s| augment_suffix(s, ".bak.gz"));
-    let src = src.unwrap_or_else(|| replace_suffix(&file, ".bak.gz"));
-
-    let old = matches.value_of("old");
-    let old = old.unwrap_or(&file);
-
-    let tmp = replace_suffix(&file, ".tmp.gz");
+    let file = matches.value_of("file").unwrap_or("2sure.dat.gz");
+    let store = parse_store(file).unwrap();
 
     match matches.subcommand() {
         ("scan", Some(_)) => {
-            rsure::update(&dir, rsure::no_path(), &tmp).unwrap();
-
-            // Rotate the names.
-            rename(&file, &src).unwrap_or(());
-            rename(&tmp, &file).unwrap_or_else(|e| {
-                error!("Unable to move surefile: {:?} to {:?} ({})", &tmp, &file, e);
-            });
+            rsure::update(&dir, &*store, false).unwrap();
         },
         ("update", Some(_)) => {
-            rsure::update(&dir, Some(old), &tmp).unwrap();
-
-            // Rotate the names.
-            rename(&file, &src).unwrap_or(());
-            rename(&tmp, &file).unwrap_or_else(|e| {
-                error!("Unable to move surefile: {:?} to {:?} ({})", &tmp, &file, e);
-            });
+            rsure::update(&dir, &*store, true).unwrap();
         },
         ("check", Some(_)) => {
-            let old_tree = SureTree::load(&file).unwrap();
+            let old_tree = store.load(Version::Latest).unwrap();
             let mut new_tree = rsure::scan_fs(&dir).unwrap();
             let estimate = new_tree.hash_estimate();
             let pdir = &Path::new(dir);
             let mut progress = Progress::new(estimate.files, estimate.bytes);
             new_tree.hash_update(pdir, &mut progress);
             progress.flush();
-            println!("check {:?}", file);
+            info!("check {:?}", file);
             new_tree.compare_from(&mut stdout_visitor(), &old_tree, pdir);
         },
         ("signoff", Some(_)) => {
-            let old_tree = SureTree::load(&src).unwrap();
-            let new_tree = SureTree::load(&file).unwrap();
-            println!("signoff {:?} -> {}", src, file);
+            let old_tree = store.load(Version::Prior).unwrap();
+            let new_tree = store.load(Version::Latest).unwrap();
+            println!("signoff {}", file);
             new_tree.compare_from(&mut stdout_visitor(), &old_tree, &Path::new(dir));
         },
         ("show", Some(_)) => {
@@ -141,25 +121,5 @@ fn main() {
         _ => {
             panic!("Unsupported command.");
         }
-    }
-}
-
-// Augment the name with the given extension (e.g. ".dat.gz").  If the name
-// already has some kind of extension, leave it alone, though.
-fn augment_suffix(name: &str, ext: &str) -> String {
-    let pat = Regex::new(r"\.(dat|bak)\.gz$").unwrap();
-    if pat.is_match(name) {
-        name.to_string()
-    } else {
-        name.to_string() + ext
-    }
-}
-
-// Replace the suffix of the given name with the new one.
-fn replace_suffix(name: &str, ext: &str) -> String {
-    let pat = Regex::new(r"(.*)\.(dat|bak)\.gz$").unwrap();
-    match pat.captures(name) {
-        None => name.to_string() + ext,
-        Some(cap) => cap.get(1).unwrap().as_str().to_string() + ext,
     }
 }
