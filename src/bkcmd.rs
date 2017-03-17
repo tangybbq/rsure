@@ -2,16 +2,16 @@
 
 use regex::Regex;
 use Result;
-use rsure::bk::{self, BkDir};
-use rsure::SureTree;
-use std::collections::HashSet;
+use rsure::bk_setup;
+use rsure::{BkStore, Store, SureTree};
+use std::collections::{BTreeMap, HashSet};
 use std::path::Path;
 
 use std::os::unix::fs::MetadataExt;
 
 pub fn new(path: &str) -> Result<()> {
     ensure_dir(path)?;
-    bk::setup(path)?;
+    bk_setup(path)?;
     Ok(())
 }
 
@@ -38,7 +38,7 @@ pub fn ensure_dir<P: AsRef<Path>>(path: P) -> Result<()> {
 /// Import a bunch of files from `src` and include them in the bkdir.
 pub fn import<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dest: P2) -> Result<()> {
     let src = src.as_ref();
-    let bkd = BkDir::new(dest)?;
+    let mut bkd = BkStore::new(dest.as_ref(), "");
 
     let re = Regex::new(r"^([^-]+)-(.*)\.dat\.gz$").unwrap();
 
@@ -79,7 +79,10 @@ pub fn import<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dest: P2) -> Result<()>
         let name = format!("{}-{}.dat.gz", node.file, node.name);
         println!("Importing: {:?} ({:?}, {:?})", name, node.name, file);
         let tree = SureTree::load(&src.join(name))?;
-        bkd.save(&tree, &file, &node.name)?;
+        bkd.name = file.to_string();
+        let mut tags = BTreeMap::new();
+        tags.insert("name".to_string(), node.name.clone());
+        bkd.write_new(&tree, &tags)?;
     }
     Ok(())
 }

@@ -6,8 +6,10 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 mod plain;
+mod bk;
 
 pub use self::plain::Plain;
+pub use self::bk::{BkStore, bk_setup};
 
 /// Tags are just key/value pairs.  Both key and value should be printable strings.
 pub type StoreTags = BTreeMap<String, String>;
@@ -23,6 +25,7 @@ pub trait Store {
 }
 
 /// Indicator of which version of sure data to load.
+#[derive(Clone, Copy, Debug)]
 pub enum Version {
     Latest,
     Prior,
@@ -40,6 +43,11 @@ pub fn parse_store(text: &str) -> Result<Box<Store>> {
     // If we're given an existing directory, construct a store directly from it.
     // TODO: Look in the directory to see what might be there.
     if p.is_dir() {
+        // Check for BK directory, and reject without explicit name.
+        if p.join(".bk").is_dir() {
+            return Err("Store appears to be a Bitkeeper dir, specify full filename".into());
+        }
+
         return Ok(Box::new(Plain {
             path: p.to_path_buf(),
             base: "2sure".to_string(),
@@ -85,6 +93,15 @@ pub fn parse_store(text: &str) -> Result<Box<Store>> {
     } else {
         base
     };
+
+    // Check for bitkeeper.
+    if dir.join(".bk").is_dir() {
+        if compressed {
+            return Err("Bitkeeper names should not be compressed, remove .gz suffix".into());
+        }
+
+        return Ok(Box::new(BkStore::new(dir, base)));
+    }
 
     Ok(Box::new(Plain {
         path: dir.to_path_buf(),

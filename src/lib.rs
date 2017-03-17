@@ -13,7 +13,6 @@ extern crate log;
 #[macro_use]
 extern crate error_chain;
 
-use std::collections::BTreeMap;
 use std::path::Path;
 
 pub use surefs::scan_fs;
@@ -27,7 +26,7 @@ pub use progress::Progress;
 
 pub use errors::{Error, ErrorKind, ChainErr, Result};
 
-pub use store::{StoreTags, Store, Version, parse_store};
+pub use store::{StoreTags, Store, Version, parse_store, BkStore, bk_setup};
 
 mod errors;
 mod escape;
@@ -39,13 +38,12 @@ mod comp;
 mod compvisit;
 mod progress;
 mod store;
-pub mod bk;
 
 // Some common operations, abstracted here.
 
 /// Perform an update scan, using the given store.  If 'update' is true, use the hashes from a
 /// previous run, otherwise perform a fresh scan.
-pub fn update<P: AsRef<Path>>(dir: P, store: &Store, is_update: bool) -> Result<()> {
+pub fn update<P: AsRef<Path>>(dir: P, store: &Store, is_update: bool, tags: &StoreTags) -> Result<()> {
     let dir = dir.as_ref();
 
     let mut new_tree = scan_fs(dir)?;
@@ -60,6 +58,6 @@ pub fn update<P: AsRef<Path>>(dir: P, store: &Store, is_update: bool) -> Result<
     new_tree.hash_update(dir, &mut progress);
     progress.flush();
 
-    store.write_new(&new_tree, &BTreeMap::new())?;
+    store.write_new(&new_tree, tags)?;
     Ok(())
 }

@@ -12,9 +12,10 @@ extern crate clap;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
-use rsure::{show_tree, Progress, SureHash, TreeCompare, stdout_visitor, parse_store, Version};
+use rsure::{show_tree, Progress, SureHash, TreeCompare, stdout_visitor, parse_store, StoreTags, Version};
 
 mod bkcmd;
 
@@ -38,6 +39,11 @@ fn main() {
              .long("dir")
              .takes_value(true)
              .help("Directory to scan, defaults to \".\""))
+        .arg(Arg::with_name("tag")
+             .long("tag")
+             .takes_value(true)
+             .multiple(true)
+             .help("key=value to associate with scan"))
         .setting(AppSettings::SubcommandRequired)
         .subcommand(SubCommand::with_name("scan")
                     .about("Scan a directory for the first time"))
@@ -71,12 +77,15 @@ fn main() {
     let file = matches.value_of("file").unwrap_or("2sure.dat.gz");
     let store = parse_store(file).unwrap();
 
+    let tags = decode_tags(matches.values_of("tag"));
+    println!("tag: {:?}", tags);
+
     match matches.subcommand() {
         ("scan", Some(_)) => {
-            rsure::update(&dir, &*store, false).unwrap();
+            rsure::update(&dir, &*store, false, &tags).unwrap();
         },
         ("update", Some(_)) => {
-            rsure::update(&dir, &*store, true).unwrap();
+            rsure::update(&dir, &*store, true, &tags).unwrap();
         },
         ("check", Some(_)) => {
             let old_tree = store.load(Version::Latest).unwrap();
@@ -112,4 +121,23 @@ fn main() {
             panic!("Unsupported command.");
         }
     }
+}
+
+/// Decode the command-line tags.  Tags should be of the form key=value, and multiple can be
+/// specified, terminated by the command.  It is also possible to specify --tag multiple times.
+fn decode_tags<'a, I>(tags: Option<I>) -> StoreTags
+    where I: Iterator<Item=&'a str>
+{
+    match tags {
+        None => BTreeMap::new(),
+        Some(tags) => tags.map(|x| decode_tag(x)).collect(),
+    }
+}
+
+fn decode_tag<'a>(tag: &'a str) -> (String, String) {
+    let fields: Vec<_> = tag.splitn(2, '=').collect();
+    if fields.len() != 2 {
+        panic!("Tag must be key=value");
+    }
+    (fields[0].to_string(), fields[1].to_string())
 }
