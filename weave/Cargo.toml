@@ -1,0 +1,11 @@
+[package]
+name = "weave"
+version = "0.1.0"
+authors = ["davidb"]
+
+[dependencies]
+error-chain = "0.10"
+derive-error-chain = "0.10"
+
+[dev-dependencies]
+tempdir = "0.3"
