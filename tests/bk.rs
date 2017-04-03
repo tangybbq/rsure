@@ -1,5 +1,6 @@
 // Test that the BK storage works.
 
+/*
 extern crate rsure;
 extern crate tempdir;
 
@@ -86,3 +87,4 @@ fn verify_config(base: &Path, name: &str, expect: &[u8]) {
     // println!("stdout: {:?}", String::from_utf8_lossy(&out.stdout));
     // println!("stderr: {:?}", String::from_utf8_lossy(&out.stderr));
 }
+*/
