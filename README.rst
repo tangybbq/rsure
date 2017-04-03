@@ -1,6 +1,9 @@
 Rsure file integrity
 ********************
 
+.. image:: https://travis-ci.org/d3zd3z/rsure.svg?branch=master
+    :target: https://travis-ci.org/d3zd3z/rsure
+
 It has been said that backups aren't useful unless you've tested them.
 But, how does one know that a test restore actually worked?  Rsure is
 designed to help with this.
