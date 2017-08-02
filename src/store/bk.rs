@@ -1,4 +1,18 @@
-/// Storage manager that uses BitKeeper.
+//! Storage manager that uses BitKeeper.
+//!
+//! [BitKeeper] is a revision control system, predating git.  Although it's (pre-open-source)
+//! existence was some of the inspiration behind git, the way it stores file delta information is
+//! quite different.  It is based on the SCCS system, which stores all revisions in a single file
+//! in a "weave" format.  Until weaving is directly implemented in rsure, the `BkStore` type allows
+//! us to take advantage of this format to store lots of deltas compactly (typically using much
+//! less space than a delta-based storage, such as git).
+//!
+//! Aside from having a requirement that the commandline `bk` program for bitkeeper be installed in
+//! the path, trees written to the `BkStore` must always have a tag with the name `name` and a
+//! unique value.  This field will be used to retrieve that particular revision later.  Within
+//! Bitkeeper, the `name` tag will be used as the commit text, and can be listed, and found later.
+//!
+//! [BitKeeper]: http://www.bitkeeper.org/
 
 use ::Result;
 use ::SureTree;
@@ -11,13 +25,44 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use super::{Store, StoreTags, Version};
 
+/// A [`Store`] that stores trees as deltas in a Bitkeeper repository.
+///
+/// [BitKeeper] is a revision control system, predating git.  Although it's (pre-open-source)
+/// existence was some of the inspiration behind git, the way it stores file delta information is
+/// quite different.  It is based on the SCCS system, which stores all revisions in a single file
+/// in a "weave" format.  Until weaving is directly implemented in rsure, the `BkStore` type allows
+/// us to take advantage of this format to store lots of deltas compactly (typically using much
+/// less space than a delta-based storage, such as git).
+///
+/// Aside from having a requirement that the commandline `bk` program for bitkeeper be installed in
+/// the path, trees written to the `BkStore` must always have a tag with the name `name` and a
+/// unique value.  This field will be used to retrieve that particular revision later.  Within
+/// Bitkeeper, the `name` tag will be used as the commit text, and can be listed, and found later.
+///
+/// [`Store`]: trait.Store.html
+/// [BitKeeper]: http://www.bitkeeper.org/
 pub struct BkStore {
+    /// The directory where the bitkeeper repository lives.
     pub base: PathBuf,
+    /// The particular filename for this `Store` within that repo.  A given repo can hold multiple
+    /// `Store`s.
     pub name: String,
-    pub change_re: Regex,
+    /// An internal compiled regex used to search for revisions.
+    change_re: Regex,
 }
 
 impl BkStore {
+    /// Construct a new in-memory [`Store`] to refer to a Bitkeeper store.
+    ///
+    /// The `base` should be the directory containing the Bitkeeper repository itself (which should
+    /// have been created by [`bk_setup`].
+    ///
+    /// The `name` names a single store within this respository.  A given store is intended to hold
+    /// tree snapshots over time for a single filesystem.  This should be a plain filename with no
+    /// extension.
+    ///
+    /// [`Store`]: trait.Store.html
+    /// [`bk_setup`]: fn.bk_setup.html
     pub fn new(base: &Path, name: &str) -> BkStore {
         BkStore {
             base: base.to_path_buf(),
@@ -101,7 +146,8 @@ impl BkStore {
         Ok(versions.nth(index))
     }
 
-    /// Query to determine all file versions that have been saved.
+    /// Query to determine all file versions that have been saved.  This can be used to list
+    /// snapshots that have been taken.
     pub fn query(&self) -> Result<Vec<BkSureFile>> {
         let output = Command::new("bk")
             .args(&["changes", "-v",
@@ -141,10 +187,14 @@ impl BkStore {
     }
 }
 
+/// Information about a single revision stored in a single file in a Bitkeeper repository.
 #[derive(Debug)]
 pub struct BkSureFile {
+    /// The filename of the store file.  In this case, the name contains the ".dat" extension.
     pub file: String,
+    /// The textual revision number in Bitkeeper for this particular version.
     pub rev: String,
+    /// The name given to the "name=..." tag when this snapshot was taken.
     pub name: String,
 }
 

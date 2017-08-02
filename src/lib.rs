@@ -1,4 +1,21 @@
-// Rsure library.
+//! Rsure is a set of utilities for capturing information about files, and later verifying it is
+//! still true.
+//!
+//! The easiest way to use Rsure is to build the `rsure` executable contained in this crate.  This
+//! program allows you to use most of the functionality of the crate.
+//!
+//! However, it is also possible to use the crate programmatically.  At the top level of the crate
+//! as some utility functions for the most common operations.
+//!
+//! For example, to scan a directory or do an update use `update`.
+//!
+//! This example makes use of several of the building blocks necessary to use the store.  First is
+//! the store itself.  `parse_store` is able to decode options that are passed to the command line.
+//! it is also possible to build a `store::Plain` store directly.
+//!
+//! Next are the tags for the snapshot.  Generally, this should hold some kind of information about
+//! the snapshot itself.  For the `Plain` store, it can be just an empty map.  Other store types
+//! may require certain tags to be present.
 
 extern crate flate2;
 extern crate libc;
@@ -26,7 +43,7 @@ pub use progress::Progress;
 
 pub use errors::{Error, ErrorKind, ChainErr, Result};
 
-pub use store::{StoreTags, Store, Version, parse_store, BkStore, bk_setup};
+pub use store::{StoreTags, Store, Version, parse_store, BkSureFile, BkStore, bk_setup};
 
 mod errors;
 mod escape;
@@ -41,8 +58,28 @@ mod store;
 
 // Some common operations, abstracted here.
 
-/// Perform an update scan, using the given store.  If 'update' is true, use the hashes from a
-/// previous run, otherwise perform a fresh scan.
+/// Perform an update scan, using the given store.
+///
+/// If 'update' is true, use the hashes from a previous run, otherwise perform a fresh scan.
+/// Depending on the [`Store`] type, the tags may be kept, or ignored.
+///
+/// [`Store`]: trait.Store.html
+///
+/// A simple example:
+///
+/// ```rust
+/// # use std::error::Error;
+/// #
+/// # fn try_main() -> Result<(), Box<Error>> {
+/// let store = rsure::parse_store("2sure.dat.gz")?;
+/// rsure::update(".", &*store, false, &rsure::StoreTags::new())?;
+/// #     Ok(())
+/// # }
+/// #
+/// # fn main() {
+/// #     try_main().unwrap();
+/// # }
+/// ```
 pub fn update<P: AsRef<Path>>(dir: P, store: &Store, is_update: bool, tags: &StoreTags) -> Result<()> {
     let dir = dir.as_ref();
 

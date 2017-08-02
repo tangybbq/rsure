@@ -9,7 +9,7 @@ mod plain;
 mod bk;
 
 pub use self::plain::Plain;
-pub use self::bk::{BkStore, bk_setup};
+pub use self::bk::{BkSureFile, BkStore, bk_setup};
 
 /// Tags are just key/value pairs.  Both key and value should be printable strings.
 pub type StoreTags = BTreeMap<String, String>;
