@@ -24,14 +24,25 @@ extern crate error_chain;
 extern crate derive_error_chain;
 #[macro_use]
 extern crate log;
+extern crate regex;
 
 mod errors;
 mod naming;
 mod parse;
 mod newweave;
+mod delta;
 
 pub use naming::NamingConvention;
 pub use naming::{SimpleNaming};
 pub use errors::{Result, Error, ErrorKind};
 pub use parse::{Sink, Parser};
 pub use newweave::NewWeave;
+pub use delta::DeltaWriter;
+
+use std::fs::File;
+use std::path::PathBuf;
+
+struct WriterInfo {
+    name: PathBuf,
+    file: File,
+}

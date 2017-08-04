@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::rc::Rc;
 use tempdir::TempDir;
-use weave::{NewWeave, Parser, SimpleNaming, Sink, Result};
+use weave::{DeltaWriter, NewWeave, Parser, SimpleNaming, Sink, Result};
 
 #[test]
 fn sccs() {
@@ -41,9 +41,10 @@ fn sccs() {
     gen.new_weave();
     gen.weave_check();
 
-    for _ in 0 .. 100 {
+    for i in 0 .. 100 {
         gen.shuffle();
         gen.add_sccs_delta();
+        gen.add_weave_delta(i + 1);
 
         // Checking with sccs is very slow.  Do we want to do it?
         // gen.sccs_check();
@@ -174,12 +175,29 @@ impl Gen {
     /// Check that weave decodes all of the sccs files properly.
     fn weave_check(&self) {
         for (i, del) in self.deltas.iter().enumerate() {
+            self.weave_sccs_check_one(i, del);
             self.weave_check_one(i, del);
         }
     }
 
-    fn weave_check_one(&self, num: usize, data: &[usize]) {
+    fn weave_sccs_check_one(&self, num: usize, data: &[usize]) {
         let fd = File::open(self.tdir.join("s.tfile")).unwrap();
+        let lines = BufReader::new(fd).lines();
+        let dsink = Rc::new(RefCell::new(DeltaSink { nums: vec![] }));
+        {
+            let mut parser = Parser::new(lines, dsink.clone(), num + 1);
+            match parser.parse_to(0) {
+                Ok(0) => (),
+                Ok(_) => panic!("Unexpected stop of parser"),
+                Err(e) => panic!("Parser error: {:?}", e),
+            }
+        }
+
+        assert_eq!(data, &dsink.borrow().nums[..]);
+    }
+
+    fn weave_check_one(&self, num: usize, data: &[usize]) {
+        let fd = File::open(self.tdir.join("sample.weave")).unwrap();
         let lines = BufReader::new(fd).lines();
         let dsink = Rc::new(RefCell::new(DeltaSink { nums: vec![] }));
         {
@@ -203,6 +221,18 @@ impl Gen {
             writeln!(&mut nw, "{}", i).unwrap();
         }
         nw.close().unwrap();
+    }
+
+    fn add_weave_delta(&mut self, base: usize) {
+        let name_value = format!("{}", base + 1);
+        let mut tags = BTreeMap::new();
+        tags.insert("name", name_value.as_str());
+        let nc = SimpleNaming::new(&self.tdir, "sample", "weave", false);
+        let mut delta = DeltaWriter::new(&nc, tags.into_iter(), base).unwrap();
+        for i in &self.nums {
+            writeln!(&mut delta, "{}", i).unwrap();
+        }
+        delta.close().unwrap();
     }
 }
 

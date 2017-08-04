@@ -1,12 +1,12 @@
 //! Writer for new weaves
 
-use std::fs::{File, rename};
+use std::fs::rename;
 use std::mem::replace;
 use std::io::{self, Write};
-use std::path::PathBuf;
 
 use Result;
 use NamingConvention;
+use WriterInfo;
 
 /// A builder for a new weave file.  The data should be written as a writer.  Closing the weaver
 /// will finish up the write and move the new file into place.  If the weaver is just dropped, the
@@ -14,11 +14,6 @@ use NamingConvention;
 pub struct NewWeave<'n> {
     naming: &'n NamingConvention,
     temp: Option<WriterInfo>,
-}
-
-struct WriterInfo {
-    name: PathBuf,
-    file: File,
 }
 
 impl<'n> NewWeave<'n> {

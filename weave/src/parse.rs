@@ -34,6 +34,27 @@ pub trait Sink {
     }
 }
 
+/*
+/// Any sink inside of an Rc is still a sync that just passes through.
+impl<T: Sink> Sink for Rc<T> {
+    fn insert(&mut self, delta: usize) -> Result<()> {
+        Rc::get_mut(self).unwrap().insert(delta)
+    }
+
+    fn delete(&mut self, delta: usize) -> Result<()> {
+        Rc::get_mut(self).unwrap().delete(delta)
+    }
+
+    fn end(&mut self, delta: usize) -> Result<()> {
+        Rc::get_mut(self).unwrap().end(delta)
+    }
+
+    fn plain(&mut self, text: &str, keep: bool) -> Result<()> {
+        Rc::get_mut(self).unwrap().plain(text, keep)
+    }
+}
+*/
+
 /// A Parser is used to process a weave file, extracting either everything, or only a specific
 /// delta.
 pub struct Parser<S: Sink, B> {
