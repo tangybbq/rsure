@@ -21,6 +21,16 @@ use std::rc::Rc;
 use tempdir::TempDir;
 use weave::{DeltaWriter, NewWeave, Parser, SimpleNaming, Sink, Result};
 
+/// Number of iterations to make.  Note that the default check is greater than O(n^2) so the test
+/// will run very long if this is increased too much.
+const ITERATION_COUNT: usize = 100;
+
+/// Number of lines in the files.  Affects how convoluted the diffs are.
+const FILE_SIZE: usize = 100;
+
+/// Set to true to verify all previous deltas, not just the most recent.
+const VERIFY_ALL_DELTAS: bool = true;
+
 #[test]
 fn sccs() {
     let _ = env_logger::init();
@@ -41,7 +51,7 @@ fn sccs() {
     gen.new_weave();
     gen.weave_check();
 
-    for i in 0 .. 100 {
+    for i in 0 .. ITERATION_COUNT {
         gen.shuffle();
         gen.add_sccs_delta();
         gen.add_weave_delta(i + 1);
@@ -89,7 +99,7 @@ impl Gen {
         Ok(Gen {
             tdir: tdir.to_owned(),
             sccs_plain: tdir.join("tfile"),
-            nums: (1..101).collect(),
+            nums: (1..FILE_SIZE+1).collect(),
             rand: SeedableRng::from_seed(seed),
             deltas: vec![],
         })
@@ -174,9 +184,18 @@ impl Gen {
 
     /// Check that weave decodes all of the sccs files properly.
     fn weave_check(&self) {
-        for (i, del) in self.deltas.iter().enumerate() {
-            self.weave_sccs_check_one(i, del);
-            self.weave_check_one(i, del);
+        if VERIFY_ALL_DELTAS {
+            // Verify all of the previous deltas.
+            for (i, del) in self.deltas.iter().enumerate() {
+                self.weave_sccs_check_one(i, del);
+                self.weave_check_one(i, del);
+            }
+        } else {
+            // This only checks the last delta for each one.  It will miss any bugs that result in
+            // earlier deltas being unreadable.
+            let del = self.deltas.iter().last().unwrap();
+            self.weave_sccs_check_one(self.deltas.len() - 1, del);
+            self.weave_check_one(self.deltas.len() - 1, del);
         }
     }
 
