@@ -1,8 +1,10 @@
 //! Weave parsing
 
 use Result;
+use std::cell::RefCell;
 use std::io::{BufRead, Lines};
 use std::mem;
+use std::rc::Rc;
 
 /// A Sink is a place that a parsed weave can be sent to.  The insert/delete/end commands match
 /// those in the weave file, and `plain` are the lines of data.  With each plain is a flag
@@ -34,12 +36,12 @@ pub trait Sink {
 
 /// A Parser is used to process a weave file, extracting either everything, or only a specific
 /// delta.
-pub struct Parser<'s, S: 's + Sink, B> {
+pub struct Parser<S: Sink, B> {
     /// The lines of the input.
     source: Lines<B>,
 
     /// The sink to be given each line record in the weave file.
-    sink: &'s mut S,
+    sink: Rc<RefCell<S>>,
 
     /// The desired delta to retrieve, which affects the parse_to call as well as the `keep`
     /// argument passed to the sink's `plain` call.
@@ -58,10 +60,10 @@ pub struct Parser<'s, S: 's + Sink, B> {
     lineno: usize,
 }
 
-impl<'s, S: 's + Sink, B: BufRead> Parser<'s, S, B> {
+impl<S: Sink, B: BufRead> Parser<S, B> {
     /// Construct a new Parser, reading from the given Reader, giving records to the given Sink,
     /// and aiming for the specified `delta`.
-    pub fn new<'ss>(source: Lines<B>, sink: &'ss mut S, delta: usize) -> Parser<'ss, S, B> {
+    pub fn new(source: Lines<B>, sink: Rc<RefCell<S>>, delta: usize) -> Parser<S, B> {
         Parser {
             source: source,
             sink: sink,
@@ -80,7 +82,7 @@ impl<'s, S: 's + Sink, B: BufRead> Parser<'s, S, B> {
     pub fn parse_to(&mut self, lineno: usize) -> Result<usize> {
         // Handle any pending input line.
         if let Some(pending) = mem::replace(&mut self.pending, None) {
-            self.sink.plain(&pending, self.keeping)?;
+            self.sink.borrow_mut().plain(&pending, self.keeping)?;
         }
 
         loop {
@@ -113,7 +115,7 @@ impl<'s, S: 's + Sink, B: BufRead> Parser<'s, S, B> {
 
                 // Otherwise, call the Sink, and continue.
                 info!("textual: keeping={}", self.keeping);
-                self.sink.plain(&line, self.keeping)?;
+                self.sink.borrow_mut().plain(&line, self.keeping)?;
                 continue;
             }
 
@@ -133,11 +135,11 @@ impl<'s, S: 's + Sink, B: BufRead> Parser<'s, S, B> {
 
             match linebytes[1] {
                 b'E' => {
-                    self.sink.end(this_delta)?;
+                    self.sink.borrow_mut().end(this_delta)?;
                     self.pop(this_delta);
                 }
                 b'I' => {
-                    self.sink.insert(this_delta)?;
+                    self.sink.borrow_mut().insert(this_delta)?;
 
                     // Do this insert if this insert is at least as old as the requested delta.
                     if self.delta >= this_delta {
@@ -147,7 +149,7 @@ impl<'s, S: 's + Sink, B: BufRead> Parser<'s, S, B> {
                     }
                 }
                 b'D' => {
-                    self.sink.delete(this_delta)?;
+                    self.sink.borrow_mut().delete(this_delta)?;
 
                     // Do this delete if this delete is newer than current.  If not, don't account
                     // for it.

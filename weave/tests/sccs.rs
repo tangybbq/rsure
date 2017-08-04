@@ -10,12 +10,14 @@ extern crate tempdir;
 extern crate weave;
 
 use rand::{Rng, SeedableRng, StdRng};
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::env;
 use std::fs::{File, remove_file};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
+use std::rc::Rc;
 use tempdir::TempDir;
 use weave::{NewWeave, Parser, SimpleNaming, Sink, Result};
 
@@ -179,9 +181,9 @@ impl Gen {
     fn weave_check_one(&self, num: usize, data: &[usize]) {
         let fd = File::open(self.tdir.join("s.tfile")).unwrap();
         let lines = BufReader::new(fd).lines();
-        let mut dsink = DeltaSink { nums: vec![] };
+        let dsink = Rc::new(RefCell::new(DeltaSink { nums: vec![] }));
         {
-            let mut parser = Parser::new(lines, &mut dsink, num + 1);
+            let mut parser = Parser::new(lines, dsink.clone(), num + 1);
             match parser.parse_to(0) {
                 Ok(0) => (),
                 Ok(_) => panic!("Unexpected stop of parser"),
@@ -189,7 +191,7 @@ impl Gen {
             }
         }
 
-        assert_eq!(data, &dsink.nums[..]);
+        assert_eq!(data, &dsink.borrow().nums[..]);
     }
 
     fn new_weave(&mut self) {
