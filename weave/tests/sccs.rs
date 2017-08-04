@@ -16,7 +16,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use tempdir::TempDir;
-use weave::Result;
+use weave::{Parser, Sink, Result};
 
 #[test]
 fn sccs() {
@@ -35,13 +35,15 @@ fn sccs() {
     }
 
     gen.new_sccs();
+    gen.weave_check();
 
     for _ in 0 .. 100 {
         gen.shuffle();
         gen.add_sccs_delta();
 
         // Checking with sccs is very slow.  Do we want to do it?
-        gen.sccs_check();
+        // gen.sccs_check();
+        gen.weave_check();
     }
 }
 
@@ -142,12 +144,14 @@ impl Gen {
     }
 
     /// Check the output of "sccs get".  This is more of a sanity check.
+    #[allow(dead_code)]
     fn sccs_check(&self) {
         for (i, del) in self.deltas.iter().enumerate() {
             self.sccs_check_one(i, del);
         }
     }
 
+    #[allow(dead_code)]
     fn sccs_check_one(&self, num: usize, data: &[usize]) {
         let out = Command::new("sccs").args(&["get", &format!("-r1.{}", num+1), "-p", "s.tfile"])
             .current_dir(&self.tdir)
@@ -161,6 +165,45 @@ impl Gen {
         }
 
         assert_eq!(data, &onums[..]);
+    }
+
+    /// Check that weave decodes all of the sccs files properly.
+    fn weave_check(&self) {
+        for (i, del) in self.deltas.iter().enumerate() {
+            self.weave_check_one(i, del);
+        }
+    }
+
+    fn weave_check_one(&self, num: usize, data: &[usize]) {
+        let fd = File::open(self.tdir.join("s.tfile")).unwrap();
+        let lines = BufReader::new(fd).lines();
+        let mut dsink = DeltaSink { nums: vec![] };
+        {
+            let mut parser = Parser::new(lines, &mut dsink, num + 1);
+            match parser.parse_to(0) {
+                Ok(0) => (),
+                Ok(_) => panic!("Unexpected stop of parser"),
+                Err(e) => panic!("Parser error: {:?}", e),
+            }
+        }
+
+        assert_eq!(data, &dsink.nums[..]);
+    }
+}
+
+/// A Weave Sink that just collects the numbers in the given delta.
+struct DeltaSink {
+    nums: Vec<usize>,
+}
+
+impl Sink for DeltaSink {
+    fn plain(&mut self, text: &str, keep: bool) -> Result<()> {
+        if !keep {
+            return Ok(())
+        }
+
+        self.nums.push(text.parse::<usize>()?);
+        Ok(())
     }
 }
 
