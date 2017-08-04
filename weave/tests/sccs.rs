@@ -10,13 +10,14 @@ extern crate tempdir;
 extern crate weave;
 
 use rand::{Rng, SeedableRng, StdRng};
+use std::collections::BTreeMap;
 use std::env;
 use std::fs::{File, remove_file};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use tempdir::TempDir;
-use weave::{Parser, Sink, Result};
+use weave::{NewWeave, Parser, SimpleNaming, Sink, Result};
 
 #[test]
 fn sccs() {
@@ -35,6 +36,7 @@ fn sccs() {
     }
 
     gen.new_sccs();
+    gen.new_weave();
     gen.weave_check();
 
     for _ in 0 .. 100 {
@@ -188,6 +190,17 @@ impl Gen {
         }
 
         assert_eq!(data, &dsink.nums[..]);
+    }
+
+    fn new_weave(&mut self) {
+        let mut tags = BTreeMap::new();
+        tags.insert("name", "initial");
+        let nc = SimpleNaming::new(&self.tdir, "sample", "weave", false);
+        let mut nw = NewWeave::new(&nc, tags.into_iter()).unwrap();
+        for i in &self.nums {
+            writeln!(&mut nw, "{}", i).unwrap();
+        }
+        nw.close().unwrap();
     }
 }
 
