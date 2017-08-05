@@ -84,7 +84,7 @@ impl<'n> DeltaWriter<'n> {
             base: base,
             new_delta: new_delta,
             base_name: base_name,
-            diff_re: Regex::new(r"(\d+)(,(\d+))?([acd]).*$").unwrap(),
+            diff_re: Regex::new(r"^(\d+)(,(\d+))?([acd]).*$").unwrap(),
             header: header,
         })
     }
