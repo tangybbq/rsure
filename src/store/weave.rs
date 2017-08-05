@@ -26,16 +26,8 @@ impl WeaveStore {
 impl Store for WeaveStore {
     fn write_new(&self, tree: &SureTree, tags: &StoreTags) -> Result<()> {
         let itags = tags.iter().map(|(k,v)| (k.as_ref(), v.as_ref()));
-        match File::open(self.naming.main_file()) {
-            Ok(fd) => {
-                // TODO: Much better to have a utility to get the delta from the code.
-                let lines = BufReader::new(fd).lines();
-                let parser = Parser::new(lines, Rc::new(RefCell::new(NullSink)), 1)?;
-                let base = parser.get_header().deltas.iter()
-                    .map(|x| x.number)
-                    .max().expect("At least one delta in weave file");
-                drop(parser); // Make sure the file gets closed.
-
+        match get_last_delta(&self.naming) {
+            Ok(base) => {
                 let mut wv = DeltaWriter::new(&self.naming, itags, base)?;
                 tree.save_to(&mut wv)?;
                 wv.close()?;
@@ -56,6 +48,17 @@ impl Store for WeaveStore {
     fn load(&self, version: Version) -> Result<SureTree> {
         panic!("TODO")
     }
+}
+
+/// Get the delta number of the most recent delta.
+fn get_last_delta(naming: &NamingConvention) -> Result<usize> {
+    let fd = File::open(naming.main_file())?;
+    let lines = BufReader::new(fd).lines();
+    let parser = Parser::new(lines, Rc::new(RefCell::new(NullSink)), 1)?;
+    let base = parser.get_header().deltas.iter()
+        .map(|x| x.number)
+        .max().expect("At least one delta in weave file");
+    Ok(base)
 }
 
 // The null sink does nothing.
