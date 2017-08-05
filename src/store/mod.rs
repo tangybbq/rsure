@@ -7,9 +7,11 @@ use std::path::Path;
 
 mod plain;
 mod bk;
+mod weave;
 
 pub use self::plain::Plain;
 pub use self::bk::{BkSureFile, BkStore, bk_setup};
+pub use self::weave::WeaveStore;
 
 /// Tags are just key/value pairs.  Both key and value should be printable strings.
 pub type StoreTags = BTreeMap<String, String>;
@@ -86,6 +88,12 @@ pub fn parse_store(text: &str) -> Result<Box<Store>> {
     } else {
         (base, false)
     };
+
+    // Check for weave format.
+    if base.ends_with(".weave") {
+        let base = &base[..base.len()-6];
+        return Ok(Box::new(WeaveStore::new(dir, base, compressed)));
+    }
 
     // Strip off known suffixes.
     let base = if base.ends_with(".dat") || base.ends_with(".bak") {

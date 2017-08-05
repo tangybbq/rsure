@@ -2,6 +2,7 @@
 
 use escape;
 use openssl;
+use weave;
 use std::io;
 use std::process::ExitStatus;
 
@@ -12,6 +13,7 @@ error_chain! {
 
     links {
         Escape(escape::EscapeError, escape::EscapeErrorKind);
+        Weave(weave::Error, weave::ErrorKind);
     }
 
     foreign_links {

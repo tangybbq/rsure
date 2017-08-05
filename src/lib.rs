@@ -23,6 +23,7 @@ extern crate openssl;
 extern crate regex;
 extern crate rustc_serialize;
 extern crate time;
+extern crate weave;
 
 #[macro_use]
 extern crate log;
