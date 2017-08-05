@@ -35,12 +35,12 @@ const VERIFY_ALL_DELTAS: bool = true;
 fn sccs() {
     let _ = env_logger::init();
 
-    if !has_sccs() {
-        return;
-    }
+    // Normally, detect the SCCS command being present, and use it for additional tests.  It can be
+    // ignored by setting NO_SCCS=1 in the environment.
+    let use_sccs = has_sccs() && env::var("NO_SCCS").is_err();
 
     let tdir = TempDir::new("sccstest").unwrap();
-    let mut gen = Gen::new(tdir.path()).unwrap();
+    let mut gen = Gen::new(tdir.path(), use_sccs).unwrap();
 
     // For debugging, this will cause the directory to not be removed.
     if env::var("KEEPTEMP").is_ok() {
@@ -49,12 +49,14 @@ fn sccs() {
 
     gen.new_sccs();
     gen.new_weave();
+    gen.next_delta();
     gen.weave_check();
 
     for i in 0 .. ITERATION_COUNT {
         gen.shuffle();
         gen.add_sccs_delta();
         gen.add_weave_delta(i + 1);
+        gen.next_delta();
 
         // Checking with sccs is very slow.  Do we want to do it?
         // gen.sccs_check();
@@ -67,7 +69,7 @@ fn has_sccs() -> bool {
     match Command::new("sccs").arg("-V").output() {
         Ok(_) => true,
         Err(_) => {
-            error!("'sccs' not found in path, skipping tests, install 'cssc' to fix");
+            error!("'sccs' not found in path, skipping some tests, install 'cssc' to fix");
             false
         }
     }
@@ -90,10 +92,13 @@ struct Gen {
 
     /// A Rng for generating the shuffles.
     rand: StdRng,
+
+    /// Is sccs enabled.
+    use_sccs: bool,
 }
 
 impl Gen {
-    fn new<P: AsRef<Path>>(tdir: P) -> Result<Gen> {
+    fn new<P: AsRef<Path>>(tdir: P, use_sccs: bool) -> Result<Gen> {
         let tdir = tdir.as_ref();
         let seed: &[_] = &[1, 2, 3, 4];
         Ok(Gen {
@@ -102,6 +107,7 @@ impl Gen {
             nums: (1..FILE_SIZE+1).collect(),
             rand: SeedableRng::from_seed(seed),
             deltas: vec![],
+            use_sccs: use_sccs,
         })
     }
 
@@ -115,8 +121,16 @@ impl Gen {
         self.nums[a..b].reverse();
     }
 
+    fn next_delta(&mut self) {
+        self.deltas.push(self.nums.clone())
+    }
+
     /// Write to a new sccs file, resulting in delta 1.
     fn new_sccs(&mut self) {
+        if !self.use_sccs {
+            return;
+        }
+
         self.emit_to(&self.sccs_plain);
         Command::new("sccs").args(&["admin", "-itfile", "-n", "s.tfile"])
             .current_dir(&self.tdir)
@@ -124,13 +138,14 @@ impl Gen {
             .expect("Unable to run sccs admin")
             .expect_success("Sccs command returned error");
         remove_file(&self.sccs_plain).expect("Unable to remove data file");
-
-        /// Consider the deltas as canonical by the SCCS command, so store the first delta.
-        self.deltas.push(self.nums.clone());
     }
 
     /// Add a new delta to the sccs file.
     fn add_sccs_delta(&mut self) {
+        if !self.use_sccs {
+            return;
+        }
+
         Command::new("sccs").args(&["get", "-e", "s.tfile"])
             .current_dir(&self.tdir)
             .stderr(Stdio::null())
@@ -146,8 +161,6 @@ impl Gen {
             .status()
             .expect("Unable to run sccs delta")
             .expect_success("sccs delta failed");
-
-        self.deltas.push(self.nums.clone());
     }
 
     /// Emit the current numbers to the given name (in the temp dir).
@@ -168,6 +181,10 @@ impl Gen {
 
     #[allow(dead_code)]
     fn sccs_check_one(&self, num: usize, data: &[usize]) {
+        if !self.use_sccs {
+            return;
+        }
+
         let out = Command::new("sccs").args(&["get", &format!("-r1.{}", num+1), "-p", "s.tfile"])
             .current_dir(&self.tdir)
             .output()
@@ -200,6 +217,10 @@ impl Gen {
     }
 
     fn weave_sccs_check_one(&self, num: usize, data: &[usize]) {
+        if !self.use_sccs {
+            return;
+        }
+
         let fd = File::open(self.tdir.join("s.tfile")).unwrap();
         let lines = BufReader::new(fd).lines();
         let dsink = Rc::new(RefCell::new(DeltaSink { nums: vec![] }));
