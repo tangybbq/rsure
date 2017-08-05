@@ -24,13 +24,18 @@ extern crate error_chain;
 extern crate derive_error_chain;
 #[macro_use]
 extern crate log;
+extern crate chrono;
 extern crate regex;
+extern crate serde;
+extern crate serde_json;
+#[macro_use] extern crate serde_derive;
 
 mod errors;
 mod naming;
 mod parse;
 mod newweave;
 mod delta;
+mod header;
 
 pub use naming::NamingConvention;
 pub use naming::{SimpleNaming};

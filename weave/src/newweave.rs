@@ -1,9 +1,11 @@
 //! Writer for new weaves
 
+use std::collections::BTreeMap;
 use std::fs::rename;
 use std::mem::replace;
 use std::io::{self, Write};
 
+use header::Header;
 use Result;
 use NamingConvention;
 use WriterInfo;
@@ -21,10 +23,14 @@ impl<'n> NewWeave<'n> {
         where I: Iterator<Item=(&'a str, &'b str)>
     {
         let (temp, mut file) = nc.temp_file()?;
+        let mut ntags = BTreeMap::new();
         for (k, v) in tags {
-            writeln!(&mut file, "\x01t {}={}", k, v)?;
+            ntags.insert(k.to_owned(), v.to_owned());
         }
-        writeln!(&mut file, "\x01I 1")?;
+        let mut header = Header::new();
+        let delta = header.add(ntags)?;
+        header.write(&mut file)?;
+        writeln!(&mut file, "\x01I {}", delta)?;
 
         Ok(NewWeave {
             naming: nc,
@@ -64,4 +70,21 @@ impl<'n> Write for NewWeave<'n> {
             .expect("Attempt to flush NewWeave that is closed")
             .file.flush()
     }
+}
+
+#[test]
+#[ignore]
+fn try_tag() {
+    use SimpleNaming;
+    let mut tags = BTreeMap::new();
+    tags.insert("name".to_owned(), "initial revision".to_owned());
+    // Add a whole bunch of longer tags to show it works.
+    for i in 1..100 {
+        tags.insert(format!("key{}", i), format!("This is the {}th value", i));
+    }
+    let nc = SimpleNaming::new(".", "tags", "weave", false);
+    let t2 = tags.iter().map(|(k,v)| (k.as_ref(), v.as_ref()));
+    let mut wr = NewWeave::new(&nc, t2).unwrap();
+    writeln!(&mut wr, "This is the only line in the file").unwrap();
+    wr.close().unwrap();
 }

@@ -9,4 +9,7 @@ pub enum ErrorKind {
 
     #[error_chain(foreign)]
     Parse(::std::num::ParseIntError),
+
+    #[error_chain(foreign)]
+    Serde(::serde_json::Error),
 }

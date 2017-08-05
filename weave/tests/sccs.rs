@@ -225,7 +225,7 @@ impl Gen {
         let lines = BufReader::new(fd).lines();
         let dsink = Rc::new(RefCell::new(DeltaSink { nums: vec![] }));
         {
-            let mut parser = Parser::new(lines, dsink.clone(), num + 1);
+            let mut parser = Parser::new(lines, dsink.clone(), num + 1).unwrap();
             match parser.parse_to(0) {
                 Ok(0) => (),
                 Ok(_) => panic!("Unexpected stop of parser"),
@@ -241,7 +241,7 @@ impl Gen {
         let lines = BufReader::new(fd).lines();
         let dsink = Rc::new(RefCell::new(DeltaSink { nums: vec![] }));
         {
-            let mut parser = Parser::new(lines, dsink.clone(), num + 1);
+            let mut parser = Parser::new(lines, dsink.clone(), num + 1).unwrap();
             match parser.parse_to(0) {
                 Ok(0) => (),
                 Ok(_) => panic!("Unexpected stop of parser"),

@@ -1,6 +1,7 @@
 //! Weave parsing
 
 use Result;
+use header::Header;
 use std::cell::RefCell;
 use std::io::{BufRead, Lines};
 use std::mem;
@@ -79,20 +80,31 @@ pub struct Parser<S: Sink, B> {
 
     /// The line number indicator.
     lineno: usize,
+
+    /// The header extracted from the file.
+    header: Header,
 }
 
 impl<S: Sink, B: BufRead> Parser<S, B> {
     /// Construct a new Parser, reading from the given Reader, giving records to the given Sink,
     /// and aiming for the specified `delta`.
-    pub fn new(source: Lines<B>, sink: Rc<RefCell<S>>, delta: usize) -> Parser<S, B> {
-        Parser {
-            source: source,
-            sink: sink,
-            delta: delta,
-            delta_state: vec![],
-            pending: None,
-            keeping: false,
-            lineno: 0,
+    pub fn new(mut source: Lines<B>, sink: Rc<RefCell<S>>, delta: usize) -> Result<Parser<S, B>> {
+        if let Some(line) = source.next() {
+            let line = line?;
+            let header = Header::from_str(&line)?;
+
+            Ok(Parser {
+                source: source,
+                sink: sink,
+                delta: delta,
+                delta_state: vec![],
+                pending: None,
+                keeping: false,
+                lineno: 0,
+                header: header,
+            })
+        } else {
+            Err("Weave file appears empty".into())
         }
     }
 
@@ -230,6 +242,11 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
         // This shouldn't be reached if there are any more context lines, but we may get here when
         // we reach the end of the input.
         self.keeping = false;
+    }
+
+    /// Get the header read from this weave file.
+    pub fn get_header(&self) -> &Header {
+        &self.header
     }
 }
 

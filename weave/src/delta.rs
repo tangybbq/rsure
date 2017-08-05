@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::rc::Rc;
 
+use header::Header;
 use NamingConvention;
 use {Parser, Sink};
 use Result;
@@ -23,9 +24,6 @@ pub struct DeltaWriter<'n> {
     // Where the temporary file will be written.
     temp: Option<WriterInfo>,
 
-    // The tags to be written for this delta.
-    tags: BTreeMap<String, String>,
-
     // The base delta.
     base: usize,
 
@@ -37,6 +35,9 @@ pub struct DeltaWriter<'n> {
 
     // The regex for parsing diff output.
     diff_re: Regex,
+
+    // The header to be written for the new delta.
+    header: Header,
 }
 
 impl<'n> DeltaWriter<'n> {
@@ -61,14 +62,16 @@ impl<'n> DeltaWriter<'n> {
         let lines = BufReader::new(bfd).lines();
         let (base_name, base_file) = nc.temp_file()?;
         let dsink = Rc::new(RefCell::new(RevWriter { dest: BufWriter::new(base_file) }));
-        {
-            let mut parser = Parser::new(lines, dsink, base);
+        let mut header = {
+            let mut parser = Parser::new(lines, dsink, base)?;
             match parser.parse_to(0) {
                 Ok(0) => (),
                 Ok(_) => panic!("Unexpected stop of parser"),
                 Err(e) => return Err(e),
             }
-        }
+            parser.get_header().clone()
+        };
+        let new_delta = header.add(ntags)?;
 
         let (new_name, new_file) = nc.temp_file()?;
 
@@ -78,11 +81,11 @@ impl<'n> DeltaWriter<'n> {
                 name: new_name,
                 file: new_file,
             }),
-            tags: ntags,
             base: base,
-            new_delta: base + 1, // TODO Incorrect if branching.
+            new_delta: new_delta,
             base_name: base_name,
             diff_re: Regex::new(r"(\d+)(,(\d+))?([acd]).*$").unwrap(),
+            header: header,
         })
     }
 
@@ -114,7 +117,9 @@ impl<'n> DeltaWriter<'n> {
         {
             let lines = BufReader::new(child.stdout.as_mut().unwrap()).lines();
             let weave_write = Rc::new(RefCell::new(WeaveWriter { dest: BufWriter::new(tweave_file) }));
-            let mut parser = Parser::new(old_lines, weave_write.clone(), self.base);
+            let mut parser = Parser::new(old_lines, weave_write.clone(), self.base)?;
+
+            self.header.write(&mut weave_write.borrow_mut().dest)?;
 
             let mut is_done = false;
             let mut is_adding = false;
