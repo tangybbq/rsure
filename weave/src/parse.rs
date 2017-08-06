@@ -1,9 +1,12 @@
 //! Weave parsing
 
+use NamingConvention;
 use Result;
+use flate2::FlateReadExt;
 use header::Header;
 use std::cell::RefCell;
-use std::io::{BufRead, Lines};
+use std::fs::File;
+use std::io::{BufRead, BufReader, Lines, Read};
 use std::mem;
 use std::rc::Rc;
 
@@ -35,27 +38,6 @@ pub trait Sink {
     }
 }
 
-/*
-/// Any sink inside of an Rc is still a sync that just passes through.
-impl<T: Sink> Sink for Rc<T> {
-    fn insert(&mut self, delta: usize) -> Result<()> {
-        Rc::get_mut(self).unwrap().insert(delta)
-    }
-
-    fn delete(&mut self, delta: usize) -> Result<()> {
-        Rc::get_mut(self).unwrap().delete(delta)
-    }
-
-    fn end(&mut self, delta: usize) -> Result<()> {
-        Rc::get_mut(self).unwrap().end(delta)
-    }
-
-    fn plain(&mut self, text: &str, keep: bool) -> Result<()> {
-        Rc::get_mut(self).unwrap().plain(text, keep)
-    }
-}
-*/
-
 /// A Parser is used to process a weave file, extracting either everything, or only a specific
 /// delta.
 pub struct Parser<S: Sink, B> {
@@ -85,10 +67,27 @@ pub struct Parser<S: Sink, B> {
     header: Header,
 }
 
+impl<S: Sink> Parser<S, BufReader<Box<Read>>> {
+    /// Construct a parser, based on the main file of the naming convention.
+    pub fn new(naming: &NamingConvention, sink: S, delta: usize)
+        -> Result<Parser<S, BufReader<Box<Read>>>>
+    {
+        let rd = if naming.is_compressed() {
+            let fd = File::open(naming.main_file())?;
+            Box::new(fd.gz_decode()?) as Box<Read>
+        } else {
+            Box::new(File::open(naming.main_file())?) as Box<Read>
+        };
+        let lines = BufReader::new(rd).lines();
+        Parser::new_raw(lines, Rc::new(RefCell::new(sink)), delta)
+    }
+}
+
 impl<S: Sink, B: BufRead> Parser<S, B> {
     /// Construct a new Parser, reading from the given Reader, giving records to the given Sink,
-    /// and aiming for the specified `delta`.
-    pub fn new(mut source: Lines<B>, sink: Rc<RefCell<S>>, delta: usize) -> Result<Parser<S, B>> {
+    /// and aiming for the specified `delta`.  This is not the intended constructor, normal users
+    /// should use `new`.  (This is public, for testing).
+    pub fn new_raw(mut source: Lines<B>, sink: Rc<RefCell<S>>, delta: usize) -> Result<Parser<S, B>> {
         if let Some(line) = source.next() {
             let line = line?;
             let header = Header::from_str(&line)?;

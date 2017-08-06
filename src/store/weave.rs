@@ -8,7 +8,7 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
 use super::{Store, StoreTags, Version};
-use weave::{self, DeltaWriter, SimpleNaming, NamingConvention, NewWeave, Sink};
+use weave::{self, Parser, DeltaWriter, SimpleNaming, NamingConvention, NewWeave, Sink};
 
 pub struct WeaveStore {
     naming: SimpleNaming,
@@ -75,7 +75,7 @@ impl Store for WeaveStore {
 // Parse a given delta, emitting the lines to the given channel.  Finishes with Ok(()), or an error
 // if something goes wrong.
 fn read_parse(naming: &NamingConvention, delta: usize, chan: Sender<Option<Result<String>>>) -> Result<()> {
-    let mut parser = weave::make_parser(naming, ReadSync { chan: chan }, delta)?;
+    let mut parser = Parser::new(naming, ReadSync { chan: chan }, delta)?;
     parser.parse_to(0)?;
     let sink = parser.get_sink();
     match sink.borrow().chan.send(None) {

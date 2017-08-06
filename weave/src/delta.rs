@@ -10,6 +10,7 @@ use std::process::{Command, Stdio};
 
 use header::Header;
 use NamingConvention;
+use Parser;
 use Sink;
 use Result;
 use WriterInfo;
@@ -60,7 +61,7 @@ impl<'n> DeltaWriter<'n> {
         let (base_name, base_file) = nc.temp_file()?;
         let mut header = {
             let dsync = RevWriter { dest: BufWriter::new(base_file) };
-            let mut parser = ::make_parser(nc, dsync, base)?;
+            let mut parser = Parser::new(nc, dsync, base)?;
             match parser.parse_to(0) {
                 Ok(0) => (),
                 Ok(_) => panic!("Unexpected stop of parser"),
@@ -111,7 +112,7 @@ impl<'n> DeltaWriter<'n> {
         {
             let lines = BufReader::new(child.stdout.as_mut().unwrap()).lines();
             let weave_write = WeaveWriter { dest: BufWriter::new(tweave_file) };
-            let mut parser = ::make_parser(self.naming, weave_write, self.base)?;
+            let mut parser = Parser::new(self.naming, weave_write, self.base)?;
 
             let weave_write = parser.get_sink();
 
