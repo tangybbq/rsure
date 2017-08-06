@@ -1,5 +1,5 @@
 //! Weave files will follow a file naming convention.  This determines the names of various temp
-//! files and other aspects.  The SCCS conventions are not followed, because they are not save
+//! files and other aspects.  The SCCS conventions are not followed, because they are not safe
 //! (this crate will never write to a file that already exists).
 
 use ::Result;
