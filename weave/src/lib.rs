@@ -60,15 +60,7 @@ struct WriterInfo {
 
 /// Read the header from a weave file.
 pub fn read_header(naming: &NamingConvention) -> Result<Header> {
-    let rd = if naming.is_compressed() {
-        let fd = File::open(naming.main_file())?;
-        Box::new(fd.gz_decode()?) as Box<Read>
-    } else {
-        Box::new(File::open(naming.main_file())?) as Box<Read>
-    };
-    let lines = BufReader::new(rd).lines();
-    let parser = Parser::new(lines, Rc::new(RefCell::new(NullSink)), 1)?;
-    Ok(parser.into_header())
+    Ok(make_parser(naming, NullSink, 1)?.into_header())
 }
 
 /// Retrieve the last delta in the weave file.  Will panic if the weave file is malformed and
@@ -78,6 +70,20 @@ pub fn get_last_delta(naming: &NamingConvention) -> Result<usize> {
     Ok(header.deltas.iter()
        .map(|x| x.number)
        .max().expect("at least one delta in weave file"))
+}
+
+/// Open the main file, constructing a parser on it, using the given sink.
+pub fn make_parser<S: Sink>(naming: &NamingConvention, sink: S, delta: usize)
+    -> Result<Parser<S, BufReader<Box<Read>>>>
+{
+    let rd = if naming.is_compressed() {
+        let fd = File::open(naming.main_file())?;
+        Box::new(fd.gz_decode()?) as Box<Read>
+    } else {
+        Box::new(File::open(naming.main_file())?) as Box<Read>
+    };
+    let lines = BufReader::new(rd).lines();
+    Parser::new(lines, Rc::new(RefCell::new(sink)), delta)
 }
 
 /// A null sink that does nothing, useful for parsing the header.

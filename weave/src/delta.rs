@@ -1,18 +1,16 @@
 //! Add a delta to a weave file.
 
 use regex::Regex;
-use std::cell::RefCell;
 use std::collections::BTreeMap;
-use std::fs::{File, rename, remove_file};
+use std::fs::{rename, remove_file};
 use std::mem::replace;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use std::rc::Rc;
 
 use header::Header;
 use NamingConvention;
-use {Parser, Sink};
+use Sink;
 use Result;
 use WriterInfo;
 
@@ -58,18 +56,17 @@ impl<'n> DeltaWriter<'n> {
         }
 
         // Extract the base delta to a file.
-        let bfd = File::open(nc.main_file())?;
-        let lines = BufReader::new(bfd).lines();
+
         let (base_name, base_file) = nc.temp_file()?;
-        let dsink = Rc::new(RefCell::new(RevWriter { dest: BufWriter::new(base_file) }));
         let mut header = {
-            let mut parser = Parser::new(lines, dsink, base)?;
+            let dsync = RevWriter { dest: BufWriter::new(base_file) };
+            let mut parser = ::make_parser(nc, dsync, base)?;
             match parser.parse_to(0) {
                 Ok(0) => (),
                 Ok(_) => panic!("Unexpected stop of parser"),
                 Err(e) => return Err(e),
             }
-            parser.get_header().clone()
+            parser.into_header()
         };
         let new_delta = header.add(ntags)?;
 
@@ -104,9 +101,6 @@ impl<'n> DeltaWriter<'n> {
         let (tweave_name, tweave_file) = self.naming.temp_file()?;
         // TODO: Header from old.
 
-        let old_fd = File::open(self.naming.main_file())?;
-        let old_lines = BufReader::new(old_fd).lines();
-
         // Invoke diff on the files.
         let mut child = Command::new("diff")
             .arg(self.base_name.as_os_str())
@@ -116,8 +110,10 @@ impl<'n> DeltaWriter<'n> {
 
         {
             let lines = BufReader::new(child.stdout.as_mut().unwrap()).lines();
-            let weave_write = Rc::new(RefCell::new(WeaveWriter { dest: BufWriter::new(tweave_file) }));
-            let mut parser = Parser::new(old_lines, weave_write.clone(), self.base)?;
+            let weave_write = WeaveWriter { dest: BufWriter::new(tweave_file) };
+            let mut parser = ::make_parser(self.naming, weave_write, self.base)?;
+
+            let weave_write = parser.get_sink();
 
             self.header.write(&mut weave_write.borrow_mut().dest)?;
 

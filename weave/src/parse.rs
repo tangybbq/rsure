@@ -253,6 +253,11 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
     pub fn into_header(self) -> Header {
         self.header
     }
+
+    /// Get a copy of the sink.
+    pub fn get_sink(&self) -> Rc<RefCell<S>> {
+        self.sink.clone()
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]

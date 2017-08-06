@@ -39,6 +39,7 @@ pub trait NamingConvention {
 /// specified extension, the backup file having a ".bak" extension, and the temp files using a
 /// numbered extension starting with ".0".  If the names are intended to be compressed, a ".gz"
 /// suffix can also be added.
+#[derive(Debug, Clone)]
 pub struct SimpleNaming {
     // The directory for the files to be written.
     path: PathBuf,

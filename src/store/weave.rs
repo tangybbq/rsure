@@ -2,16 +2,13 @@
 
 use Result;
 use SureTree;
-use std::cell::RefCell;
-use std::fs::File;
-use std::io::{self, BufRead, BufReader, Read};
-use std::path::{Path, PathBuf};
-use std::rc::Rc;
+use std::io::{self, Read};
+use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
 use super::{Store, StoreTags, Version};
-use weave::{self, DeltaWriter, SimpleNaming, NamingConvention, NewWeave, Parser, Sink};
+use weave::{self, DeltaWriter, SimpleNaming, NamingConvention, NewWeave, Sink};
 
 pub struct WeaveStore {
     naming: SimpleNaming,
@@ -54,10 +51,10 @@ impl Store for WeaveStore {
             Version::Prior => last - 1,
         };
 
-        let path = self.naming.main_file().to_path_buf();
+        let child_naming = self.naming.clone();
         let (sender, receiver) = mpsc::channel();
         let child = thread::spawn(move || {
-            if let Err(err) = read_parse(path, last, sender.clone()) {
+            if let Err(err) = read_parse(&child_naming, last, sender.clone()) {
                 // Attempt to send the last error over.
                 if let Err(inner) = sender.send(Some(Err(err))) {
                     warn!("Error sending error on channel {:?}",
@@ -77,15 +74,11 @@ impl Store for WeaveStore {
 
 // Parse a given delta, emitting the lines to the given channel.  Finishes with Ok(()), or an error
 // if something goes wrong.
-fn read_parse(path: PathBuf, delta: usize, chan: Sender<Option<Result<String>>>) -> Result<()> {
-    let fd = File::open(&path)?;
-    let lines = BufReader::new(fd).lines();
-    let sync = Rc::new(RefCell::new(ReadSync {
-        chan: chan,
-    }));
-    let mut parser = Parser::new(lines, sync.clone(), delta)?;
+fn read_parse(naming: &NamingConvention, delta: usize, chan: Sender<Option<Result<String>>>) -> Result<()> {
+    let mut parser = weave::make_parser(naming, ReadSync { chan: chan }, delta)?;
     parser.parse_to(0)?;
-    match sync.borrow().chan.send(None) {
+    let sink = parser.get_sink();
+    match sink.borrow().chan.send(None) {
         Ok(()) => (),
         Err(e) => return Err(format!("chan send error: {:?}", e).into()),
     }
