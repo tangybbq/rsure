@@ -10,6 +10,15 @@ use std::io::ErrorKind;
 /// A naming convention provides utilities needed to find the involved files, and construct
 /// temporary files as part of writing the new weave.  The underlying object should keep the path
 /// and base name.
+///
+/// The main file is either used by name, or opened for reading.  It should never be written to
+/// directly.  The main file is always compressed if the convention enables compression.
+///
+/// The backup file is only used by name.  It is neither written to, nor read.  It will be
+/// compressed, as it always comes from renaming the main file.
+///
+/// The temporary files are used by name, and written to.  They may or may not be compressed,
+/// depending on how they will be used.
 pub trait NamingConvention {
     /// Create a temporary file for writing.  Upon success, returns the full path of the file, and
     /// the opened File for writing to the file.  The path should refer to a new file that did not
@@ -21,6 +30,9 @@ pub trait NamingConvention {
 
     /// Return the pathname of the backup file.
     fn backup_file(&self) -> PathBuf;
+
+    /// Return if compression is requested on main file.
+    fn is_compressed(&self) -> bool;
 }
 
 /// The SimpleNaming is a NamingConvention that has a basename, with the main file having a
@@ -77,5 +89,9 @@ impl NamingConvention for SimpleNaming {
 
             n += 1;
         }
+    }
+
+    fn is_compressed(&self) -> bool {
+        self.compressed
     }
 }

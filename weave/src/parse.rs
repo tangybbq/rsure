@@ -248,6 +248,11 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
     pub fn get_header(&self) -> &Header {
         &self.header
     }
+
+    /// Consume the parser, returning the header.
+    pub fn into_header(self) -> Header {
+        self.header
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]

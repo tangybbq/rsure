@@ -28,7 +28,7 @@ impl WeaveStore {
 impl Store for WeaveStore {
     fn write_new(&self, tree: &SureTree, tags: &StoreTags) -> Result<()> {
         let itags = tags.iter().map(|(k,v)| (k.as_ref(), v.as_ref()));
-        match get_last_delta(&self.naming) {
+        match weave::get_last_delta(&self.naming) {
             Ok(base) => {
                 let mut wv = DeltaWriter::new(&self.naming, itags, base)?;
                 tree.save_to(&mut wv)?;
@@ -48,7 +48,7 @@ impl Store for WeaveStore {
     }
 
     fn load(&self, version: Version) -> Result<SureTree> {
-        let last = get_last_delta(&self.naming)?;
+        let last = weave::get_last_delta(&self.naming)?;
         let last = match version {
             Version::Latest => last,
             Version::Prior => last - 1,
@@ -74,22 +74,6 @@ impl Store for WeaveStore {
         tree
     }
 }
-
-/// Get the delta number of the most recent delta.
-fn get_last_delta(naming: &NamingConvention) -> Result<usize> {
-    let fd = File::open(naming.main_file())?;
-    let lines = BufReader::new(fd).lines();
-    let parser = Parser::new(lines, Rc::new(RefCell::new(NullSink)), 1)?;
-    let base = parser.get_header().deltas.iter()
-        .map(|x| x.number)
-        .max().expect("At least one delta in weave file");
-    Ok(base)
-}
-
-// The null sink does nothing.
-struct NullSink;
-
-impl Sink for NullSink {}
 
 // Parse a given delta, emitting the lines to the given channel.  Finishes with Ok(()), or an error
 // if something goes wrong.

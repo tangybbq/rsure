@@ -25,6 +25,7 @@ extern crate derive_error_chain;
 #[macro_use]
 extern crate log;
 extern crate chrono;
+extern crate flate2;
 extern crate regex;
 extern crate serde;
 extern crate serde_json;
@@ -43,11 +44,43 @@ pub use errors::{Result, Error, ErrorKind};
 pub use parse::{Sink, Parser};
 pub use newweave::NewWeave;
 pub use delta::DeltaWriter;
+pub use header::{Header, DeltaInfo};
 
+use flate2::{FlateReadExt};
+use std::cell::RefCell;
 use std::fs::File;
+use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
+use std::rc::Rc;
 
 struct WriterInfo {
     name: PathBuf,
     file: File,
 }
+
+/// Read the header from a weave file.
+pub fn read_header(naming: &NamingConvention) -> Result<Header> {
+    let rd = if naming.is_compressed() {
+        let fd = File::open(naming.main_file())?;
+        Box::new(fd.gz_decode()?) as Box<Read>
+    } else {
+        Box::new(File::open(naming.main_file())?) as Box<Read>
+    };
+    let lines = BufReader::new(rd).lines();
+    let parser = Parser::new(lines, Rc::new(RefCell::new(NullSink)), 1)?;
+    Ok(parser.into_header())
+}
+
+/// Retrieve the last delta in the weave file.  Will panic if the weave file is malformed and
+/// contains no revisions.
+pub fn get_last_delta(naming: &NamingConvention) -> Result<usize> {
+    let header = read_header(naming)?;
+    Ok(header.deltas.iter()
+       .map(|x| x.number)
+       .max().expect("at least one delta in weave file"))
+}
+
+/// A null sink that does nothing, useful for parsing the header.
+struct NullSink;
+
+impl Sink for NullSink {}
