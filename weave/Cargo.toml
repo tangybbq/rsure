@@ -2,6 +2,14 @@
 name = "weave"
 version = "0.1.0"
 authors = ["davidb"]
+description = """
+Weave delta file storage.  Inspired by the storage format of SCCS,
+this crate allows multiple revisions of a file to be stored
+efficiently in a single file.
+"""
+license = "MIT"
+readme = "README.rst"
+repository = "https://github.com/d3zd3z/rsure"
 
 [dependencies]
 error-chain = "0.10"
