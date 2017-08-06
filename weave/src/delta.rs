@@ -72,13 +72,14 @@ impl<'n> DeltaWriter<'n> {
         let new_delta = header.add(ntags)?;
 
         let (new_name, new_file) = nc.temp_file()?;
+        let new_info = WriterInfo {
+            name: new_name,
+            writer: Box::new(BufWriter::new(new_file)),
+        };
 
         Ok(DeltaWriter {
             naming: nc,
-            temp: Some(WriterInfo {
-                name: new_name,
-                file: new_file,
-            }),
+            temp: Some(new_info),
             base: base,
             new_delta: new_delta,
             base_name: base_name,
@@ -92,15 +93,14 @@ impl<'n> DeltaWriter<'n> {
         let temp = replace(&mut self.temp, None);
         let temp_name = match temp {
             Some(mut wi) => {
-                wi.file.flush()?;
-                drop(wi.file);
+                wi.writer.flush()?;
+                drop(wi.writer);
                 wi.name
             }
             None => return Err("DeltaWriter already closed".into()),
         };
 
-        let (tweave_name, tweave_file) = self.naming.temp_file()?;
-        // TODO: Header from old.
+        let tweave_info = self.naming.new_temp()?;
 
         // Invoke diff on the files.
         let mut child = Command::new("diff")
@@ -111,7 +111,7 @@ impl<'n> DeltaWriter<'n> {
 
         {
             let lines = BufReader::new(child.stdout.as_mut().unwrap()).lines();
-            let weave_write = WeaveWriter { dest: BufWriter::new(tweave_file) };
+            let weave_write = WeaveWriter { dest: tweave_info.writer };
             let mut parser = Parser::new(self.naming, weave_write, self.base)?;
 
             let weave_write = parser.get_sink();
@@ -206,7 +206,7 @@ impl<'n> DeltaWriter<'n> {
 
         // Now that is all done, clean up the temp files, and cycle the backup.
         let _ = rename(self.naming.main_file(), self.naming.backup_file());
-        rename(tweave_name, self.naming.main_file())?;
+        rename(tweave_info.name, self.naming.main_file())?;
         remove_file(&self.base_name)?;
         remove_file(&temp_name)?;
 
@@ -218,13 +218,13 @@ impl <'n> Write for DeltaWriter<'n> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.temp.as_mut()
             .expect("Attempt to write to DeltaWriter that is closed")
-            .file.write(buf)
+            .writer.write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
         self.temp.as_mut()
             .expect("Attempt to flush DeltaWriter that is closed")
-            .file.flush()
+            .writer.flush()
     }
 }
 
@@ -245,7 +245,7 @@ impl<W: Write> Sink for RevWriter<W> {
 
 /// The weave writer writes out the contents of a weave to a file.
 struct WeaveWriter<W: Write> {
-    dest: BufWriter<W>,
+    dest: W,
 }
 
 impl <W: Write> Sink for WeaveWriter<W> {

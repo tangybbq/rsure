@@ -3,9 +3,11 @@
 //! (this crate will never write to a file that already exists).
 
 use ::Result;
+use WriterInfo;
+use flate2::{FlateWriteExt, Compression};
 use std::path::{Path, PathBuf};
 use std::fs::{File, OpenOptions};
-use std::io::ErrorKind;
+use std::io::{BufWriter, ErrorKind, Write};
 
 /// A naming convention provides utilities needed to find the involved files, and construct
 /// temporary files as part of writing the new weave.  The underlying object should keep the path
@@ -33,6 +35,21 @@ pub trait NamingConvention {
 
     /// Return if compression is requested on main file.
     fn is_compressed(&self) -> bool;
+
+    /// Open a possibly compressed temp file, returning a WriterInfo for it.  The stream will be
+    /// buffered, and possibly compressed.
+    fn new_temp(&self) -> Result<WriterInfo> {
+        let (name, file) = self.temp_file()?;
+        let writer = if self.is_compressed() {
+            Box::new(file.gz_encode(Compression::Default)) as Box<Write>
+        } else {
+            Box::new(BufWriter::new(file)) as Box<Write>
+        };
+        Ok(WriterInfo {
+            name: name,
+            writer: writer,
+        })
+    }
 }
 
 /// The SimpleNaming is a NamingConvention that has a basename, with the main file having a

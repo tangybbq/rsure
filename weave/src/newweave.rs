@@ -22,22 +22,20 @@ impl<'n> NewWeave<'n> {
     pub fn new<'a, 'b, I>(nc: &NamingConvention, tags: I) -> Result<NewWeave>
         where I: Iterator<Item=(&'a str, &'b str)>
     {
-        let (temp, mut file) = nc.temp_file()?;
+        let mut writeinfo = nc.new_temp()?;
+
         let mut ntags = BTreeMap::new();
         for (k, v) in tags {
             ntags.insert(k.to_owned(), v.to_owned());
         }
         let mut header = Header::new();
         let delta = header.add(ntags)?;
-        header.write(&mut file)?;
-        writeln!(&mut file, "\x01I {}", delta)?;
+        header.write(&mut writeinfo.writer)?;
+        writeln!(&mut writeinfo.writer, "\x01I {}", delta)?;
 
         Ok(NewWeave {
             naming: nc,
-            temp: Some(WriterInfo {
-                name: temp,
-                file: file,
-            }),
+            temp: Some(writeinfo),
         })
     }
 
@@ -45,7 +43,7 @@ impl<'n> NewWeave<'n> {
         let temp = replace(&mut self.temp, None);
         let name = match temp {
             Some(mut wi) => {
-                writeln!(&mut wi.file, "\x01E 1")?;
+                writeln!(&mut wi.writer, "\x01E 1")?;
                 wi.name
             }
             None => return Err("NewWeave already closed".into()),
@@ -62,13 +60,13 @@ impl<'n> Write for NewWeave<'n> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.temp.as_mut()
             .expect("Attempt to write to NewWeave that is closed")
-            .file.write(buf)
+            .writer.write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
         self.temp.as_mut()
             .expect("Attempt to flush NewWeave that is closed")
-            .file.flush()
+            .writer.flush()
     }
 }
 

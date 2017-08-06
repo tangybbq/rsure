@@ -46,12 +46,14 @@ pub use newweave::NewWeave;
 pub use delta::DeltaWriter;
 pub use header::{Header, DeltaInfo};
 
-use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 
-struct WriterInfo {
+/// Something we can write into, that remembers its name.  The writer is boxed because the writer
+/// may be compressed.
+pub struct WriterInfo {
     name: PathBuf,
-    file: File,
+    writer: Box<Write>,
 }
 
 /// Read the header from a weave file.
