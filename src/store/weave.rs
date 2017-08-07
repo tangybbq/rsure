@@ -7,8 +7,8 @@ use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
-use super::{Store, StoreTags, Version};
-use weave::{self, Parser, DeltaWriter, SimpleNaming, NamingConvention, NewWeave, Sink};
+use super::{Store, StoreTags, StoreVersion, Version};
+use weave::{self, Parser, DeltaWriter, SimpleNaming, NamingConvention, NewWeave, NullSink, Sink};
 
 pub struct WeaveStore {
     naming: SimpleNaming,
@@ -49,6 +49,7 @@ impl Store for WeaveStore {
         let last = match version {
             Version::Latest => last,
             Version::Prior => last - 1,
+            Version::Tagged(vers) => vers.parse()?,
         };
 
         let child_naming = self.naming.clone();
@@ -69,6 +70,18 @@ impl Store for WeaveStore {
             Err(e) => warn!("Problem joining child thread: {:?}", e),
         }
         tree
+    }
+
+    fn get_versions(&self) -> Result<Vec<StoreVersion>> {
+        let header = Parser::new(&self.naming, NullSink, 1)?.into_header();
+        let mut versions: Vec<_> = header.deltas.iter()
+           .map(|v| StoreVersion {
+               name: v.name.clone(),
+               time: v.time,
+               version: Version::Tagged(v.number.to_string()),
+           }).collect();
+        versions.reverse();
+        Ok(versions)
     }
 }
 

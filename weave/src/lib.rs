@@ -71,6 +71,6 @@ pub fn get_last_delta(naming: &NamingConvention) -> Result<usize> {
 }
 
 /// A null sink that does nothing, useful for parsing the header.
-struct NullSink;
+pub struct NullSink;
 
 impl Sink for NullSink {}

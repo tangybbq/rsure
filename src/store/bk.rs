@@ -23,7 +23,7 @@ use std::fs::File;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use super::{Store, StoreTags, Version};
+use super::{Store, StoreTags, StoreVersion, Version};
 
 /// A [`Store`] that stores trees as deltas in a Bitkeeper repository.
 ///
@@ -121,6 +121,10 @@ impl Store for BkStore {
         }
         Ok(tree)
     }
+
+    fn get_versions(&self) -> Result<Vec<StoreVersion>> {
+        Ok(vec![])
+    }
 }
 
 impl BkStore {
@@ -142,6 +146,7 @@ impl BkStore {
         let index = match version {
             Version::Latest => 0,
             Version::Prior => 1,
+            Version::Tagged(vers) => vers.parse()?,
         };
         Ok(versions.nth(index))
     }

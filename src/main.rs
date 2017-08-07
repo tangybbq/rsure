@@ -1,5 +1,6 @@
 // Playing with paths.
 
+extern crate chrono;
 extern crate rsure;
 extern crate env_logger;
 extern crate regex;
@@ -10,12 +11,14 @@ extern crate log;
 #[macro_use]
 extern crate clap;
 
+use chrono::Local;
 use clap::{App, AppSettings, Arg, SubCommand};
 
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use rsure::{show_tree, Progress, SureHash, TreeCompare, stdout_visitor, parse_store, StoreTags, Version};
+use rsure::{show_tree, Progress, SureHash, TreeCompare, stdout_visitor, parse_store, StoreTags,
+            StoreVersion, Version};
 
 mod bkcmd;
 
@@ -44,6 +47,11 @@ fn main() {
              .takes_value(true)
              .multiple(true)
              .help("key=value to associate with scan"))
+        .arg(Arg::with_name("version")
+             .short("v")
+             .long("version")
+             .takes_value(true)
+             .help("Version of sure data to use (see 'list' output)"))
         .setting(AppSettings::SubcommandRequired)
         .subcommand(SubCommand::with_name("scan")
                     .about("Scan a directory for the first time"))
@@ -70,6 +78,8 @@ fn main() {
                          .long("dest")
                          .takes_value(true)
                          .required(true)))
+        .subcommand(SubCommand::with_name("list")
+                    .about("List revisions in a given sure store"))
         .get_matches();
 
     let dir = matches.value_of("dir").unwrap_or(".");
@@ -79,6 +89,12 @@ fn main() {
 
     let tags = decode_tags(matches.values_of("tag"));
 
+    // Note that only the "check" command uses the version tag.
+    let latest = match matches.value_of("version") {
+        None => Version::Latest,
+        Some(x) => Version::Tagged(x.to_string()),
+    };
+
     match matches.subcommand() {
         ("scan", Some(_)) => {
             rsure::update(&dir, &*store, false, &tags).unwrap();
@@ -87,7 +103,7 @@ fn main() {
             rsure::update(&dir, &*store, true, &tags).unwrap();
         },
         ("check", Some(_)) => {
-            let old_tree = store.load(Version::Latest).unwrap();
+            let old_tree = store.load(latest).unwrap();
             let mut new_tree = rsure::scan_fs(&dir).unwrap();
             let estimate = new_tree.hash_estimate();
             let pdir = &Path::new(dir);
@@ -116,6 +132,10 @@ fn main() {
             let dest = sub.value_of("dest").unwrap();
             bkcmd::import(src, dest).unwrap();
         },
+        ("list", Some(_)) => {
+            let version = store.get_versions().unwrap();
+            dump_versions(&version);
+        }
         _ => {
             panic!("Unsupported command.");
         }
@@ -139,4 +159,20 @@ fn decode_tag<'a>(tag: &'a str) -> (String, String) {
         panic!("Tag must be key=value");
     }
     (fields[0].to_string(), fields[1].to_string())
+}
+
+fn dump_versions(versions: &[StoreVersion]) {
+    println!("vers | Time captured       | name");
+    println!("-----+---------------------+------------------");
+    for v in versions {
+        let vers = match v.version {
+            Version::Latest => "tip",
+            Version::Prior => "prev",
+            Version::Tagged(ref v) => v,
+        };
+        println!("{:4} | {} | {}",
+                 vers,
+                 v.time.with_timezone(&Local).format("%Y-%m-%d %H:%M:%S"),
+                 v.name);
+    }
 }

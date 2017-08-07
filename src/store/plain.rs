@@ -6,7 +6,7 @@ use flate2::{self, Compression, FlateReadExt};
 use std::path::PathBuf;
 use std::fs::{File, OpenOptions, rename};
 use std::io::ErrorKind;
-use super::{Store, StoreTags, Version};
+use super::{Store, StoreTags, StoreVersion, Version};
 
 pub struct Plain {
     pub path: PathBuf, // The directory where the surefiles will be written.
@@ -68,6 +68,7 @@ impl Store for Plain {
         let ext = match version {
             Version::Latest => "dat",
             Version::Prior => "bak",
+            Version::Tagged(_) => return Err("versions not supported with plain files".into()),
         };
         let name = self.make_name(ext);
         let rd = File::open(&name)?;
@@ -76,5 +77,10 @@ impl Store for Plain {
         } else {
             SureTree::load_from(rd)
         }
+    }
+
+    /// Retrieve available versions.
+    fn get_versions(&self) -> Result<Vec<StoreVersion>> {
+        Ok(vec![])
     }
 }

@@ -2,6 +2,7 @@
 
 use ::Result;
 use ::SureTree;
+use chrono::{DateTime, Utc};
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -24,13 +25,28 @@ pub trait Store {
 
     /// Attempt to load a sure version, based on the descriptor given.
     fn load(&self, version: Version) -> Result<SureTree>;
+
+    /// Retrieve the available versions, in the store.  These should be listed, newest first.
+    fn get_versions(&self) -> Result<Vec<StoreVersion>>;
 }
 
 /// Indicator of which version of sure data to load.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum Version {
     Latest,
     Prior,
+    Tagged(String),
+}
+
+/// Information about a given version in the store.
+#[derive(Clone, Debug)]
+pub struct StoreVersion {
+    /// A descriptive name.  May be the "name" tag given when this version was created.
+    pub name: String,
+    /// A timestamp of when the version was made.
+    pub time: DateTime<Utc>,
+    /// The identifier for this version.
+    pub version: Version,
 }
 
 /// Parse a command line specified path to determine the parameters and type of store desired.  The

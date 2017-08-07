@@ -19,6 +19,7 @@ error_chain! {
     foreign_links {
         IoError(io::Error);
         OpensslError(openssl::error::ErrorStack);
+        Parse(::std::num::ParseIntError);
     }
 
     errors {

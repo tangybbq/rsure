@@ -17,6 +17,7 @@
 //! the snapshot itself.  For the `Plain` store, it can be just an empty map.  Other store types
 //! may require certain tags to be present.
 
+extern crate chrono;
 extern crate flate2;
 extern crate libc;
 extern crate openssl;
@@ -44,7 +45,7 @@ pub use progress::Progress;
 
 pub use errors::{Error, ErrorKind, ChainErr, Result};
 
-pub use store::{StoreTags, Store, Version, parse_store, BkSureFile, BkStore, bk_setup};
+pub use store::{StoreTags, Store, StoreVersion, Version, parse_store, BkSureFile, BkStore, bk_setup};
 
 mod errors;
 mod escape;
