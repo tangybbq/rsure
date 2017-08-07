@@ -78,7 +78,6 @@ fn main() {
     let store = parse_store(file).unwrap();
 
     let tags = decode_tags(matches.values_of("tag"));
-    println!("tag: {:?}", tags);
 
     match matches.subcommand() {
         ("scan", Some(_)) => {
