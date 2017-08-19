@@ -108,7 +108,7 @@ fn main() {
 
     let dir = matches.value_of("dir").unwrap_or(".");
 
-    let file = matches.value_of("file").unwrap_or("2sure.dat.gz");
+    let file = matches.value_of("file").unwrap_or("2sure.weave.gz");
     let store = parse_store(file).unwrap();
 
     let mut tags = decode_tags(matches.values_of("tag"));
