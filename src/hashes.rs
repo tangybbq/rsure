@@ -31,10 +31,7 @@ pub struct Estimate {
 
 impl SureHash for SureTree {
     fn hash_estimate(&self) -> Estimate {
-        let mut est = Estimate {
-            files: 0,
-            bytes: 0,
-        };
+        let mut est = Estimate { files: 0, bytes: 0 };
         est.update(self);
         est
     }
@@ -60,12 +57,12 @@ impl SureHash for SureTree {
                         Ok(h) => {
                             let hex = h.to_hex();
                             f.atts.insert("sha1".to_string(), hex);
-                        },
+                        }
                         Err(e) => {
                             error!("Unable to has file: '{:?}' ({})", fpath, e);
                         }
                     }
-                },
+                }
                 Err(e) => {
                     error!("Unable to open '{:?}' for hashing ({})", fpath, e);
                 }
@@ -143,13 +140,11 @@ mod atime_impl {
     pub fn noatime_open(name: &Path) -> io::Result<File> {
         // Try opening it first with noatime, and if that fails, try the open
         // again without the option.
-        match OpenOptions::new().read(true)
-            .custom_flags(O_NOATIME)
-            .open(name)
-        {
+        match OpenOptions::new().read(true).custom_flags(O_NOATIME).open(
+            name,
+        ) {
             Ok(f) => Ok(f),
-            Err(_) =>
-                OpenOptions::new().read(true).open(name)
+            Err(_) => OpenOptions::new().read(true).open(name),
         }
     }
 }

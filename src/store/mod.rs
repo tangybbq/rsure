@@ -1,7 +1,7 @@
 // Surefile store
 
-use ::Result;
-use ::SureTree;
+use Result;
+use SureTree;
 use chrono::{DateTime, Utc};
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -63,14 +63,16 @@ pub fn parse_store(text: &str) -> Result<Box<Store>> {
     if p.is_dir() {
         // Check for BK directory, and reject without explicit name.
         if p.join(".bk").is_dir() {
-            return Err("Store appears to be a Bitkeeper dir, specify full filename".into());
+            return Err(
+                "Store appears to be a Bitkeeper dir, specify full filename".into(),
+            );
         }
 
         return Ok(Box::new(Plain {
             path: p.to_path_buf(),
             base: "2sure".to_string(),
             compressed: true,
-        }))
+        }));
     }
 
     // Otherwise, try to get the parent.  If it seems to be empty, use the current directory as the
@@ -83,7 +85,7 @@ pub fn parse_store(text: &str) -> Result<Box<Store>> {
             } else {
                 dir
             }
-        },
+        }
     };
 
     if !dir.is_dir() {
@@ -100,20 +102,20 @@ pub fn parse_store(text: &str) -> Result<Box<Store>> {
     };
 
     let (base, compressed) = if base.ends_with(".gz") {
-        (&base[..base.len()-3], true)
+        (&base[..base.len() - 3], true)
     } else {
         (base, false)
     };
 
     // Check for weave format.
     if base.ends_with(".weave") {
-        let base = &base[..base.len()-6];
+        let base = &base[..base.len() - 6];
         return Ok(Box::new(WeaveStore::new(dir, base, compressed)));
     }
 
     // Strip off known suffixes.
     let base = if base.ends_with(".dat") || base.ends_with(".bak") {
-        &base[..base.len()-4]
+        &base[..base.len() - 4]
     } else {
         base
     };
@@ -121,7 +123,9 @@ pub fn parse_store(text: &str) -> Result<Box<Store>> {
     // Check for bitkeeper.
     if dir.join(".bk").is_dir() {
         if compressed {
-            return Err("Bitkeeper names should not be compressed, remove .gz suffix".into());
+            return Err(
+                "Bitkeeper names should not be compressed, remove .gz suffix".into(),
+            );
         }
 
         return Ok(Box::new(BkStore::new(dir, base)));

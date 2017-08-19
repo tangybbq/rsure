@@ -43,11 +43,15 @@ impl Progress {
 
     /// Flush the output, regardless of if any update is needed.
     pub fn flush(&mut self) {
-        println!("{:7}/{:7} ({:5.1}%) files, {}/{} ({:5.1}%) bytes",
-                 self.cur_files, self.total_files,
-                 (self.cur_files as f64 * 100.0) / self.total_files as f64,
-                 humanize(self.cur_bytes), humanize(self.total_bytes),
-                 (self.cur_bytes as f64 * 100.0) / self.total_bytes as f64);
+        println!(
+            "{:7}/{:7} ({:5.1}%) files, {}/{} ({:5.1}%) bytes",
+            self.cur_files,
+            self.total_files,
+            (self.cur_files as f64 * 100.0) / self.total_files as f64,
+            humanize(self.cur_bytes),
+            humanize(self.total_bytes),
+            (self.cur_bytes as f64 * 100.0) / self.total_bytes as f64
+        );
 
         self.next_update = get_time() + Duration::seconds(5);
     }
@@ -64,7 +68,15 @@ pub fn humanize(value: u64) -> String {
     }
 
     static UNITS: [&'static str; 9] = [
-        "B  ", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB",
+        "B  ",
+        "KiB",
+        "MiB",
+        "GiB",
+        "TiB",
+        "PiB",
+        "EiB",
+        "ZiB",
+        "YiB",
     ];
 
     let precision = if value < 10.0 {

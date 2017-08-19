@@ -38,14 +38,15 @@ pub use surefs::scan_fs;
 pub use hashes::SureHash;
 pub use suretree::SureTree;
 pub use comp::{TreeCompare, TreeUpdate};
-pub use compvisit::{CompareVisitor, CompareType, CompareAction, PrintVisitor,
-                    stdout_visitor, stderr_visitor};
+pub use compvisit::{CompareVisitor, CompareType, CompareAction, PrintVisitor, stdout_visitor,
+                    stderr_visitor};
 pub use show::show_tree;
 pub use progress::Progress;
 
 pub use errors::{Error, ErrorKind, ChainErr, Result};
 
-pub use store::{StoreTags, Store, StoreVersion, Version, parse_store, BkSureFile, BkStore, bk_setup};
+pub use store::{StoreTags, Store, StoreVersion, Version, parse_store, BkSureFile, BkStore,
+                bk_setup};
 
 mod errors;
 mod escape;
@@ -82,7 +83,12 @@ mod store;
 /// #     try_main().unwrap();
 /// # }
 /// ```
-pub fn update<P: AsRef<Path>>(dir: P, store: &Store, is_update: bool, tags: &StoreTags) -> Result<()> {
+pub fn update<P: AsRef<Path>>(
+    dir: P,
+    store: &Store,
+    is_update: bool,
+    tags: &StoreTags,
+) -> Result<()> {
     let dir = dir.as_ref();
 
     let mut new_tree = scan_fs(dir)?;

@@ -1,6 +1,6 @@
 // SureTree
 
-use ::Result;
+use Result;
 
 use flate2::{self, Compression, FlateReadExt};
 use std::collections::BTreeMap;
@@ -52,8 +52,7 @@ impl SureTree {
         Self::subload(first, &mut lines)
     }
 
-    fn subload<B: BufRead>(first: Vec<u8>, mut inp: &mut io::Split<B>) -> Result<SureTree>
-    {
+    fn subload<B: BufRead>(first: Vec<u8>, mut inp: &mut io::Split<B>) -> Result<SureTree> {
         let (name, atts) = decode_entity(&first[1..]);
         let mut children = vec![];
 
@@ -78,7 +77,10 @@ impl SureTree {
                 break;
             }
             let (fname, fatts) = decode_entity(&line[1..]);
-            files.push(SureFile { name: fname, atts: fatts });
+            files.push(SureFile {
+                name: fname,
+                atts: fatts,
+            });
             line = Self::get_line(inp)?;
         }
 
@@ -94,8 +96,7 @@ impl SureTree {
         })
     }
 
-    fn get_line<B: BufRead>(mut inp: &mut io::Split<B>) -> Result<Vec<u8>>
-    {
+    fn get_line<B: BufRead>(mut inp: &mut io::Split<B>) -> Result<Vec<u8>> {
         match inp.next() {
             None => return Err(From::from("surefile is truncated")),
             Some(l) => Ok(l?),
@@ -103,8 +104,10 @@ impl SureTree {
     }
 
     pub fn count_nodes(&self) -> usize {
-        self.children.iter().fold(0, |acc, item| acc + item.count_nodes()) +
-            self.files.len()
+        self.children.iter().fold(
+            0,
+            |acc, item| acc + item.count_nodes(),
+        ) + self.files.len()
     }
 
     /// Write a sure tree to a standard gzipped file of the given name.
@@ -116,7 +119,7 @@ impl SureTree {
 
     /// Write a sure tree to the given writer.
     pub fn save_to<W: Write>(&self, wr: W) -> Result<()> {
-        let mut wr = BufWriter::new(wr);  // Benchmark with and without, gz might buffer.
+        let mut wr = BufWriter::new(wr); // Benchmark with and without, gz might buffer.
 
         writeln!(&mut wr, "asure-2.0")?;
         writeln!(&mut wr, "-----")?;
@@ -152,7 +155,11 @@ impl SureTree {
 // TODO: These should return Result to handle errors.
 fn decode_entity(text: &[u8]) -> (String, AttMap) {
     let (name, mut text) = get_delim(text, ' ');
-    trace!("name = '{:?}' ('{:?}')", name, String::from_utf8_lossy(&text));
+    trace!(
+        "name = '{:?}' ('{:?}')",
+        name,
+        String::from_utf8_lossy(&text)
+    );
     assert!(text[0] == '[' as u8);
     text = &text[1..];
 
@@ -172,17 +179,23 @@ fn decode_entity(text: &[u8]) -> (String, AttMap) {
 fn get_delim(text: &[u8], delim: char) -> (String, &[u8]) {
     let mut it = text.iter();
     let space = it.position(|&s| s == delim as u8).unwrap();
-    (String::from_utf8(text[..space].to_owned()).unwrap(), &text[space + 1 ..])
+    (
+        String::from_utf8(text[..space].to_owned()).unwrap(),
+        &text[space + 1..],
+    )
 }
 
 fn fixed<I>(inp: &mut I, exp: &[u8]) -> Result<()>
-    where I: Iterator<Item = io::Result<Vec<u8>>>
+where
+    I: Iterator<Item = io::Result<Vec<u8>>>,
 {
     match inp.next() {
         Some(Ok(ref text)) if &text[..] == exp => Ok(()),
-        Some(Ok(ref text)) => Err(From::from(format!("Unexpected line: '{}', expect '{}'",
-                                                     String::from_utf8_lossy(text),
-                                                     String::from_utf8_lossy(exp)))),
+        Some(Ok(ref text)) => Err(From::from(format!(
+            "Unexpected line: '{}', expect '{}'",
+            String::from_utf8_lossy(text),
+            String::from_utf8_lossy(exp)
+        ))),
         Some(Err(e)) => Err(From::from(format!("Error reading surefile: {}", e))),
         None => Err(From::from(format!("Unexpected eof on surefile"))),
     }

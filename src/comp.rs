@@ -30,8 +30,10 @@ fn walk(new: &mut SureTree, old: &SureTree) {
 
     // Walk the file nodes that are the same, and see if they can be
     // updated.
-    let old_files: BTreeMap<&str, &AttMap> =
-        old.files.iter().map(|ch| (&ch.name[..], &ch.atts)).collect();
+    let old_files: BTreeMap<&str, &AttMap> = old.files
+        .iter()
+        .map(|ch| (&ch.name[..], &ch.atts))
+        .collect();
 
     for file in &mut new.files {
         let atts = match old_files.get(&file.name[..]) {
@@ -50,9 +52,7 @@ fn walk(new: &mut SureTree, old: &SureTree) {
             continue;
         }
 
-        if file.atts.get("ino") != atts.get("ino") ||
-            file.atts.get("ctime") != atts.get("ctime")
-        {
+        if file.atts.get("ino") != atts.get("ino") || file.atts.get("ctime") != atts.get("ctime") {
             continue;
         }
 
@@ -61,7 +61,7 @@ fn walk(new: &mut SureTree, old: &SureTree) {
             None => continue,
             Some(v) => {
                 file.atts.insert("sha1".to_string(), v.to_string());
-            },
+            }
         }
     }
 }
@@ -95,12 +95,19 @@ fn compwalk<V: CompareVisitor>(new: &SureTree, old: &SureTree, visitor: &mut V, 
     // Print out any directories that have been removed.
     // TODO: This print out of order.
     for &name in old_children.keys() {
-        visitor.visit(&name.join(&path), CompareType::Dir, CompareAction::Delete, None);
+        visitor.visit(
+            &name.join(&path),
+            CompareType::Dir,
+            CompareAction::Delete,
+            None,
+        );
     }
 
     // Walk and compare files.
-    let mut old_files: BTreeMap<&str, &AttMap> =
-        old.files.iter().map(|ch| (&ch.name[..], &ch.atts)).collect();
+    let mut old_files: BTreeMap<&str, &AttMap> = old.files
+        .iter()
+        .map(|ch| (&ch.name[..], &ch.atts))
+        .collect();
 
     for file in &new.files {
         let fpath = file.join(&path);
@@ -113,7 +120,12 @@ fn compwalk<V: CompareVisitor>(new: &SureTree, old: &SureTree, visitor: &mut V, 
 
     // Print out any files that have been removed.
     for name in old_files.keys() {
-        visitor.visit(&name.join(&path), CompareType::NonDir, CompareAction::Delete, None);
+        visitor.visit(
+            &name.join(&path),
+            CompareType::NonDir,
+            CompareAction::Delete,
+            None,
+        );
     }
 }
 
@@ -133,9 +145,11 @@ fn attr_comp<V: CompareVisitor>(old: &AttMap, new: &AttMap, visitor: &mut V, nam
     for (k, v) in &new {
         match old.get(k) {
             None => error!("Added attribute: {}", k),
-            Some(ov) => if v != ov {
-                diffs.push(k.clone());
-            },
+            Some(ov) => {
+                if v != ov {
+                    diffs.push(k.clone());
+                }
+            }
         }
         old.remove(k);
     }
@@ -145,6 +159,11 @@ fn attr_comp<V: CompareVisitor>(old: &AttMap, new: &AttMap, visitor: &mut V, nam
     }
 
     if diffs.len() > 0 {
-        visitor.visit(name, CompareType::NonDir, CompareAction::Modify, Some(&diffs));
+        visitor.visit(
+            name,
+            CompareType::NonDir,
+            CompareAction::Modify,
+            Some(&diffs),
+        );
     }
 }

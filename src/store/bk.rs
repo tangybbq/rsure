@@ -14,8 +14,8 @@
 //!
 //! [BitKeeper]: http://www.bitkeeper.org/
 
-use ::Result;
-use ::SureTree;
+use Result;
+use SureTree;
 use errors::ErrorKind;
 
 use regex::Regex;
@@ -108,9 +108,7 @@ impl Store for BkStore {
         };
 
         let mut child = Command::new("bk")
-            .args(&["co", "-p",
-                  &format!("-r{}", rev),
-                  &self.name])
+            .args(&["co", "-p", &format!("-r{}", rev), &self.name])
             .current_dir(&self.base)
             .stdout(Stdio::piped())
             .spawn()?;
@@ -155,13 +153,16 @@ impl BkStore {
     /// snapshots that have been taken.
     pub fn query(&self) -> Result<Vec<BkSureFile>> {
         let output = Command::new("bk")
-            .args(&["changes", "-v",
-                  "-d:INDENT::DPN: :REV: :C:\n"])
+            .args(&["changes", "-v", "-d:INDENT::DPN: :REV: :C:\n"])
             .current_dir(&self.base)
             .output()?;
         if !output.stderr.is_empty() {
-            return Err(ErrorKind::BkError(output.status,
-                                          String::from_utf8_lossy(&output.stderr).into_owned()).into());
+            return Err(
+                ErrorKind::BkError(
+                    output.status,
+                    String::from_utf8_lossy(&output.stderr).into_owned(),
+                ).into(),
+            );
         }
         if !output.status.success() {
             return Err(ErrorKind::BkError(output.status, "".into()).into());
@@ -185,7 +186,7 @@ impl BkStore {
                         rev: rev.to_owned(),
                         name: name.to_owned(),
                     });
-                },
+                }
             }
         }
         Ok(result)
@@ -237,7 +238,9 @@ pub fn bk_setup<P: AsRef<Path>>(base: P) -> Result<()> {
     // to be files in it, other than the BitKeeper directory.
     {
         let mut ofd = File::create(base.join("README"))?;
-        ofd.write_all(include_bytes!("../../etc/template-bk-readme.txt"))?;
+        ofd.write_all(
+            include_bytes!("../../etc/template-bk-readme.txt"),
+        )?;
     }
 
     let status = Command::new("bk")

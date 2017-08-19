@@ -7,8 +7,13 @@ pub trait CompareVisitor {
     /// Visit a node that has been changed.  The name is the path, relative to the start of the
     /// tree.  The action indicates what happened to the file.  The attributes describe what
     /// happened to the file attributes (e.g., attributes modified).
-    fn visit(&mut self, name: &Path, kind: CompareType, action: CompareAction,
-             atts: Option<&[String]>);
+    fn visit(
+        &mut self,
+        name: &Path,
+        kind: CompareType,
+        action: CompareAction,
+        atts: Option<&[String]>,
+    );
 }
 
 pub enum CompareType {
@@ -38,9 +43,13 @@ pub fn stderr_visitor() -> PrintVisitor<io::Stderr> {
 }
 
 impl<W: Write> CompareVisitor for PrintVisitor<W> {
-    fn visit(&mut self, name: &Path, kind: CompareType, action: CompareAction,
-             atts: Option<&[String]>)
-    {
+    fn visit(
+        &mut self,
+        name: &Path,
+        kind: CompareType,
+        action: CompareAction,
+        atts: Option<&[String]>,
+    ) {
         let act = match action {
             CompareAction::Add => '+',
             CompareAction::Delete => '-',
@@ -61,7 +70,7 @@ impl<W: Write> CompareVisitor for PrintVisitor<W> {
                 }
                 let message = String::from_utf8(message).unwrap();
                 format!("[{:<20}]", &message[1..])
-            },
+            }
         };
 
         writeln!(self.0, "{} {} {}", act, atts, name.to_string_lossy()).unwrap();

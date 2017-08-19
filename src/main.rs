@@ -32,54 +32,78 @@ fn main() {
     let matches = App::new("rsure")
         .version(crate_version!())
         .setting(AppSettings::GlobalVersion)
-        .arg(Arg::with_name("file")
-             .short("f")
-             .long("file")
-             .takes_value(true)
-             .help("Base of file name, default 2sure, will get .dat.gz appended"))
-        .arg(Arg::with_name("dir")
-             .short("d")
-             .long("dir")
-             .takes_value(true)
-             .help("Directory to scan, defaults to \".\""))
-        .arg(Arg::with_name("tag")
-             .long("tag")
-             .takes_value(true)
-             .multiple(true)
-             .help("key=value to associate with scan"))
-        .arg(Arg::with_name("version")
-             .short("v")
-             .long("version")
-             .takes_value(true)
-             .help("Version of sure data to use (see 'list' output)"))
+        .arg(
+            Arg::with_name("file")
+                .short("f")
+                .long("file")
+                .takes_value(true)
+                .help(
+                    "Base of file name, default 2sure, will get .dat.gz appended",
+                ),
+        )
+        .arg(
+            Arg::with_name("dir")
+                .short("d")
+                .long("dir")
+                .takes_value(true)
+                .help("Directory to scan, defaults to \".\""),
+        )
+        .arg(
+            Arg::with_name("tag")
+                .long("tag")
+                .takes_value(true)
+                .multiple(true)
+                .help("key=value to associate with scan"),
+        )
+        .arg(
+            Arg::with_name("version")
+                .short("v")
+                .long("version")
+                .takes_value(true)
+                .help("Version of sure data to use (see 'list' output)"),
+        )
         .setting(AppSettings::SubcommandRequired)
-        .subcommand(SubCommand::with_name("scan")
-                    .about("Scan a directory for the first time"))
-        .subcommand(SubCommand::with_name("update")
-                    .about("Update the scan using the dat file"))
-        .subcommand(SubCommand::with_name("check")
-                    .about("Compare the directory with the dat file"))
-        .subcommand(SubCommand::with_name("signoff")
-                    .about("Compare the dat file with the bak file"))
-        .subcommand(SubCommand::with_name("show")
-                    .about("Pretty print the dat file"))
-        .subcommand(SubCommand::with_name("bknew")
-                    .about("Create a new bitkeeper-based sure store")
-                    .arg(Arg::with_name("dir")
-                         .required(true)
-                         .help("Directory to create bk-based store")))
-        .subcommand(SubCommand::with_name("bkimport")
-                    .about("Import a tree of surefiles into a bk store")
-                    .arg(Arg::with_name("src")
-                         .long("src")
-                         .takes_value(true)
-                         .required(true))
-                    .arg(Arg::with_name("dest")
-                         .long("dest")
-                         .takes_value(true)
-                         .required(true)))
-        .subcommand(SubCommand::with_name("list")
-                    .about("List revisions in a given sure store"))
+        .subcommand(SubCommand::with_name("scan").about(
+            "Scan a directory for the first time",
+        ))
+        .subcommand(SubCommand::with_name("update").about(
+            "Update the scan using the dat file",
+        ))
+        .subcommand(SubCommand::with_name("check").about(
+            "Compare the directory with the dat file",
+        ))
+        .subcommand(SubCommand::with_name("signoff").about(
+            "Compare the dat file with the bak file",
+        ))
+        .subcommand(SubCommand::with_name("show").about(
+            "Pretty print the dat file",
+        ))
+        .subcommand(
+            SubCommand::with_name("bknew")
+                .about("Create a new bitkeeper-based sure store")
+                .arg(Arg::with_name("dir").required(true).help(
+                    "Directory to create bk-based store",
+                )),
+        )
+        .subcommand(
+            SubCommand::with_name("bkimport")
+                .about("Import a tree of surefiles into a bk store")
+                .arg(
+                    Arg::with_name("src")
+                        .long("src")
+                        .takes_value(true)
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("dest")
+                        .long("dest")
+                        .takes_value(true)
+                        .required(true),
+                ),
+        )
+        .subcommand(SubCommand::with_name("list").about(
+            "List revisions in a given sure store",
+        ))
         .get_matches();
 
     let dir = matches.value_of("dir").unwrap_or(".");
@@ -98,10 +122,10 @@ fn main() {
     match matches.subcommand() {
         ("scan", Some(_)) => {
             rsure::update(&dir, &*store, false, &tags).unwrap();
-        },
+        }
         ("update", Some(_)) => {
             rsure::update(&dir, &*store, true, &tags).unwrap();
-        },
+        }
         ("check", Some(_)) => {
             let old_tree = store.load(latest).unwrap();
             let mut new_tree = rsure::scan_fs(&dir).unwrap();
@@ -112,26 +136,26 @@ fn main() {
             progress.flush();
             info!("check {:?}", file);
             new_tree.compare_from(&mut stdout_visitor(), &old_tree, pdir);
-        },
+        }
         ("signoff", Some(_)) => {
             let old_tree = store.load(Version::Prior).unwrap();
             let new_tree = store.load(Version::Latest).unwrap();
             println!("signoff {}", file);
             new_tree.compare_from(&mut stdout_visitor(), &old_tree, &Path::new(dir));
-        },
+        }
         ("show", Some(_)) => {
             println!("show {}", file);
             show_tree(&Path::new(&file)).unwrap();
-        },
+        }
         ("bknew", Some(sub)) => {
             let bkdir = sub.value_of("dir").unwrap();
             bkcmd::new(bkdir).unwrap();
-        },
+        }
         ("bkimport", Some(sub)) => {
             let src = sub.value_of("src").unwrap();
             let dest = sub.value_of("dest").unwrap();
             bkcmd::import(src, dest).unwrap();
-        },
+        }
         ("list", Some(_)) => {
             let version = store.get_versions().unwrap();
             dump_versions(&version);
@@ -145,7 +169,8 @@ fn main() {
 /// Decode the command-line tags.  Tags should be of the form key=value, and multiple can be
 /// specified, terminated by the command.  It is also possible to specify --tag multiple times.
 fn decode_tags<'a, I>(tags: Option<I>) -> StoreTags
-    where I: Iterator<Item=&'a str>
+where
+    I: Iterator<Item = &'a str>,
 {
     match tags {
         None => BTreeMap::new(),
@@ -170,9 +195,11 @@ fn dump_versions(versions: &[StoreVersion]) {
             Version::Prior => "prev",
             Version::Tagged(ref v) => v,
         };
-        println!("{:4} | {} | {}",
-                 vers,
-                 v.time.with_timezone(&Local).format("%Y-%m-%d %H:%M:%S"),
-                 v.name);
+        println!(
+            "{:4} | {} | {}",
+            vers,
+            v.time.with_timezone(&Local).format("%Y-%m-%d %H:%M:%S"),
+            v.name
+        );
     }
 }

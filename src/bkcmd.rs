@@ -24,12 +24,19 @@ pub fn ensure_dir<P: AsRef<Path>>(path: P) -> Result<()> {
     if path.is_dir() {
         for ent in path.read_dir()? {
             let ent = ent?;
-            return Err(format!("Directory {:?} is not empty (contains {:?}",
-                               path, ent.path()).into());
+            return Err(
+                format!(
+                    "Directory {:?} is not empty (contains {:?}",
+                    path,
+                    ent.path()
+                ).into(),
+            );
         }
         Ok(())
     } else if path.exists() {
-        Err(format!("Path {:?} names something other than a directory", path).into())
+        Err(
+            format!("Path {:?} names something other than a directory", path).into(),
+        )
     } else {
         Ok(())
     }
@@ -45,7 +52,10 @@ pub fn import<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dest: P2) -> Result<()>
     let mut namedir = vec![];
 
     let present = bkd.query()?;
-    let present = present.iter().map(|p| (&p.name, &p.file)).collect::<HashSet<_>>();
+    let present = present
+        .iter()
+        .map(|p| (&p.name, &p.file))
+        .collect::<HashSet<_>>();
 
     println!("{} surefiles already present", present.len());
     for ent in src.read_dir()? {
@@ -67,7 +77,7 @@ pub fn import<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dest: P2) -> Result<()>
                     name: cap.get(2).unwrap().as_str().to_owned(),
                     file: cap.get(1).unwrap().as_str().to_owned(),
                 });
-            },
+            }
         }
     }
     namedir.sort();

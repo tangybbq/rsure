@@ -16,15 +16,13 @@ pub struct WeaveStore {
 
 impl WeaveStore {
     pub fn new<P: AsRef<Path>>(path: P, base: &str, compressed: bool) -> WeaveStore {
-        WeaveStore {
-            naming: SimpleNaming::new(path, base, "weave", compressed),
-        }
+        WeaveStore { naming: SimpleNaming::new(path, base, "weave", compressed) }
     }
 }
 
 impl Store for WeaveStore {
     fn write_new(&self, tree: &SureTree, tags: &StoreTags) -> Result<()> {
-        let itags = tags.iter().map(|(k,v)| (k.as_ref(), v.as_ref()));
+        let itags = tags.iter().map(|(k, v)| (k.as_ref(), v.as_ref()));
         match weave::get_last_delta(&self.naming) {
             Ok(base) => {
                 let mut wv = DeltaWriter::new(&self.naming, itags, base)?;
@@ -58,8 +56,7 @@ impl Store for WeaveStore {
             if let Err(err) = read_parse(&child_naming, last, sender.clone()) {
                 // Attempt to send the last error over.
                 if let Err(inner) = sender.send(Some(Err(err))) {
-                    warn!("Error sending error on channel {:?}",
-                        inner);
+                    warn!("Error sending error on channel {:?}", inner);
                 }
             }
         });
@@ -74,12 +71,17 @@ impl Store for WeaveStore {
 
     fn get_versions(&self) -> Result<Vec<StoreVersion>> {
         let header = Parser::new(&self.naming, NullSink, 1)?.into_header();
-        let mut versions: Vec<_> = header.deltas.iter()
-           .map(|v| StoreVersion {
-               name: v.name.clone(),
-               time: v.time,
-               version: Version::Tagged(v.number.to_string()),
-           }).collect();
+        let mut versions: Vec<_> = header
+            .deltas
+            .iter()
+            .map(|v| {
+                StoreVersion {
+                    name: v.name.clone(),
+                    time: v.time,
+                    version: Version::Tagged(v.number.to_string()),
+                }
+            })
+            .collect();
         versions.reverse();
         Ok(versions)
     }
@@ -87,7 +89,11 @@ impl Store for WeaveStore {
 
 // Parse a given delta, emitting the lines to the given channel.  Finishes with Ok(()), or an error
 // if something goes wrong.
-fn read_parse(naming: &NamingConvention, delta: usize, chan: Sender<Option<Result<String>>>) -> Result<()> {
+fn read_parse(
+    naming: &NamingConvention,
+    delta: usize,
+    chan: Sender<Option<Result<String>>>,
+) -> Result<()> {
     let mut parser = Parser::new(naming, ReadSync { chan: chan }, delta)?;
     parser.parse_to(0)?;
     let sink = parser.get_sink();
@@ -121,13 +127,22 @@ impl Read for ReadReceiver {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let line = match self.0.recv() {
             Ok(line) => line,
-            Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!("channel error: {:?}", e))),
+            Err(e) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("channel error: {:?}", e),
+                ))
+            }
         };
         let line = match line {
             None => return Ok(0),
             Some(Ok(line)) => line,
-            Some(Err(e)) =>
-                return Err(io::Error::new(io::ErrorKind::Other, format!("channel error: {:?}", e))),
+            Some(Err(e)) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("channel error: {:?}", e),
+                ))
+            }
         };
         let chars = line.as_bytes();
         if chars.len() + 1 > buf.len() {

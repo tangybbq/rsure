@@ -1,7 +1,7 @@
 // Plainfile storage of surefiles.
 
-use ::Result;
-use ::SureTree;
+use Result;
+use SureTree;
 use flate2::{self, Compression, FlateReadExt};
 use std::path::PathBuf;
 use std::fs::{File, OpenOptions, rename};

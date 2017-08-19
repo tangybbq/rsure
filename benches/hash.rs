@@ -23,11 +23,11 @@ use test::Bencher;
 #[bench]
 fn tree_mb_bench(b: &mut Bencher) {
     let tmp = TempDir::new("rsure-bench").unwrap();
-    for i in 0 .. 16 {
+    for i in 0..16 {
         let name = format!("large-{}", i);
         let mut fd = File::create(tmp.path().join(&name)).unwrap();
         let buf = vec![0; 1024];
-        for _ in 0 .. 1024 {
+        for _ in 0..1024 {
             fd.write_all(&buf).unwrap();
         }
     }
