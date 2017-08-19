@@ -4,7 +4,8 @@
 /// distros by installing the package "cssc".
 
 extern crate env_logger;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 extern crate rand;
 extern crate tempdir;
 extern crate weave;
@@ -52,7 +53,7 @@ fn sccs() {
     gen.next_delta();
     gen.weave_check();
 
-    for i in 0 .. ITERATION_COUNT {
+    for i in 0..ITERATION_COUNT {
         gen.shuffle();
         gen.add_sccs_delta();
         gen.add_weave_delta(i + 1);
@@ -104,7 +105,7 @@ impl Gen {
         Ok(Gen {
             tdir: tdir.to_owned(),
             sccs_plain: tdir.join("tfile"),
-            nums: (1..FILE_SIZE+1).collect(),
+            nums: (1..FILE_SIZE + 1).collect(),
             rand: SeedableRng::from_seed(seed),
             deltas: vec![],
             use_sccs: use_sccs,
@@ -132,7 +133,8 @@ impl Gen {
         }
 
         self.emit_to(&self.sccs_plain);
-        Command::new("sccs").args(&["admin", "-itfile", "-n", "s.tfile"])
+        Command::new("sccs")
+            .args(&["admin", "-itfile", "-n", "s.tfile"])
             .current_dir(&self.tdir)
             .status()
             .expect("Unable to run sccs admin")
@@ -146,7 +148,8 @@ impl Gen {
             return;
         }
 
-        Command::new("sccs").args(&["get", "-e", "s.tfile"])
+        Command::new("sccs")
+            .args(&["get", "-e", "s.tfile"])
             .current_dir(&self.tdir)
             .stderr(Stdio::null())
             .stdout(Stdio::null())
@@ -154,7 +157,8 @@ impl Gen {
             .expect("Unable to run sccs get")
             .expect_success("sccs get failed");
         self.emit_to(&self.sccs_plain);
-        Command::new("sccs").args(&["delta", "-yMessage", "s.tfile"])
+        Command::new("sccs")
+            .args(&["delta", "-yMessage", "s.tfile"])
             .current_dir(&self.tdir)
             .stderr(Stdio::null())
             .stdout(Stdio::null())
@@ -185,7 +189,8 @@ impl Gen {
             return;
         }
 
-        let out = Command::new("sccs").args(&["get", &format!("-r1.{}", num+1), "-p", "s.tfile"])
+        let out = Command::new("sccs")
+            .args(&["get", &format!("-r1.{}", num + 1), "-p", "s.tfile"])
             .current_dir(&self.tdir)
             .output()
             .expect("Unable to run sccs get");
@@ -284,7 +289,7 @@ struct DeltaSink {
 impl Sink for DeltaSink {
     fn plain(&mut self, text: &str, keep: bool) -> Result<()> {
         if !keep {
-            return Ok(())
+            return Ok(());
         }
 
         self.nums.push(text.parse::<usize>()?);

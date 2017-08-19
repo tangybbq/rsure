@@ -20,7 +20,8 @@ pub struct NewWeave<'n> {
 
 impl<'n> NewWeave<'n> {
     pub fn new<'a, 'b, I>(nc: &NamingConvention, tags: I) -> Result<NewWeave>
-        where I: Iterator<Item=(&'a str, &'b str)>
+    where
+        I: Iterator<Item = (&'a str, &'b str)>,
     {
         let mut writeinfo = nc.new_temp()?;
 
@@ -58,15 +59,19 @@ impl<'n> Write for NewWeave<'n> {
     // Write the data out, just passing it through to the underlying file write.  We assume the
     // last line is terminated, or the resulting weave will be invalid.
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.temp.as_mut()
+        self.temp
+            .as_mut()
             .expect("Attempt to write to NewWeave that is closed")
-            .writer.write(buf)
+            .writer
+            .write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.temp.as_mut()
+        self.temp
+            .as_mut()
             .expect("Attempt to flush NewWeave that is closed")
-            .writer.flush()
+            .writer
+            .flush()
     }
 }
 
@@ -81,7 +86,7 @@ fn try_tag() {
         tags.insert(format!("key{}", i), format!("This is the {}th value", i));
     }
     let nc = SimpleNaming::new(".", "tags", "weave", false);
-    let t2 = tags.iter().map(|(k,v)| (k.as_ref(), v.as_ref()));
+    let t2 = tags.iter().map(|(k, v)| (k.as_ref(), v.as_ref()));
     let mut wr = NewWeave::new(&nc, t2).unwrap();
     writeln!(&mut wr, "This is the only line in the file").unwrap();
     wr.close().unwrap();

@@ -36,7 +36,7 @@ impl Header {
     pub fn new() -> Header {
         Header {
             version: THIS_VERSION,
-            deltas: vec![]
+            deltas: vec![],
         }
     }
 

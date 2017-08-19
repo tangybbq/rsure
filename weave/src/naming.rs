@@ -2,7 +2,7 @@
 //! files and other aspects.  The SCCS conventions are not followed, because they are not safe
 //! (this crate will never write to a file that already exists).
 
-use ::Result;
+use Result;
 use WriterInfo;
 use flate2::{FlateWriteExt, Compression};
 use std::path::{Path, PathBuf};
@@ -79,8 +79,12 @@ impl SimpleNaming {
     }
 
     pub fn make_name(&self, ext: &str) -> PathBuf {
-        let name = format!("{}.{}{}", self.base, ext,
-                           if self.compressed { ".gz" } else { "" });
+        let name = format!(
+            "{}.{}{}",
+            self.base,
+            ext,
+            if self.compressed { ".gz" } else { "" }
+        );
         self.path.join(name)
     }
 }

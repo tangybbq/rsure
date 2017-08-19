@@ -29,7 +29,8 @@ extern crate flate2;
 extern crate regex;
 extern crate serde;
 extern crate serde_json;
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate serde_derive;
 
 mod errors;
 mod naming;
@@ -39,7 +40,7 @@ mod delta;
 mod header;
 
 pub use naming::NamingConvention;
-pub use naming::{SimpleNaming};
+pub use naming::SimpleNaming;
 pub use errors::{Result, Error, ErrorKind};
 pub use parse::{Sink, Parser};
 pub use newweave::NewWeave;
@@ -65,9 +66,9 @@ pub fn read_header(naming: &NamingConvention) -> Result<Header> {
 /// contains no revisions.
 pub fn get_last_delta(naming: &NamingConvention) -> Result<usize> {
     let header = read_header(naming)?;
-    Ok(header.deltas.iter()
-       .map(|x| x.number)
-       .max().expect("at least one delta in weave file"))
+    Ok(header.deltas.iter().map(|x| x.number).max().expect(
+        "at least one delta in weave file",
+    ))
 }
 
 /// A null sink that does nothing, useful for parsing the header.

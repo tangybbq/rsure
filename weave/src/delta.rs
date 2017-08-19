@@ -44,7 +44,8 @@ impl<'n> DeltaWriter<'n> {
     /// will be written, and what tags will be associated with the convention.  The `base` is the
     /// existing delta that the change should be based on.
     pub fn new<'a, 'b, I>(nc: &NamingConvention, tags: I, base: usize) -> Result<DeltaWriter>
-        where I: Iterator<Item=(&'a str, &'b str)>
+    where
+        I: Iterator<Item = (&'a str, &'b str)>,
     {
         // Copy the tags, making sure there is a "name", which is used to index.
         // TODO: Ensure that "name" is unique among the existing deltas.
@@ -168,7 +169,7 @@ impl<'n> DeltaWriter<'n> {
                         }
 
                         continue;
-                    },
+                    }
                     None => (),
                 }
 
@@ -214,17 +215,21 @@ impl<'n> DeltaWriter<'n> {
     }
 }
 
-impl <'n> Write for DeltaWriter<'n> {
+impl<'n> Write for DeltaWriter<'n> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.temp.as_mut()
+        self.temp
+            .as_mut()
             .expect("Attempt to write to DeltaWriter that is closed")
-            .writer.write(buf)
+            .writer
+            .write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.temp.as_mut()
+        self.temp
+            .as_mut()
             .expect("Attempt to flush DeltaWriter that is closed")
-            .writer.flush()
+            .writer
+            .flush()
     }
 }
 
@@ -248,7 +253,7 @@ struct WeaveWriter<W: Write> {
     dest: W,
 }
 
-impl <W: Write> Sink for WeaveWriter<W> {
+impl<W: Write> Sink for WeaveWriter<W> {
     fn insert(&mut self, delta: usize) -> Result<()> {
         writeln!(&mut self.dest, "\x01I {}", delta)?;
         Ok(())

@@ -69,9 +69,11 @@ pub struct Parser<S: Sink, B> {
 
 impl<S: Sink> Parser<S, BufReader<Box<Read>>> {
     /// Construct a parser, based on the main file of the naming convention.
-    pub fn new(naming: &NamingConvention, sink: S, delta: usize)
-        -> Result<Parser<S, BufReader<Box<Read>>>>
-    {
+    pub fn new(
+        naming: &NamingConvention,
+        sink: S,
+        delta: usize,
+    ) -> Result<Parser<S, BufReader<Box<Read>>>> {
         let rd = if naming.is_compressed() {
             let fd = File::open(naming.main_file())?;
             Box::new(fd.gz_decode()?) as Box<Read>
@@ -87,7 +89,11 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
     /// Construct a new Parser, reading from the given Reader, giving records to the given Sink,
     /// and aiming for the specified `delta`.  This is not the intended constructor, normal users
     /// should use `new`.  (This is public, for testing).
-    pub fn new_raw(mut source: Lines<B>, sink: Rc<RefCell<S>>, delta: usize) -> Result<Parser<S, B>> {
+    pub fn new_raw(
+        mut source: Lines<B>,
+        sink: Rc<RefCell<S>>,
+        delta: usize,
+    ) -> Result<Parser<S, B>> {
         if let Some(line) = source.next() {
             let line = line?;
             let header = Header::from_str(&line)?;
@@ -201,7 +207,9 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
     /// Remove the given numbered state.
     fn pop(&mut self, delta: usize) {
         // The binary search is reversed, so the largest are first.
-        let pos = match self.delta_state.binary_search_by(|ent| delta.cmp(&ent.delta)) {
+        let pos = match self.delta_state.binary_search_by(
+            |ent| delta.cmp(&ent.delta),
+        ) {
             Ok(pos) => pos,
             Err(_) => panic!("State of pop not present"),
         };
@@ -212,12 +220,19 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
     /// Add a new state.  It will be inserted in the proper place in the array, based on the delta
     /// number.
     fn push(&mut self, delta: usize, mode: StateMode) {
-        match self.delta_state.binary_search_by(|ent| delta.cmp(&ent.delta)) {
+        match self.delta_state.binary_search_by(
+            |ent| delta.cmp(&ent.delta),
+        ) {
             Ok(_) => panic!("Duplicate state in push"),
-            Err(pos) => self.delta_state.insert(pos, OneDelta {
-                delta: delta,
-                mode: mode,
-            }),
+            Err(pos) => {
+                self.delta_state.insert(
+                    pos,
+                    OneDelta {
+                        delta: delta,
+                        mode: mode,
+                    },
+                )
+            }
         }
     }
 
@@ -260,7 +275,11 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-enum StateMode { Keep, Skip, Next }
+enum StateMode {
+    Keep,
+    Skip,
+    Next,
+}
 
 #[derive(Debug)]
 struct OneDelta {
