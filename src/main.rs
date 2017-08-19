@@ -113,7 +113,7 @@ fn main() {
 
     let mut tags = decode_tags(matches.values_of("tag"));
 
-    add_name_tag(&mut tags);
+    add_name_tag(&mut tags, &dir);
 
     // Note that only the "check" command uses the version tag.
     let latest = match matches.value_of("version") {
@@ -189,9 +189,21 @@ fn decode_tag<'a>(tag: &'a str) -> (String, String) {
 }
 
 /// If the caller doesn't specify a 'name=' tag, generate one based on the current timestamp.
-fn add_name_tag(tags: &mut StoreTags) {
+/// Also will add a 'dir' attribute for where the tree was captured.
+fn add_name_tag<P: AsRef<Path>>(tags: &mut StoreTags, dir: P) {
     if !tags.contains_key("name") {
         tags.insert("name".to_string(), Local::now().to_rfc3339());
+    }
+
+    if !tags.contains_key("dir") {
+        tags.insert(
+            "dir".to_string(),
+            dir.as_ref()
+                .canonicalize()
+                .unwrap_or_else(|_| Path::new("invalid").to_owned())
+                .to_string_lossy()
+                .into_owned(),
+        );
     }
 }
 
