@@ -111,7 +111,9 @@ fn main() {
     let file = matches.value_of("file").unwrap_or("2sure.dat.gz");
     let store = parse_store(file).unwrap();
 
-    let tags = decode_tags(matches.values_of("tag"));
+    let mut tags = decode_tags(matches.values_of("tag"));
+
+    add_name_tag(&mut tags);
 
     // Note that only the "check" command uses the version tag.
     let latest = match matches.value_of("version") {
@@ -184,6 +186,13 @@ fn decode_tag<'a>(tag: &'a str) -> (String, String) {
         panic!("Tag must be key=value");
     }
     (fields[0].to_string(), fields[1].to_string())
+}
+
+/// If the caller doesn't specify a 'name=' tag, generate one based on the current timestamp.
+fn add_name_tag(tags: &mut StoreTags) {
+    if !tags.contains_key("name") {
+        tags.insert("name".to_string(), Local::now().to_rfc3339());
+    }
 }
 
 fn dump_versions(versions: &[StoreVersion]) {
