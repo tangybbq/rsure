@@ -147,8 +147,7 @@ fn encode_atts(name: &Path, meta: &Metadata) -> AttMap {
         libc::S_IFIFO => {
             base.insert("kind".to_string(), "fifo".to_string());
         }
-        /* libc::S_IFSOCK */
-        0o140000 => {
+        libc::S_IFSOCK => {
             base.insert("kind".to_string(), "sock".to_string());
         }
         libc::S_IFCHR => {
