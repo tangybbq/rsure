@@ -5,6 +5,8 @@
 extern crate rsure;
 extern crate tempdir;
 extern crate test;
+extern crate openssl;
+// extern crate sha1;
 
 use rsure::{Progress, SureHash};
 use tempdir::TempDir;
@@ -40,3 +42,35 @@ fn tree_mb_bench(b: &mut Bencher) {
         // progress.flush();
     })
 }
+
+#[bench]
+fn openssl_bench(b: &mut Bencher) {
+    use openssl::hash::{Hasher, MessageDigest};
+
+    // Make buffer big enough to not fit in cache.
+    let buf = vec![0; 1024 * 1024 * 16];
+
+    b.iter(|| {
+        let mut h = Hasher::new(MessageDigest::sha1()).unwrap();
+        h.write_all(&buf).unwrap();
+        h.finish().unwrap();
+    })
+}
+
+/* Bring in the SHA1 crate.  Currently, it seems to be about 4.2 times slower than the openssl one.
+ */
+/*
+#[bench]
+fn sha1_bench(b: &mut Bencher) {
+    use sha1::Sha1;
+
+    // Make buffer big enough to not fit in cache.
+    let buf = vec![0; 1024 * 1024 * 16];
+
+    b.iter(|| {
+        let mut h = Sha1::new();
+        h.update(&buf);
+        let _ = h.digest();
+    })
+}
+*/
