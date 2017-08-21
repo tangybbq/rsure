@@ -96,7 +96,7 @@ impl SureTree {
         })
     }
 
-    fn get_line<B: BufRead>(mut inp: &mut io::Split<B>) -> Result<Vec<u8>> {
+    fn get_line<B: BufRead>(inp: &mut io::Split<B>) -> Result<Vec<u8>> {
         match inp.next() {
             None => return Err(From::from("surefile is truncated")),
             Some(l) => Ok(l?),
