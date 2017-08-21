@@ -45,7 +45,7 @@ impl Header {
         if line.starts_with("\x01t") {
             Ok(serde_json::from_str(&line[2..])?)
         } else {
-            /// This probably comes from an sccs file.
+            // This probably comes from an sccs file.
             Ok(Header {
                 version: 0,
                 deltas: vec![]
