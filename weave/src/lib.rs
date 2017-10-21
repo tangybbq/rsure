@@ -19,9 +19,8 @@
 //! against (the base does not need to be the tip version, allowing for branches).  This crate will
 //! need to make several temporary files.
 
-extern crate error_chain;
 #[macro_use]
-extern crate derive_error_chain;
+extern crate error_chain;
 #[macro_use]
 extern crate log;
 extern crate chrono;

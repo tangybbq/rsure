@@ -1,6 +1,6 @@
 [package]
 name = "rsure"
-version = "0.7.1"
+version = "0.7.2"
 authors = ["David Brown <davidb@davidb.org>"]
 description = """
 Rsure captures hashes and metadata about a tree of files, and can
@@ -25,8 +25,8 @@ openssl = "0.9"
 rustc-serialize = "0.3"
 regex = "0.2"
 time = "0.1"
-error-chain = "0.10"
-weave = { path = "weave", version = "0.1.1" }
+error-chain = "0.11"
+weave = { path = "weave", version = "0.1.2" }
 chrono = "0.4"
 
 # This will go away
