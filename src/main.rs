@@ -8,14 +8,16 @@ extern crate regex;
 #[macro_use]
 extern crate log;
 
-#[macro_use]
 extern crate clap;
 
-use chrono::Local;
-use clap::{App, AppSettings, Arg, SubCommand};
+#[macro_use]
+extern crate structopt_derive;
+extern crate structopt;
 
+use chrono::Local;
 use std::collections::BTreeMap;
 use std::path::Path;
+use structopt::StructOpt;
 
 use rsure::{show_tree, Progress, SureHash, TreeCompare, stdout_visitor, parse_store, StoreTags,
             StoreVersion, Version};
@@ -25,145 +27,114 @@ mod bkcmd;
 // For now, just use the crate's error type.
 pub use rsure::Result;
 
+#[derive(StructOpt)]
+#[structopt(name = "rsure", about = "File integrity")]
+struct Opt {
+    #[structopt(short = "f", long = "file", default_value = "2sure.weave.gz")]
+    /// Base of file name, default 2sure, will get .weave.gz appended
+    file: String,
+    #[structopt(short = "d", long = "dir", default_value = ".")]
+    /// Directory to scan, defaults to "."
+    dir: String,
+    #[structopt(long = "tag")]
+    /// key=value to associate with scan
+    tag: Vec<String>,
+    #[structopt(short = "v", long = "version")]
+    version: Option<String>,
+    #[structopt(subcommand)]
+    command: Command,
+}
+
+#[derive(StructOpt)]
+enum Command {
+    #[structopt(name = "scan")]
+    /// Scan a directory for the first time
+    Scan,
+    #[structopt(name = "update")]
+    /// Update the scan using the dat/weave file
+    Update,
+    #[structopt(name = "check")]
+    /// Compare the directory with the dat/weave file
+    Check,
+    #[structopt(name = "signoff")]
+    /// Compare dat with bak file, or last two versions in weave file
+    Signoff,
+    #[structopt(name = "show")]
+    /// Pretty print the dat file
+    Show,
+    #[structopt(name = "bknew")]
+    /// Create a new bitkeeper-based sure store
+    BkNew {
+        dir: String,
+    },
+    #[structopt(name = "bkimport")]
+    /// Import a tree of surefiles into a bk store
+    BkImport {
+        #[structopt(long = "src")]
+        src: String,
+        #[structopt(long = "dest")]
+        dest: String,
+    },
+    #[structopt(name = "list")]
+    /// List revisions in a given sure store
+    List,
+}
+
 #[allow(dead_code)]
 fn main() {
     env_logger::init().unwrap();
 
-    let matches = App::new("rsure")
-        .version(crate_version!())
-        .setting(AppSettings::GlobalVersion)
-        .arg(
-            Arg::with_name("file")
-                .short("f")
-                .long("file")
-                .takes_value(true)
-                .help(
-                    "Base of file name, default 2sure, will get .dat.gz appended",
-                ),
-        )
-        .arg(
-            Arg::with_name("dir")
-                .short("d")
-                .long("dir")
-                .takes_value(true)
-                .help("Directory to scan, defaults to \".\""),
-        )
-        .arg(
-            Arg::with_name("tag")
-                .long("tag")
-                .takes_value(true)
-                .multiple(true)
-                .help("key=value to associate with scan"),
-        )
-        .arg(
-            Arg::with_name("version")
-                .short("v")
-                .long("version")
-                .takes_value(true)
-                .help("Version of sure data to use (see 'list' output)"),
-        )
-        .setting(AppSettings::SubcommandRequired)
-        .subcommand(SubCommand::with_name("scan").about(
-            "Scan a directory for the first time",
-        ))
-        .subcommand(SubCommand::with_name("update").about(
-            "Update the scan using the dat file",
-        ))
-        .subcommand(SubCommand::with_name("check").about(
-            "Compare the directory with the dat file",
-        ))
-        .subcommand(SubCommand::with_name("signoff").about(
-            "Compare the dat file with the bak file",
-        ))
-        .subcommand(SubCommand::with_name("show").about(
-            "Pretty print the dat file",
-        ))
-        .subcommand(
-            SubCommand::with_name("bknew")
-                .about("Create a new bitkeeper-based sure store")
-                .arg(Arg::with_name("dir").required(true).help(
-                    "Directory to create bk-based store",
-                )),
-        )
-        .subcommand(
-            SubCommand::with_name("bkimport")
-                .about("Import a tree of surefiles into a bk store")
-                .arg(
-                    Arg::with_name("src")
-                        .long("src")
-                        .takes_value(true)
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("dest")
-                        .long("dest")
-                        .takes_value(true)
-                        .required(true),
-                ),
-        )
-        .subcommand(SubCommand::with_name("list").about(
-            "List revisions in a given sure store",
-        ))
-        .get_matches();
+    let opt = Opt::from_args();
 
-    let dir = matches.value_of("dir").unwrap_or(".");
+    let store = parse_store(&opt.file).unwrap();
 
-    let file = matches.value_of("file").unwrap_or("2sure.weave.gz");
-    let store = parse_store(file).unwrap();
+    let mut tags = decode_tags(Some(opt.tag.iter().map(|x| x.as_str())));
 
-    let mut tags = decode_tags(matches.values_of("tag"));
-
-    add_name_tag(&mut tags, &dir);
+    add_name_tag(&mut tags, &opt.dir);
 
     // Note that only the "check" command uses the version tag.
-    let latest = match matches.value_of("version") {
+    let latest = match opt.version {
         None => Version::Latest,
         Some(x) => Version::Tagged(x.to_string()),
     };
 
-    match matches.subcommand() {
-        ("scan", Some(_)) => {
-            rsure::update(&dir, &*store, false, &tags).unwrap();
+    match opt.command {
+        Command::Scan => {
+            rsure::update(&opt.dir, &*store, false, &tags).unwrap();
         }
-        ("update", Some(_)) => {
-            rsure::update(&dir, &*store, true, &tags).unwrap();
+        Command::Update => {
+            rsure::update(&opt.dir, &*store, true, &tags).unwrap();
         }
-        ("check", Some(_)) => {
+        Command::Check => {
             let old_tree = store.load(latest).unwrap();
-            let mut new_tree = rsure::scan_fs(&dir).unwrap();
+            let mut new_tree = rsure::scan_fs(&opt.dir).unwrap();
             let estimate = new_tree.hash_estimate();
-            let pdir = &Path::new(dir);
+            let pdir = &Path::new(&opt.dir);
             let mut progress = Progress::new(estimate.files, estimate.bytes);
             new_tree.hash_update(pdir, &mut progress);
             progress.flush();
-            info!("check {:?}", file);
+            info!("check {:?}", opt.file);
             new_tree.compare_from(&mut stdout_visitor(), &old_tree, pdir);
         }
-        ("signoff", Some(_)) => {
+        Command::Signoff => {
             let old_tree = store.load(Version::Prior).unwrap();
             let new_tree = store.load(Version::Latest).unwrap();
-            println!("signoff {}", file);
-            new_tree.compare_from(&mut stdout_visitor(), &old_tree, &Path::new(dir));
+            println!("signoff {}", opt.file);
+            new_tree.compare_from(&mut stdout_visitor(), &old_tree, &Path::new(&opt.dir));
         }
-        ("show", Some(_)) => {
-            println!("show {}", file);
-            show_tree(&Path::new(&file)).unwrap();
+        Command::Show => {
+            println!("show {}", opt.file);
+            show_tree(&Path::new(&opt.file)).unwrap();
         }
-        ("bknew", Some(sub)) => {
-            let bkdir = sub.value_of("dir").unwrap();
-            bkcmd::new(bkdir).unwrap();
+        Command::BkNew { ref dir } => {
+            bkcmd::new(dir).unwrap();
         }
-        ("bkimport", Some(sub)) => {
-            let src = sub.value_of("src").unwrap();
-            let dest = sub.value_of("dest").unwrap();
+        Command::BkImport { ref src, ref dest } => {
             bkcmd::import(src, dest).unwrap();
         }
-        ("list", Some(_)) => {
+        Command::List => {
             let version = store.get_versions().unwrap();
             dump_versions(&version);
-        }
-        _ => {
-            panic!("Unsupported command.");
         }
     }
 }
