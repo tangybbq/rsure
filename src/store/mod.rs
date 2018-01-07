@@ -131,9 +131,5 @@ pub fn parse_store(text: &str) -> Result<Box<Store>> {
         return Ok(Box::new(BkStore::new(dir, base)));
     }
 
-    Ok(Box::new(Plain {
-        path: dir.to_path_buf(),
-        base: base.to_string(),
-        compressed: compressed,
-    }))
+    Ok(Box::new(WeaveStore::new(dir, base, compressed)))
 }

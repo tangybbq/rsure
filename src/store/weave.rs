@@ -16,7 +16,7 @@ pub struct WeaveStore {
 
 impl WeaveStore {
     pub fn new<P: AsRef<Path>>(path: P, base: &str, compressed: bool) -> WeaveStore {
-        WeaveStore { naming: SimpleNaming::new(path, base, "weave", compressed) }
+        WeaveStore { naming: SimpleNaming::new(path, base, "dat", compressed) }
     }
 }
 

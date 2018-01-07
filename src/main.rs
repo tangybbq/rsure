@@ -30,8 +30,8 @@ pub use rsure::Result;
 #[derive(StructOpt)]
 #[structopt(name = "rsure", about = "File integrity")]
 struct Opt {
-    #[structopt(short = "f", long = "file", default_value = "2sure.weave.gz")]
-    /// Base of file name, default 2sure, will get .weave.gz appended
+    #[structopt(short = "f", long = "file", default_value = "2sure.dat.gz")]
+    /// Base of file name, default 2sure, will get .dat.gz appended
     file: String,
     #[structopt(short = "d", long = "dir", default_value = ".")]
     /// Directory to scan, defaults to "."
