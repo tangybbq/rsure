@@ -1,0 +1,15 @@
+# Changelog
+
+## Release 0.8
+
+Release 0.8 of rsure makes some notable changes to the library and
+commandline tool.  The most significant change is that the 'weave'
+format is the primary format that deltas are stored in.  Instead of
+distinguishing the old files by 2sure.weave.gz and 2sure.dat.gz, weave
+files are just called 2sure.dat.gz.  It may be possible to add format
+detection to detect the old format, but I suspect there isn't a lot of
+use of these files anyway.
+
+Other changes:
+- Move to 'failure' instead of 'error-chain'.
+- Bump many dependencies.
