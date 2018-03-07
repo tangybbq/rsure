@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use std::os::unix::ffi::OsStringExt;
 use std::path::Path;
 
-use openssl::hash::{Hasher, MessageDigest};
+use openssl::hash::{DigestBytes, Hasher, MessageDigest};
 
 use rustc_serialize::hex::ToHex;
 
@@ -107,7 +107,7 @@ impl Estimate {
 }
 
 // TODO: Reuse buffer and hasher for a given thread.
-fn hash_file<R: Read>(rd: &mut R) -> Result<Vec<u8>> {
+fn hash_file<R: Read>(rd: &mut R) -> Result<DigestBytes> {
     let mut h = Hasher::new(MessageDigest::sha1())?;
     let mut buf = vec![0u8; 8192];
 
@@ -119,7 +119,7 @@ fn hash_file<R: Read>(rd: &mut R) -> Result<Vec<u8>> {
 
         h.write_all(&buf[0..count])?;
     }
-    Ok(h.finish()?)
+    Ok(h.finish2()?)
 }
 
 use self::atime_impl::noatime_open;
