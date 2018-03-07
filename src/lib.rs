@@ -74,8 +74,10 @@ mod store;
 /// # use std::error::Error;
 /// #
 /// # fn try_main() -> Result<(), Box<Error>> {
+/// let mut tags = rsure::StoreTags::new();
+/// tags.insert("name".into(), "sample".into());
 /// let store = rsure::parse_store("2sure.dat.gz")?;
-/// rsure::update(".", &*store, false, &rsure::StoreTags::new())?;
+/// rsure::update(".", &*store, false, &tags)?;
 /// #     Ok(())
 /// # }
 /// #
