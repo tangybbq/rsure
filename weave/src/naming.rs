@@ -4,7 +4,8 @@
 
 use Result;
 use WriterInfo;
-use flate2::{FlateWriteExt, Compression};
+use flate2::write::GzEncoder;
+use flate2::Compression;
 use std::path::{Path, PathBuf};
 use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, ErrorKind, Write};
@@ -41,7 +42,7 @@ pub trait NamingConvention {
     fn new_temp(&self) -> Result<WriterInfo> {
         let (name, file) = self.temp_file()?;
         let writer = if self.is_compressed() {
-            Box::new(file.gz_encode(Compression::Default)) as Box<Write>
+            Box::new(GzEncoder::new(file, Compression::default())) as Box<Write>
         } else {
             Box::new(BufWriter::new(file)) as Box<Write>
         };

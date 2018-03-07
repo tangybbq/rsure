@@ -3,7 +3,7 @@
 use NamingConvention;
 use Result;
 use failure::err_msg;
-use flate2::FlateReadExt;
+use flate2::read::GzDecoder;
 use header::Header;
 use std::cell::RefCell;
 use std::fs::File;
@@ -77,7 +77,7 @@ impl<S: Sink> Parser<S, BufReader<Box<Read>>> {
     ) -> Result<Parser<S, BufReader<Box<Read>>>> {
         let rd = if naming.is_compressed() {
             let fd = File::open(naming.main_file())?;
-            Box::new(fd.gz_decode()?) as Box<Read>
+            Box::new(GzDecoder::new(fd)) as Box<Read>
         } else {
             Box::new(File::open(naming.main_file())?) as Box<Read>
         };

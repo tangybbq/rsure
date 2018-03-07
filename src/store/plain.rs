@@ -3,7 +3,9 @@
 use Result;
 use SureTree;
 use failure::err_msg;
-use flate2::{self, Compression, FlateReadExt};
+use flate2::Compression;
+use flate2::read::GzDecoder;
+use flate2::write::GzEncoder;
 use std::path::PathBuf;
 use std::fs::{File, OpenOptions, rename};
 use std::io::ErrorKind;
@@ -50,7 +52,7 @@ impl Store for Plain {
         let tmp_name = {
             let (tmp_name, mut fd) = self.temp_file()?;
             if self.compressed {
-                let wr = flate2::write::GzEncoder::new(fd, Compression::Default);
+                let wr = GzEncoder::new(fd, Compression::default());
                 tree.save_to(wr)?;
             } else {
                 tree.save_to(&mut fd)?;
@@ -74,7 +76,7 @@ impl Store for Plain {
         let name = self.make_name(ext);
         let rd = File::open(&name)?;
         if self.compressed {
-            SureTree::load_from(rd.gz_decode()?)
+            SureTree::load_from(GzDecoder::new(rd))
         } else {
             SureTree::load_from(rd)
         }

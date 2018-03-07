@@ -3,7 +3,9 @@
 use Result;
 
 use failure::err_msg;
-use flate2::{self, Compression, FlateReadExt};
+use flate2::Compression;
+use flate2::read::GzDecoder;
+use flate2::write::GzEncoder;
 use std::collections::BTreeMap;
 use std::os::unix::ffi::OsStringExt;
 use std::ffi::OsString;
@@ -37,7 +39,7 @@ impl SureTree {
     /// Load a sure tree from a standard gzip compressed surefile.
     pub fn load<P: AsRef<Path>>(name: P) -> Result<SureTree> {
         let rd = File::open(name)?;
-        let rd = rd.gz_decode()?;
+        let rd = GzDecoder::new(rd);
         Self::load_from(rd)
     }
 
@@ -114,7 +116,7 @@ impl SureTree {
     /// Write a sure tree to a standard gzipped file of the given name.
     pub fn save<P: AsRef<Path>>(&self, name: P) -> Result<()> {
         let wr = File::create(name)?;
-        let wr = flate2::write::GzEncoder::new(wr, Compression::Default);
+        let wr = GzEncoder::new(wr, Compression::default());
         self.save_to(wr)
     }
 
