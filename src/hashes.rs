@@ -119,7 +119,7 @@ fn hash_file<R: Read>(rd: &mut R) -> Result<DigestBytes> {
 
         h.write_all(&buf[0..count])?;
     }
-    Ok(h.finish2()?)
+    Ok(h.finish()?)
 }
 
 use self::atime_impl::noatime_open;

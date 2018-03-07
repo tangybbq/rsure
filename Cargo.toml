@@ -18,10 +18,10 @@ exclude = [
 
 [dependencies]
 libc = "0.2.11"
-clap = "2.21"
-flate2 = "0.2"
-log = "0.3"
-openssl = "0.9"
+clap = "2.31"
+flate2 = "0.2"  # 1.0 is released, API change
+log = "0.4"
+openssl = "0.10"
 rustc-serialize = "0.3"
 regex = "0.2"
 time = "0.1"
@@ -29,11 +29,11 @@ failure = "0.1.1"
 failure_derive = "0.1.1"
 weave = { path = "weave", version = "0.2.0" }
 chrono = "0.4"
-structopt = "0.1"
-structopt-derive = "0.1"
+structopt = "0.2"
+structopt-derive = "0.2"
 
 # This will go away
-env_logger = "0.3"
+env_logger = "0.5"
 
 [dev-dependencies]
 tempdir = "0.3"
