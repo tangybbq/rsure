@@ -25,17 +25,17 @@ pub fn ensure_dir<P: AsRef<Path>>(path: P) -> Result<()> {
         for ent in path.read_dir()? {
             let ent = ent?;
             return Err(
-                format!(
+                format_err!(
                     "Directory {:?} is not empty (contains {:?}",
                     path,
                     ent.path()
-                ).into(),
+                ),
             );
         }
         Ok(())
     } else if path.exists() {
         Err(
-            format!("Path {:?} names something other than a directory", path).into(),
+            format_err!("Path {:?} names something other than a directory", path),
         )
     } else {
         Ok(())

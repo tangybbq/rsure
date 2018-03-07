@@ -29,8 +29,8 @@ extern crate weave;
 #[macro_use]
 extern crate log;
 
-#[macro_use]
-extern crate error_chain;
+#[macro_use] extern crate failure;
+#[macro_use] extern crate failure_derive;
 
 use std::path::Path;
 
@@ -43,7 +43,7 @@ pub use compvisit::{CompareVisitor, CompareType, CompareAction, PrintVisitor, st
 pub use show::show_tree;
 pub use progress::Progress;
 
-pub use errors::{Error, ErrorKind, ChainErr, Result};
+pub use errors::{Error, WeaveError, Result};
 
 pub use store::{StoreTags, Store, StoreVersion, Version, parse_store, BkSureFile, BkStore,
                 bk_setup};

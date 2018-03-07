@@ -5,6 +5,8 @@ extern crate rsure;
 extern crate env_logger;
 extern crate regex;
 
+#[macro_use] extern crate failure;
+
 #[macro_use]
 extern crate log;
 

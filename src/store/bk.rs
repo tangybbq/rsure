@@ -16,8 +16,9 @@
 
 use Result;
 use SureTree;
-use errors::ErrorKind;
+use errors::WeaveError;
 
+use failure::err_msg;
 use regex::Regex;
 use std::fs::File;
 use std::io::{BufRead, Write};
@@ -103,7 +104,7 @@ impl Store for BkStore {
     fn load(&self, version: Version) -> Result<SureTree> {
         let vers = self.get_version(version)?;
         let rev = match vers {
-            None => return Err("Couldn't find bk version".into()),
+            None => return Err(err_msg("Couldn't find bk version")),
             Some(ref x) => &x.rev[..],
         };
 
@@ -115,7 +116,7 @@ impl Store for BkStore {
         let tree = SureTree::load_from(child.stdout.as_mut().unwrap())?;
         let status = child.wait()?;
         if !status.success() {
-            return Err(ErrorKind::BkError(status, "".into()).into());
+            return Err(WeaveError::BkError(status, "".into()).into());
         }
         Ok(tree)
     }
@@ -132,7 +133,7 @@ impl BkStore {
             .current_dir(&self.base)
             .status()?;
         if !status.success() {
-            return Err(ErrorKind::BkError(status, "".into()).into());
+            return Err(WeaveError::BkError(status, "".into()).into());
         }
         Ok(())
     }
@@ -158,14 +159,14 @@ impl BkStore {
             .output()?;
         if !output.stderr.is_empty() {
             return Err(
-                ErrorKind::BkError(
+                WeaveError::BkError(
                     output.status,
                     String::from_utf8_lossy(&output.stderr).into_owned(),
                 ).into(),
             );
         }
         if !output.status.success() {
-            return Err(ErrorKind::BkError(output.status, "".into()).into());
+            return Err(WeaveError::BkError(output.status, "".into()).into());
         }
 
         let mut result = vec![];
@@ -231,7 +232,7 @@ pub fn bk_setup<P: AsRef<Path>>(base: P) -> Result<()> {
     cmd.arg(base.as_os_str());
     let status = cmd.status()?;
     if !status.success() {
-        return Err(ErrorKind::BkError(status, "".into()).into());
+        return Err(WeaveError::BkError(status, "".into()).into());
     }
 
     // Construct a README file in this directory, since there won't appear
@@ -248,7 +249,7 @@ pub fn bk_setup<P: AsRef<Path>>(base: P) -> Result<()> {
         .current_dir(base)
         .status()?;
     if !status.success() {
-        return Err(ErrorKind::BkError(status, "".into()).into());
+        return Err(WeaveError::BkError(status, "".into()).into());
     }
 
     let status = Command::new("bk")
@@ -256,7 +257,7 @@ pub fn bk_setup<P: AsRef<Path>>(base: P) -> Result<()> {
         .current_dir(base)
         .status()?;
     if !status.success() {
-        return Err(ErrorKind::BkError(status, "".into()).into());
+        return Err(WeaveError::BkError(status, "".into()).into());
     }
 
     Ok(())

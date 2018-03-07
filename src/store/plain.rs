@@ -2,6 +2,7 @@
 
 use Result;
 use SureTree;
+use failure::err_msg;
 use flate2::{self, Compression, FlateReadExt};
 use std::path::PathBuf;
 use std::fs::{File, OpenOptions, rename};
@@ -68,7 +69,7 @@ impl Store for Plain {
         let ext = match version {
             Version::Latest => "dat",
             Version::Prior => "bak",
-            Version::Tagged(_) => return Err("versions not supported with plain files".into()),
+            Version::Tagged(_) => return Err(err_msg("versions not supported with plain files")),
         };
         let name = self.make_name(ext);
         let rd = File::open(&name)?;

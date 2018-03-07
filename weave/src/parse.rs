@@ -2,6 +2,7 @@
 
 use NamingConvention;
 use Result;
+use failure::err_msg;
 use flate2::FlateReadExt;
 use header::Header;
 use std::cell::RefCell;
@@ -109,7 +110,7 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
                 header: header,
             })
         } else {
-            Err("Weave file appears empty".into())
+            Err(err_msg("Weave file appears empty"))
         }
     }
 

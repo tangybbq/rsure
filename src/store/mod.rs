@@ -3,6 +3,7 @@
 use Result;
 use SureTree;
 use chrono::{DateTime, Utc};
+use failure::err_msg;
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -64,7 +65,7 @@ pub fn parse_store(text: &str) -> Result<Box<Store>> {
         // Check for BK directory, and reject without explicit name.
         if p.join(".bk").is_dir() {
             return Err(
-                "Store appears to be a Bitkeeper dir, specify full filename".into(),
+                err_msg("Store appears to be a Bitkeeper dir, specify full filename"),
             );
         }
 
@@ -78,7 +79,7 @@ pub fn parse_store(text: &str) -> Result<Box<Store>> {
     // Otherwise, try to get the parent.  If it seems to be empty, use the current directory as the
     // path.
     let dir = match p.parent() {
-        None => return Err("Unknown directory specified".into()),
+        None => return Err(err_msg("Unknown directory specified")),
         Some(dir) => {
             if dir.as_os_str().is_empty() {
                 Path::new(".")
@@ -89,12 +90,12 @@ pub fn parse_store(text: &str) -> Result<Box<Store>> {
     };
 
     if !dir.is_dir() {
-        return Err("File is not in a directory".into());
+        return Err(err_msg("File is not in a directory"));
     }
 
     let base = match p.file_name() {
         Some(name) => name,
-        None => return Err("Path does not have a final file component".into()),
+        None => return Err(err_msg("Path does not have a final file component")),
     };
     let base = match base.to_str() {
         Some(name) => name,
@@ -124,7 +125,7 @@ pub fn parse_store(text: &str) -> Result<Box<Store>> {
     if dir.join(".bk").is_dir() {
         if compressed {
             return Err(
-                "Bitkeeper names should not be compressed, remove .gz suffix".into(),
+                err_msg("Bitkeeper names should not be compressed, remove .gz suffix"),
             );
         }
 

@@ -2,6 +2,7 @@
 
 use Result;
 
+use failure::err_msg;
 use flate2::{self, Compression, FlateReadExt};
 use std::collections::BTreeMap;
 use std::os::unix::ffi::OsStringExt;
@@ -67,7 +68,7 @@ impl SureTree {
         }
 
         if line != &['-' as u8] {
-            return Err(From::from("surefile missing '-' marker'"));
+            return Err(err_msg("surefile missing '-' marker'"));
         }
 
         let mut files = vec![];
@@ -85,7 +86,7 @@ impl SureTree {
         }
 
         if line != &['u' as u8] {
-            return Err(From::from("surefile missing 'u' marker'"));
+            return Err(err_msg("surefile missing 'u' marker'"));
         }
 
         Ok(SureTree {
@@ -98,7 +99,7 @@ impl SureTree {
 
     fn get_line<B: BufRead>(inp: &mut io::Split<B>) -> Result<Vec<u8>> {
         match inp.next() {
-            None => return Err(From::from("surefile is truncated")),
+            None => return Err(err_msg("surefile is truncated")),
             Some(l) => Ok(l?),
         }
     }
@@ -191,13 +192,13 @@ where
 {
     match inp.next() {
         Some(Ok(ref text)) if &text[..] == exp => Ok(()),
-        Some(Ok(ref text)) => Err(From::from(format!(
+        Some(Ok(ref text)) => Err(format_err!(
             "Unexpected line: '{}', expect '{}'",
             String::from_utf8_lossy(text),
             String::from_utf8_lossy(exp)
-        ))),
-        Some(Err(e)) => Err(From::from(format!("Error reading surefile: {}", e))),
-        None => Err(From::from(format!("Unexpected eof on surefile"))),
+        )),
+        Some(Err(e)) => Err(format_err!("Error reading surefile: {}", e)),
+        None => Err(err_msg("Unexpected eof on surefile")),
     }
 }
 

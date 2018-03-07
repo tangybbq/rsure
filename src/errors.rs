@@ -1,31 +1,14 @@
 // Errors.
 
-use escape;
-use openssl;
-use weave;
-use std::io;
+use failure;
 use std::process::ExitStatus;
+use std::result;
 
-error_chain! {
-    types {
-        Error, ErrorKind, ChainErr, Result;
-    }
+pub type Result<T> = result::Result<T, Error>;
+pub type Error = failure::Error;
 
-    links {
-        Escape(escape::EscapeError, escape::EscapeErrorKind);
-        Weave(weave::Error, weave::ErrorKind);
-    }
-
-    foreign_links {
-        IoError(io::Error);
-        OpensslError(openssl::error::ErrorStack);
-        Parse(::std::num::ParseIntError);
-    }
-
-    errors {
-        BkError(status: ExitStatus, msg: String) {
-            description("Error running BitKeeper")
-            display("Error running BitKeeper: {:?} ({:?}", status, msg)
-        }
-    }
+#[derive(Fail, Debug)]
+pub enum WeaveError {
+    #[fail(display = "Error running BitKeeper: {:?}: {:?}", _0, _1)]
+    BkError(ExitStatus, String),
 }

@@ -1,5 +1,6 @@
 //! Writer for new weaves
 
+use failure::err_msg;
 use std::collections::BTreeMap;
 use std::fs::rename;
 use std::mem::replace;
@@ -47,7 +48,7 @@ impl<'n> NewWeave<'n> {
                 writeln!(&mut wi.writer, "\x01E 1")?;
                 wi.name
             }
-            None => return Err("NewWeave already closed".into()),
+            None => return Err(err_msg("NewWeave already closed")),
         };
         let _ = rename(self.naming.main_file(), self.naming.backup_file());
         rename(name, self.naming.main_file())?;

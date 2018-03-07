@@ -99,7 +99,7 @@ fn read_parse(
     let sink = parser.get_sink();
     match sink.borrow().chan.send(None) {
         Ok(()) => (),
-        Err(e) => return Err(format!("chan send error: {:?}", e).into()),
+        Err(e) => return Err(format_err!("chan send error: {:?}", e)),
     }
     Ok(())
 }
@@ -113,7 +113,7 @@ impl Sink for ReadSync {
         if keep {
             match self.chan.send(Some(Ok(text.to_string()))) {
                 Ok(()) => Ok(()),
-                Err(e) => Err(format!("chan send error: {:?}", e).into()),
+                Err(e) => Err(format_err!("chan send error: {:?}", e)),
             }
         } else {
             Ok(())

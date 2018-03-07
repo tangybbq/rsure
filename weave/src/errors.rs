@@ -1,9 +1,7 @@
 // Errors in the weave code.
 
-error_chain! {
-    foreign_links {
-        Io(::std::io::Error);
-        Parse(::std::num::ParseIntError);
-        Serde(::serde_json::Error);
-    }
-}
+use std::result;
+use failure;
+
+pub type Result<T> = result::Result<T, Error>;
+pub type Error = failure::Error;

@@ -1,5 +1,6 @@
 //! Add a delta to a weave file.
 
+use failure::err_msg;
 use regex::Regex;
 use std::collections::BTreeMap;
 use std::fs::{rename, remove_file};
@@ -54,7 +55,7 @@ impl<'n> DeltaWriter<'n> {
             ntags.insert(k.to_owned(), v.to_owned());
         }
         if !ntags.contains_key("name") {
-            return Err("DeltaWriter does not contain a tag \"name\"".into());
+            return Err(err_msg("DeltaWriter does not contain a tag \"name\""));
         }
 
         // Extract the base delta to a file.
@@ -98,7 +99,7 @@ impl<'n> DeltaWriter<'n> {
                 drop(wi.writer);
                 wi.name
             }
-            None => return Err("DeltaWriter already closed".into()),
+            None => return Err(err_msg("DeltaWriter already closed")),
         };
 
         let tweave_info = self.naming.new_temp()?;
@@ -142,7 +143,7 @@ impl<'n> DeltaWriter<'n> {
                         if cmd == 'd' || cmd == 'c' {
                             // These include deletions.
                             match parser.parse_to(left)? {
-                                0 => return Err("Unexpected eof".into()),
+                                0 => return Err(err_msg("Unexpected eof")),
                                 n if n == left => (),
                                 _ => panic!("Unexpected parse result"),
                             }
@@ -199,10 +200,10 @@ impl<'n> DeltaWriter<'n> {
         }
 
         match child.wait()?.code() {
-            None => return Err("diff killed by signal".into()),
+            None => return Err(err_msg("diff killed by signal")),
             Some(0) => (), // No diffs
             Some(1) => (), // Normal with diffs
-            Some(n) => return Err(format!("diff returned error status: {}", n).into()),
+            Some(n) => return Err(format_err!("diff returned error status: {}", n)),
         }
 
         // Now that is all done, clean up the temp files, and cycle the backup.

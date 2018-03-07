@@ -20,7 +20,7 @@
 //! need to make several temporary files.
 
 #[macro_use]
-extern crate error_chain;
+extern crate failure;
 #[macro_use]
 extern crate log;
 extern crate chrono;
@@ -40,7 +40,7 @@ mod header;
 
 pub use naming::NamingConvention;
 pub use naming::SimpleNaming;
-pub use errors::{Result, Error, ErrorKind};
+pub use errors::{Result, Error};
 pub use parse::{Sink, Parser};
 pub use newweave::NewWeave;
 pub use delta::DeltaWriter;

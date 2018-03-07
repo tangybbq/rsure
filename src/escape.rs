@@ -15,6 +15,7 @@
 //! take 6 bytes.
 
 use std::io::prelude::*;
+use std::result;
 
 pub trait Escape {
     fn escaped(&self) -> String;
@@ -24,27 +25,14 @@ pub trait Unescape {
     fn unescape(&self) -> EscapeResult<Vec<u8>>;
 }
 
-error_chain! {
-    types {
-        EscapeError, EscapeErrorKind, EscapChainError, EscapeResult;
-    }
+pub type EscapeResult<T> = result::Result<T, EscapeError>;
 
-    links {
-    }
-
-    foreign_links {
-    }
-
-    errors {
-        InvalidHexCharacter(ch: u8) {
-            description("Invalid hex character")
-            display("Invalid hex character: {:?}", ch)
-        }
-        InvalidHexLength {
-            description("Invalid hex length")
-            display("Invalid hex length")
-        }
-    }
+#[derive(Fail, Debug)]
+pub enum EscapeError {
+    #[fail(display = "Invalid hex character: {:?}", _0)]
+    InvalidHexCharacter(u8),
+    #[fail(display = "Invalid hex length")]
+    InvalidHexLength,
 }
 
 // The basic encoding converts a sequence of bytes into a string.
@@ -85,7 +73,7 @@ impl Unescape for str {
                     b'A'...b'F' => tmp |= byte - b'A' + 10,
                     b'a'...b'f' => tmp |= byte - b'a' + 10,
                     b'0'...b'f' => tmp |= byte - b'0',
-                    _ => return Err(EscapeErrorKind::InvalidHexCharacter(byte).into()),
+                    _ => return Err(EscapeError::InvalidHexCharacter(byte)),
                 }
                 phase += 1;
                 if phase == 3 {
@@ -97,7 +85,7 @@ impl Unescape for str {
         }
 
         if phase != 0 {
-            return Err(EscapeErrorKind::InvalidHexLength.into());
+            return Err(EscapeError::InvalidHexLength);
         }
 
         Ok(buf)
@@ -108,17 +96,18 @@ impl Unescape for str {
 fn test_unescape() {
     macro_rules! assert_error_kind {
         ( $expr:expr, $kind:pat ) => {
-            match $expr.unwrap_err().0 {
-                $kind => (),
-                e => panic!("Unexpected error kind: {:?} (want {})", e, stringify!($kind)),
+            match $expr {
+                Err($kind) => (),
+                Err(e) => panic!("Unexpected error kind: {:?} (want {})", e, stringify!($kind)),
+                Ok(_) => panic!("Unexpected success"),
             }
         }
     }
 
     assert_eq!("=00".unescape().unwrap(), vec![0]);
-    assert_error_kind!("=00=0".unescape(), EscapeErrorKind::InvalidHexLength);
-    assert_error_kind!("=00=".unescape(), EscapeErrorKind::InvalidHexLength);
-    assert_error_kind!("=4g".unescape(), EscapeErrorKind::InvalidHexCharacter(b'g'));
+    assert_error_kind!("=00=0".unescape(), EscapeError::InvalidHexLength);
+    assert_error_kind!("=00=".unescape(), EscapeError::InvalidHexLength);
+    assert_error_kind!("=4g".unescape(), EscapeError::InvalidHexCharacter(b'g'));
 }
 
 #[test]

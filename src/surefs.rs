@@ -2,6 +2,7 @@
 
 use Result;
 use escape::*;
+use failure::err_msg;
 use suretree::{AttMap, SureFile, SureTree};
 
 use std::fs::{self, symlink_metadata, Metadata};
@@ -19,7 +20,7 @@ fn walk_root(path: &Path) -> Result<SureTree> {
     let meta = symlink_metadata(path)?;
 
     if !meta.is_dir() {
-        return Err(From::from("Root must be a directory"));
+        return Err(err_msg("Root must be a directory"));
     }
 
     walk(
