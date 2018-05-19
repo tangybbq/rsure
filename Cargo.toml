@@ -18,7 +18,6 @@ exclude = [
 
 [dependencies]
 libc = "0.2.11"
-clap = "2.31"
 flate2 = "1.0"
 log = "0.4"
 openssl = "0.10"
