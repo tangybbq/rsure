@@ -1,5 +1,9 @@
 # Changelog
 
+## Release 0.8.1
+
+This is a minor release that updates the versions of child dependencies.
+
 ## Release 0.8
 
 Release 0.8 of rsure makes some notable changes to the library and
