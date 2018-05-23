@@ -18,11 +18,11 @@
 //! may require certain tags to be present.
 
 extern crate chrono;
+extern crate data_encoding;
 extern crate flate2;
 extern crate libc;
 extern crate openssl;
 extern crate regex;
-extern crate rustc_serialize;
 extern crate time;
 extern crate weave;
 

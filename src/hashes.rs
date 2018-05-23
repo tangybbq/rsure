@@ -7,7 +7,7 @@ use std::path::Path;
 
 use openssl::hash::{DigestBytes, Hasher, MessageDigest};
 
-use rustc_serialize::hex::ToHex;
+use data_encoding::HEXLOWER;
 
 use super::Result;
 use super::suretree::{SureFile, SureTree};
@@ -54,8 +54,8 @@ impl SureHash for SureTree {
             match noatime_open(&fpath) {
                 Ok(mut fd) => {
                     match hash_file(&mut fd) {
-                        Ok(h) => {
-                            let hex = h.to_hex();
+                        Ok(ref h) => {
+                            let hex = HEXLOWER.encode(h);
                             f.atts.insert("sha1".to_string(), hex);
                         }
                         Err(e) => {

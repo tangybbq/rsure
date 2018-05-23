@@ -17,11 +17,11 @@ exclude = [
 ]
 
 [dependencies]
+data-encoding = "2.1.1"
 libc = "0.2.11"
 flate2 = "1.0"
 log = "0.4"
 openssl = "0.10"
-rustc-serialize = "0.3"
 regex = "1.0"
 time = "0.1"
 failure = "0.1.1"
