@@ -1,7 +1,7 @@
 //! SCCS-style delta weave stores.
 
-use Result;
-use SureTree;
+use crate::Result;
+use crate::SureTree;
 use std::io::{self, Read};
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};

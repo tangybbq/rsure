@@ -1,6 +1,6 @@
 // Comparisons between trees.
 
-use compvisit::{CompareVisitor, CompareType, CompareAction};
+use crate::compvisit::{CompareVisitor, CompareType, CompareAction};
 use std::collections::BTreeMap;
 use std::path::Path;
 

@@ -1,9 +1,9 @@
 // Filesystem scanning.
 
-use Result;
-use escape::*;
+use crate::Result;
+use crate::escape::*;
 use failure::err_msg;
-use suretree::{AttMap, SureFile, SureTree};
+use crate::suretree::{AttMap, SureFile, SureTree};
 
 use std::fs::{self, symlink_metadata, Metadata};
 use std::os::unix::prelude::*;

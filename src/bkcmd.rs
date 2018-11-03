@@ -1,7 +1,7 @@
 // Bitkeeper command line utilities.
 
 use regex::Regex;
-use Result;
+use crate::Result;
 use rsure::bk_setup;
 use rsure::{BkStore, Store, SureTree};
 use std::collections::{BTreeMap, HashSet};

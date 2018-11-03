@@ -1,7 +1,7 @@
 // Surefile store
 
-use Result;
-use SureTree;
+use crate::Result;
+use crate::SureTree;
 use chrono::{DateTime, Utc};
 use failure::err_msg;
 use std::collections::BTreeMap;

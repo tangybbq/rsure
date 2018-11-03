@@ -14,9 +14,9 @@
 //!
 //! [BitKeeper]: http://www.bitkeeper.org/
 
-use Result;
-use SureTree;
-use errors::WeaveError;
+use crate::Result;
+use crate::SureTree;
+use crate::errors::WeaveError;
 
 use failure::err_msg;
 use regex::Regex;

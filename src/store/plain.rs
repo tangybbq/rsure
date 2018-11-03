@@ -1,7 +1,7 @@
 // Plainfile storage of surefiles.
 
-use Result;
-use SureTree;
+use crate::Result;
+use crate::SureTree;
 use failure::err_msg;
 use flate2::Compression;
 use flate2::read::GzDecoder;

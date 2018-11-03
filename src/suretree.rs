@@ -1,6 +1,6 @@
 // SureTree
 
-use Result;
+use crate::Result;
 
 use failure::err_msg;
 use flate2::Compression;

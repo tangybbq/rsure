@@ -36,18 +36,18 @@ extern crate log;
 
 use std::path::Path;
 
-pub use surefs::scan_fs;
-pub use hashes::SureHash;
-pub use suretree::SureTree;
-pub use comp::{TreeCompare, TreeUpdate};
-pub use compvisit::{CompareVisitor, CompareType, CompareAction, PrintVisitor, stdout_visitor,
+pub use crate::surefs::scan_fs;
+pub use crate::hashes::SureHash;
+pub use crate::suretree::SureTree;
+pub use crate::comp::{TreeCompare, TreeUpdate};
+pub use crate::compvisit::{CompareVisitor, CompareType, CompareAction, PrintVisitor, stdout_visitor,
                     stderr_visitor};
-pub use show::show_tree;
-pub use progress::Progress;
+pub use crate::show::show_tree;
+pub use crate::progress::Progress;
 
-pub use errors::{Error, WeaveError, Result};
+pub use crate::errors::{Error, WeaveError, Result};
 
-pub use store::{StoreTags, Store, StoreVersion, Version, parse_store, BkSureFile, BkStore,
+pub use crate::store::{StoreTags, Store, StoreVersion, Version, parse_store, BkSureFile, BkStore,
                 bk_setup};
 
 mod errors;
