@@ -1,10 +1,10 @@
 //! Weave parsing
 
-use NamingConvention;
-use Result;
+use crate::NamingConvention;
+use crate::Result;
 use failure::err_msg;
 use flate2::read::GzDecoder;
-use header::Header;
+use crate::header::Header;
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Lines, Read};

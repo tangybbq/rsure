@@ -8,7 +8,7 @@ use serde_json;
 use std::collections::BTreeMap;
 use std::io::Write;
 
-use Result;
+use crate::Result;
 
 /// The header placed at the beginning of the each weave file.
 #[derive(Clone, Serialize, Deserialize)]

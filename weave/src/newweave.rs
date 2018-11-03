@@ -6,10 +6,10 @@ use std::fs::rename;
 use std::mem::replace;
 use std::io::{self, Write};
 
-use header::Header;
-use Result;
-use NamingConvention;
-use WriterInfo;
+use crate::header::Header;
+use crate::Result;
+use crate::NamingConvention;
+use crate::WriterInfo;
 
 /// A builder for a new weave file.  The data should be written as a writer.  Closing the weaver
 /// will finish up the write and move the new file into place.  If the weaver is just dropped, the
@@ -79,7 +79,7 @@ impl<'n> Write for NewWeave<'n> {
 #[test]
 #[ignore]
 fn try_tag() {
-    use SimpleNaming;
+    use crate::SimpleNaming;
     let mut tags = BTreeMap::new();
     tags.insert("name".to_owned(), "initial revision".to_owned());
     // Add a whole bunch of longer tags to show it works.

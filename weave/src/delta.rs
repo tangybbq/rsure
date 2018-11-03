@@ -9,12 +9,12 @@ use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-use header::Header;
-use NamingConvention;
-use Parser;
-use Sink;
-use Result;
-use WriterInfo;
+use crate::header::Header;
+use crate::NamingConvention;
+use crate::Parser;
+use crate::Sink;
+use crate::Result;
+use crate::WriterInfo;
 
 /// A DeltaWriter is used to write a new delta.  Data should be written to the writer, and then the
 /// `close` method called to update the weave file with the new delta.

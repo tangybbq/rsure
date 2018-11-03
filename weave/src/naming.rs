@@ -2,8 +2,8 @@
 //! files and other aspects.  The SCCS conventions are not followed, because they are not safe
 //! (this crate will never write to a file that already exists).
 
-use Result;
-use WriterInfo;
+use crate::Result;
+use crate::WriterInfo;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use std::path::{Path, PathBuf};

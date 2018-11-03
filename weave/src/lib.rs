@@ -40,13 +40,13 @@ mod newweave;
 mod delta;
 mod header;
 
-pub use naming::NamingConvention;
-pub use naming::SimpleNaming;
-pub use errors::{Result, Error};
-pub use parse::{Sink, Parser};
-pub use newweave::NewWeave;
-pub use delta::DeltaWriter;
-pub use header::{Header, DeltaInfo};
+pub use crate::naming::NamingConvention;
+pub use crate::naming::SimpleNaming;
+pub use crate::errors::{Result, Error};
+pub use crate::parse::{Sink, Parser};
+pub use crate::newweave::NewWeave;
+pub use crate::delta::DeltaWriter;
+pub use crate::header::{Header, DeltaInfo};
 
 use std::io::Write;
 use std::path::PathBuf;
