@@ -1,5 +1,7 @@
 // Playing with paths.
 
+#![warn(bare_trait_objects)]
+
 extern crate chrono;
 extern crate rsure;
 extern crate env_logger;

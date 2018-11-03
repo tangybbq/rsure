@@ -17,6 +17,8 @@
 //! the snapshot itself.  For the `Plain` store, it can be just an empty map.  Other store types
 //! may require certain tags to be present.
 
+#![warn(bare_trait_objects)]
+
 extern crate chrono;
 extern crate data_encoding;
 extern crate flate2;
@@ -87,7 +89,7 @@ mod store;
 /// ```
 pub fn update<P: AsRef<Path>>(
     dir: P,
-    store: &Store,
+    store: &dyn Store,
     is_update: bool,
     tags: &StoreTags,
 ) -> Result<()> {

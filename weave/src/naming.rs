@@ -42,9 +42,9 @@ pub trait NamingConvention {
     fn new_temp(&self) -> Result<WriterInfo> {
         let (name, file) = self.temp_file()?;
         let writer = if self.is_compressed() {
-            Box::new(GzEncoder::new(file, Compression::default())) as Box<Write>
+            Box::new(GzEncoder::new(file, Compression::default())) as Box<dyn Write>
         } else {
-            Box::new(BufWriter::new(file)) as Box<Write>
+            Box::new(BufWriter::new(file)) as Box<dyn Write>
         };
         Ok(WriterInfo {
             name: name,

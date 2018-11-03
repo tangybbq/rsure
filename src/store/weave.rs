@@ -90,7 +90,7 @@ impl Store for WeaveStore {
 // Parse a given delta, emitting the lines to the given channel.  Finishes with Ok(()), or an error
 // if something goes wrong.
 fn read_parse(
-    naming: &NamingConvention,
+    naming: &dyn NamingConvention,
     delta: usize,
     chan: Sender<Option<Result<String>>>,
 ) -> Result<()> {

@@ -19,6 +19,8 @@
 //! against (the base does not need to be the tip version, allowing for branches).  This crate will
 //! need to make several temporary files.
 
+#![warn(bare_trait_objects)]
+
 #[macro_use]
 extern crate failure;
 #[macro_use]
@@ -53,17 +55,17 @@ use std::path::PathBuf;
 /// may be compressed.
 pub struct WriterInfo {
     name: PathBuf,
-    writer: Box<Write>,
+    writer: Box<dyn Write>,
 }
 
 /// Read the header from a weave file.
-pub fn read_header(naming: &NamingConvention) -> Result<Header> {
+pub fn read_header(naming: &dyn NamingConvention) -> Result<Header> {
     Ok(Parser::new(naming, NullSink, 1)?.into_header())
 }
 
 /// Retrieve the last delta in the weave file.  Will panic if the weave file is malformed and
 /// contains no revisions.
-pub fn get_last_delta(naming: &NamingConvention) -> Result<usize> {
+pub fn get_last_delta(naming: &dyn NamingConvention) -> Result<usize> {
     let header = read_header(naming)?;
     Ok(header.deltas.iter().map(|x| x.number).max().expect(
         "at least one delta in weave file",

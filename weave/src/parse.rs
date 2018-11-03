@@ -68,18 +68,18 @@ pub struct Parser<S: Sink, B> {
     header: Header,
 }
 
-impl<S: Sink> Parser<S, BufReader<Box<Read>>> {
+impl<S: Sink> Parser<S, BufReader<Box<dyn Read>>> {
     /// Construct a parser, based on the main file of the naming convention.
     pub fn new(
-        naming: &NamingConvention,
+        naming: &dyn NamingConvention,
         sink: S,
         delta: usize,
-    ) -> Result<Parser<S, BufReader<Box<Read>>>> {
+    ) -> Result<Parser<S, BufReader<Box<dyn Read>>>> {
         let rd = if naming.is_compressed() {
             let fd = File::open(naming.main_file())?;
-            Box::new(GzDecoder::new(fd)) as Box<Read>
+            Box::new(GzDecoder::new(fd)) as Box<dyn Read>
         } else {
-            Box::new(File::open(naming.main_file())?) as Box<Read>
+            Box::new(File::open(naming.main_file())?) as Box<dyn Read>
         };
         let lines = BufReader::new(rd).lines();
         Parser::new_raw(lines, Rc::new(RefCell::new(sink)), delta)

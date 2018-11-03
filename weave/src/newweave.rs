@@ -15,12 +15,12 @@ use WriterInfo;
 /// will finish up the write and move the new file into place.  If the weaver is just dropped, the
 /// file will not be moved into place.
 pub struct NewWeave<'n> {
-    naming: &'n NamingConvention,
+    naming: &'n dyn NamingConvention,
     temp: Option<WriterInfo>,
 }
 
 impl<'n> NewWeave<'n> {
-    pub fn new<'a, 'b, I>(nc: &NamingConvention, tags: I) -> Result<NewWeave>
+    pub fn new<'a, 'b, I>(nc: &dyn NamingConvention, tags: I) -> Result<NewWeave>
     where
         I: Iterator<Item = (&'a str, &'b str)>,
     {

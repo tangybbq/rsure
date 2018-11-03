@@ -54,7 +54,7 @@ pub struct StoreVersion {
 /// path can be the path to a directory.  In this case, look at possible filenames to determine the
 /// other parameters.  The path can also give a filename of one of the surefiles, and we will
 /// derive the name information from that.
-pub fn parse_store(text: &str) -> Result<Box<Store>> {
+pub fn parse_store(text: &str) -> Result<Box<dyn Store>> {
     // First determine if this path is a directory.
     let p = Path::new(text);
     info!("Parsing: {:?}", p);

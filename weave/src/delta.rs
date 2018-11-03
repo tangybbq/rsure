@@ -19,7 +19,7 @@ use WriterInfo;
 /// A DeltaWriter is used to write a new delta.  Data should be written to the writer, and then the
 /// `close` method called to update the weave file with the new delta.
 pub struct DeltaWriter<'n> {
-    naming: &'n NamingConvention,
+    naming: &'n dyn NamingConvention,
 
     // Where the temporary file will be written.
     temp: Option<WriterInfo>,
@@ -44,7 +44,7 @@ impl<'n> DeltaWriter<'n> {
     /// Construct a writer for a new delta.  The naming convention and the tags set where the names
     /// will be written, and what tags will be associated with the convention.  The `base` is the
     /// existing delta that the change should be based on.
-    pub fn new<'a, 'b, I>(nc: &NamingConvention, tags: I, base: usize) -> Result<DeltaWriter>
+    pub fn new<'a, 'b, I>(nc: &dyn NamingConvention, tags: I, base: usize) -> Result<DeltaWriter>
     where
         I: Iterator<Item = (&'a str, &'b str)>,
     {
