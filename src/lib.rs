@@ -21,19 +21,40 @@
 
 use std::path::Path;
 
-pub use crate::surefs::scan_fs;
-pub use crate::hashes::SureHash;
-pub use crate::suretree::SureTree;
-pub use crate::comp::{TreeCompare, TreeUpdate};
-pub use crate::compvisit::{CompareVisitor, CompareType, CompareAction, PrintVisitor, stdout_visitor,
-                    stderr_visitor};
-pub use crate::show::show_tree;
-pub use crate::progress::Progress;
-
-pub use crate::errors::{Error, WeaveError, Result};
-
-pub use crate::store::{StoreTags, Store, StoreVersion, Version, parse_store, BkSureFile, BkStore,
-                bk_setup};
+pub use crate::{
+    comp::{
+        TreeCompare,
+        TreeUpdate,
+    },
+    compvisit::{
+        CompareVisitor,
+        CompareType,
+        CompareAction,
+        PrintVisitor,
+        stdout_visitor,
+        stderr_visitor,
+    },
+    errors::{
+        Error,
+        WeaveError,
+        Result,
+    },
+    hashes::SureHash,
+    progress::Progress,
+    show::show_tree,
+    store::{
+        StoreTags,
+        Store,
+        StoreVersion,
+        Version,
+        parse_store,
+        BkSureFile,
+        BkStore,
+        bk_setup,
+    },
+    surefs::scan_fs,
+    suretree::SureTree,
+};
 
 mod errors;
 mod escape;
