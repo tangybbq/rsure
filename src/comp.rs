@@ -1,10 +1,11 @@
 // Comparisons between trees.
 
-use crate::compvisit::{CompareAction, CompareType, CompareVisitor};
+use crate::{
+    compvisit::{CompareAction, CompareType, CompareVisitor},
+    suretree::{AttMap, PathAdd, SureTree},
+};
 use log::{error, log};
 use std::{collections::BTreeMap, path::Path};
-
-use super::suretree::{AttMap, PathAdd, SureTree};
 
 pub trait TreeUpdate {
     /// Update any sha1 hashes in `self` using `old` as a reference.

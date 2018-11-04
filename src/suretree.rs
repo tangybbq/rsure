@@ -1,7 +1,6 @@
 // SureTree
 
-use crate::Result;
-
+use crate::{escape::*, Result};
 use failure::{err_msg, format_err};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use log::{log, trace};
@@ -14,8 +13,6 @@ use std::{
     os::unix::ffi::OsStringExt,
     path::{Path, PathBuf},
 };
-
-use super::escape::*;
 
 pub type AttMap = BTreeMap<String, String>;
 

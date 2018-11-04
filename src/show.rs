@@ -1,8 +1,7 @@
 // Show module.
 
+use crate::{suretree::SureTree, Result};
 use std::path::Path;
-
-use super::{suretree::SureTree, Result};
 
 pub fn show_tree(name: &Path) -> Result<()> {
     let tree = SureTree::load(name)?;

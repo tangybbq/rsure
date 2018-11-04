@@ -14,9 +14,11 @@
 //!
 //! [BitKeeper]: http://www.bitkeeper.org/
 
-use crate::{errors::WeaveError, Result, SureTree};
-
-use super::{Store, StoreTags, StoreVersion, Version};
+use crate::{
+    errors::WeaveError,
+    store::{Store, StoreTags, StoreVersion, Version},
+    Result, SureTree,
+};
 use failure::err_msg;
 use regex::Regex;
 use std::{

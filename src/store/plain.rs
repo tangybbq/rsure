@@ -1,7 +1,9 @@
 // Plainfile storage of surefiles.
 
-use super::{Store, StoreTags, StoreVersion, Version};
-use crate::{Result, SureTree};
+use crate::{
+    store::{Store, StoreTags, StoreVersion, Version},
+    Result, SureTree,
+};
 use failure::err_msg;
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use std::{

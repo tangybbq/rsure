@@ -1,6 +1,9 @@
 //! SCCS-style delta weave stores.
 
-use crate::{Result, SureTree};
+use crate::{
+    store::{Store, StoreTags, StoreVersion, Version},
+    Result, SureTree,
+};
 use failure::format_err;
 use log::{log, warn};
 use std::{
@@ -9,8 +12,6 @@ use std::{
     sync::mpsc::{self, Receiver, Sender},
     thread,
 };
-
-use super::{Store, StoreTags, StoreVersion, Version};
 use weave::{self, DeltaWriter, NamingConvention, NewWeave, NullSink, Parser, SimpleNaming, Sink};
 
 pub struct WeaveStore {
