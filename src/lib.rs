@@ -19,21 +19,6 @@
 
 #![warn(bare_trait_objects)]
 
-extern crate chrono;
-extern crate data_encoding;
-extern crate flate2;
-extern crate libc;
-extern crate openssl;
-extern crate regex;
-extern crate time;
-extern crate weave;
-
-#[macro_use]
-extern crate log;
-
-#[macro_use] extern crate failure;
-#[macro_use] extern crate failure_derive;
-
 use std::path::Path;
 
 pub use crate::surefs::scan_fs;

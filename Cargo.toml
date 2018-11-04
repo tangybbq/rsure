@@ -11,6 +11,7 @@ executable for scanning and checking trees.
 license = "MIT"
 readme = "README.rst"
 repository = "https://github.com/d3zd3z/rsure"
+edition = "2018"
 
 exclude = [
     "2sure.*.gz"

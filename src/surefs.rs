@@ -2,8 +2,9 @@
 
 use crate::Result;
 use crate::escape::*;
-use failure::err_msg;
 use crate::suretree::{AttMap, SureFile, SureTree};
+use log::{error, log};
+use failure::err_msg;
 
 use std::fs::{self, symlink_metadata, Metadata};
 use std::os::unix::prelude::*;

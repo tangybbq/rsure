@@ -2,10 +2,11 @@
 
 use crate::Result;
 
-use failure::err_msg;
+use failure::{err_msg, format_err};
 use flate2::Compression;
 use flate2::read::GzDecoder;
 use flate2::write::GzEncoder;
+use log::{log, trace};
 use std::collections::BTreeMap;
 use std::os::unix::ffi::OsStringExt;
 use std::ffi::OsString;

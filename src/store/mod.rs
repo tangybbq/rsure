@@ -4,6 +4,7 @@ use crate::Result;
 use crate::SureTree;
 use chrono::{DateTime, Utc};
 use failure::err_msg;
+use log::{info, log};
 use std::collections::BTreeMap;
 use std::path::Path;
 

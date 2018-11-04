@@ -14,6 +14,7 @@
 //! means, for example, that a 2-byte encoded UTF-8 sequence will expand to
 //! take 6 bytes.
 
+use failure_derive::Fail;
 use std::io::prelude::*;
 use std::result;
 

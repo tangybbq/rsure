@@ -1,5 +1,6 @@
 /// Computing hashes for files.
 
+use log::{error, log};
 use std::ffi::OsString;
 use std::io::prelude::*;
 use std::os::unix::ffi::OsStringExt;

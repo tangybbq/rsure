@@ -1,6 +1,7 @@
 // Errors.
 
 use failure;
+use failure_derive::Fail;
 use std::process::ExitStatus;
 use std::result;
 
