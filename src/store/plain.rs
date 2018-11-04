@@ -1,15 +1,14 @@
 // Plainfile storage of surefiles.
 
 use super::{Store, StoreTags, StoreVersion, Version};
-use crate::Result;
-use crate::SureTree;
+use crate::{Result, SureTree};
 use failure::err_msg;
-use flate2::read::GzDecoder;
-use flate2::write::GzEncoder;
-use flate2::Compression;
-use std::fs::{rename, File, OpenOptions};
-use std::io::ErrorKind;
-use std::path::PathBuf;
+use flate2::{read::GzDecoder, write::GzEncoder, Compression};
+use std::{
+    fs::{rename, File, OpenOptions},
+    io::ErrorKind,
+    path::PathBuf,
+};
 
 pub struct Plain {
     pub path: PathBuf,    // The directory where the surefiles will be written.

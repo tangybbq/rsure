@@ -3,17 +3,17 @@
 use crate::Result;
 
 use failure::{err_msg, format_err};
-use flate2::read::GzDecoder;
-use flate2::write::GzEncoder;
-use flate2::Compression;
+use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use log::{log, trace};
-use std::collections::BTreeMap;
-use std::ffi::OsString;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::{self, BufReader, BufWriter};
-use std::os::unix::ffi::OsStringExt;
-use std::path::{Path, PathBuf};
+use std::{
+    collections::BTreeMap,
+    ffi::OsString,
+    fs::File,
+    io::prelude::*,
+    io::{self, BufReader, BufWriter},
+    os::unix::ffi::OsStringExt,
+    path::{Path, PathBuf},
+};
 
 use super::escape::*;
 

@@ -1,15 +1,19 @@
 // Filesystem scanning.
 
-use crate::escape::*;
-use crate::suretree::{AttMap, SureFile, SureTree};
-use crate::Result;
+use crate::{
+    escape::*,
+    suretree::{AttMap, SureFile, SureTree},
+    Result,
+};
 use failure::err_msg;
 use log::{error, log};
 
 use libc;
-use std::fs::{self, symlink_metadata, Metadata};
-use std::os::unix::prelude::*;
-use std::path::{Path, PathBuf};
+use std::{
+    fs::{self, symlink_metadata, Metadata},
+    os::unix::prelude::*,
+    path::{Path, PathBuf},
+};
 
 pub fn scan_fs<P: AsRef<Path>>(root: P) -> Result<SureTree> {
     let root = root.as_ref().to_path_buf();

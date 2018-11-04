@@ -1,7 +1,9 @@
 //! Comparison visitors
 
-use std::io::{self, Write};
-use std::path::Path;
+use std::{
+    io::{self, Write},
+    path::Path,
+};
 
 pub trait CompareVisitor {
     /// Visit a node that has been changed.  The name is the path, relative to the start of the

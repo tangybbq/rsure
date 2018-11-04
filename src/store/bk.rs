@@ -14,17 +14,17 @@
 //!
 //! [BitKeeper]: http://www.bitkeeper.org/
 
-use crate::errors::WeaveError;
-use crate::Result;
-use crate::SureTree;
+use crate::{errors::WeaveError, Result, SureTree};
 
 use super::{Store, StoreTags, StoreVersion, Version};
 use failure::err_msg;
 use regex::Regex;
-use std::fs::File;
-use std::io::{BufRead, Write};
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::{
+    fs::File,
+    io::{BufRead, Write},
+    path::{Path, PathBuf},
+    process::{Command, Stdio},
+};
 
 /// A [`Store`] that stores trees as deltas in a Bitkeeper repository.
 ///

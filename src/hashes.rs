@@ -1,18 +1,17 @@
 /// Computing hashes for files.
 use log::{error, log};
-use std::ffi::OsString;
-use std::io::prelude::*;
-use std::os::unix::ffi::OsStringExt;
-use std::path::Path;
+use std::{ffi::OsString, io::prelude::*, os::unix::ffi::OsStringExt, path::Path};
 
 use openssl::hash::{DigestBytes, Hasher, MessageDigest};
 
 use data_encoding::HEXLOWER;
 
-use super::escape::*;
-use super::progress::Progress;
-use super::suretree::{SureFile, SureTree};
-use super::Result;
+use super::{
+    escape::*,
+    progress::Progress,
+    suretree::{SureFile, SureTree},
+    Result,
+};
 
 pub trait SureHash {
     /// Estimate how much work (files and bytes) need to be hashed.

@@ -2,12 +2,12 @@
 
 use crate::Result;
 use regex::Regex;
-use rsure::bk_setup;
-use rsure::{BkStore, Store, SureTree};
-use std::collections::{BTreeMap, HashSet};
-use std::path::Path;
-
-use std::os::unix::fs::MetadataExt;
+use rsure::{bk_setup, BkStore, Store, SureTree};
+use std::{
+    collections::{BTreeMap, HashSet},
+    os::unix::fs::MetadataExt,
+    path::Path,
+};
 
 pub fn new(path: &str) -> Result<()> {
     ensure_dir(path)?;

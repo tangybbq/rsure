@@ -2,8 +2,7 @@
 
 use failure;
 use failure_derive::Fail;
-use std::process::ExitStatus;
-use std::result;
+use std::{process::ExitStatus, result};
 
 pub type Result<T> = result::Result<T, Error>;
 pub type Error = failure::Error;

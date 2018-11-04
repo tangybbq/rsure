@@ -1,13 +1,14 @@
 //! SCCS-style delta weave stores.
 
-use crate::Result;
-use crate::SureTree;
+use crate::{Result, SureTree};
 use failure::format_err;
 use log::{log, warn};
-use std::io::{self, Read};
-use std::path::Path;
-use std::sync::mpsc::{self, Receiver, Sender};
-use std::thread;
+use std::{
+    io::{self, Read},
+    path::Path,
+    sync::mpsc::{self, Receiver, Sender},
+    thread,
+};
 
 use super::{Store, StoreTags, StoreVersion, Version};
 use weave::{self, DeltaWriter, NamingConvention, NewWeave, NullSink, Parser, SimpleNaming, Sink};

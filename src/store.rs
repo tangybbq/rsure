@@ -1,12 +1,10 @@
 // Surefile store
 
 use chrono::{DateTime, Utc};
-use crate::Result;
-use crate::SureTree;
+use crate::{Result, SureTree};
 use failure::err_msg;
 use log::{info, log};
-use std::collections::BTreeMap;
-use std::path::Path;
+use std::{collections::BTreeMap, path::Path};
 
 mod bk;
 mod plain;

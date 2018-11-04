@@ -16,8 +16,7 @@ extern crate log;
 extern crate structopt;
 
 use chrono::Local;
-use std::collections::BTreeMap;
-use std::path::Path;
+use std::{collections::BTreeMap, path::Path};
 use structopt::StructOpt;
 
 use rsure::{

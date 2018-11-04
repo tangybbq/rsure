@@ -2,8 +2,7 @@
 
 use crate::compvisit::{CompareAction, CompareType, CompareVisitor};
 use log::{error, log};
-use std::collections::BTreeMap;
-use std::path::Path;
+use std::{collections::BTreeMap, path::Path};
 
 use super::suretree::{AttMap, PathAdd, SureTree};
 

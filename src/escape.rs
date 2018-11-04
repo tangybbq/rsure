@@ -15,8 +15,7 @@
 //! take 6 bytes.
 
 use failure_derive::Fail;
-use std::io::prelude::*;
-use std::result;
+use std::{io::prelude::*, result};
 
 pub trait Escape {
     fn escaped(&self) -> String;
