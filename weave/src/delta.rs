@@ -1,6 +1,6 @@
 //! Add a delta to a weave file.
 
-use failure::err_msg;
+use failure::{err_msg, format_err};
 use regex::Regex;
 use std::collections::BTreeMap;
 use std::fs::{rename, remove_file};

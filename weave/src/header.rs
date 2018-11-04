@@ -5,6 +5,7 @@
 use chrono::{Utc, DateTime};
 use failure::err_msg;
 use serde_json;
+use serde_derive::{Serialize, Deserialize};
 use std::collections::BTreeMap;
 use std::io::Write;
 

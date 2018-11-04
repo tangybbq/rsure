@@ -21,18 +21,6 @@
 
 #![warn(bare_trait_objects)]
 
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate log;
-extern crate chrono;
-extern crate flate2;
-extern crate regex;
-extern crate serde;
-extern crate serde_json;
-#[macro_use]
-extern crate serde_derive;
-
 mod errors;
 mod naming;
 mod parse;

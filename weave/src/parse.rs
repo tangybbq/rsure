@@ -5,6 +5,7 @@ use crate::Result;
 use failure::err_msg;
 use flate2::read::GzDecoder;
 use crate::header::Header;
+use log::{info, log};
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Lines, Read};
