@@ -1,7 +1,7 @@
 // Test the naming convention code.
 
-extern crate weave;
 extern crate tempdir;
+extern crate weave;
 
 use std::path::Path;
 

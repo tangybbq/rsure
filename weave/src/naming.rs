@@ -2,13 +2,13 @@
 //! files and other aspects.  The SCCS conventions are not followed, because they are not safe
 //! (this crate will never write to a file that already exists).
 
-use crate::Result;
-use crate::WriterInfo;
-use flate2::write::GzEncoder;
-use flate2::Compression;
-use std::path::{Path, PathBuf};
-use std::fs::{File, OpenOptions};
-use std::io::{BufWriter, ErrorKind, Write};
+use crate::{Result, WriterInfo};
+use flate2::{write::GzEncoder, Compression};
+use std::{
+    fs::{File, OpenOptions},
+    io::{BufWriter, ErrorKind, Write},
+    path::{Path, PathBuf},
+};
 
 /// A naming convention provides utilities needed to find the involved files, and construct
 /// temporary files as part of writing the new weave.  The underlying object should keep the path

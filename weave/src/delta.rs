@@ -2,19 +2,16 @@
 
 use failure::{err_msg, format_err};
 use regex::Regex;
-use std::collections::BTreeMap;
-use std::fs::{rename, remove_file};
-use std::mem::replace;
-use std::io::{self, BufRead, BufReader, BufWriter, Write};
-use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::{
+    collections::BTreeMap,
+    fs::{remove_file, rename},
+    io::{self, BufRead, BufReader, BufWriter, Write},
+    mem::replace,
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
-use crate::header::Header;
-use crate::NamingConvention;
-use crate::Parser;
-use crate::Sink;
-use crate::Result;
-use crate::WriterInfo;
+use crate::{header::Header, NamingConvention, Parser, Result, Sink, WriterInfo};
 
 /// A DeltaWriter is used to write a new delta.  Data should be written to the writer, and then the
 /// `close` method called to update the weave file with the new delta.
@@ -62,7 +59,9 @@ impl<'n> DeltaWriter<'n> {
 
         let (base_name, base_file) = nc.temp_file()?;
         let mut header = {
-            let dsync = RevWriter { dest: BufWriter::new(base_file) };
+            let dsync = RevWriter {
+                dest: BufWriter::new(base_file),
+            };
             let mut parser = Parser::new(nc, dsync, base)?;
             match parser.parse_to(0) {
                 Ok(0) => (),
@@ -113,7 +112,9 @@ impl<'n> DeltaWriter<'n> {
 
         {
             let lines = BufReader::new(child.stdout.as_mut().unwrap()).lines();
-            let weave_write = WeaveWriter { dest: tweave_info.writer };
+            let weave_write = WeaveWriter {
+                dest: tweave_info.writer,
+            };
             let mut parser = Parser::new(self.naming, weave_write, self.base)?;
 
             let weave_write = parser.get_sink();

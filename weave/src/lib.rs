@@ -21,23 +21,24 @@
 
 #![warn(bare_trait_objects)]
 
-mod errors;
-mod naming;
-mod parse;
-mod newweave;
 mod delta;
+mod errors;
 mod header;
+mod naming;
+mod newweave;
+mod parse;
 
-pub use crate::naming::NamingConvention;
-pub use crate::naming::SimpleNaming;
-pub use crate::errors::{Result, Error};
-pub use crate::parse::{Sink, Parser};
-pub use crate::newweave::NewWeave;
-pub use crate::delta::DeltaWriter;
-pub use crate::header::{Header, DeltaInfo};
+pub use crate::{
+    delta::DeltaWriter,
+    errors::{Error, Result},
+    header::{DeltaInfo, Header},
+    naming::NamingConvention,
+    naming::SimpleNaming,
+    newweave::NewWeave,
+    parse::{Parser, Sink},
+};
 
-use std::io::Write;
-use std::path::PathBuf;
+use std::{io::Write, path::PathBuf};
 
 /// Something we can write into, that remembers its name.  The writer is boxed because the writer
 /// may be compressed.
@@ -55,9 +56,12 @@ pub fn read_header(naming: &dyn NamingConvention) -> Result<Header> {
 /// contains no revisions.
 pub fn get_last_delta(naming: &dyn NamingConvention) -> Result<usize> {
     let header = read_header(naming)?;
-    Ok(header.deltas.iter().map(|x| x.number).max().expect(
-        "at least one delta in weave file",
-    ))
+    Ok(header
+        .deltas
+        .iter()
+        .map(|x| x.number)
+        .max()
+        .expect("at least one delta in weave file"))
 }
 
 /// A null sink that does nothing, useful for parsing the header.

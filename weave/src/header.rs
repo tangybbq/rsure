@@ -2,12 +2,11 @@
 //!
 //! The information about each weave file is stored in a header, as the first line of the file.
 
-use chrono::{Utc, DateTime};
+use chrono::{DateTime, Utc};
 use failure::err_msg;
+use serde_derive::{Deserialize, Serialize};
 use serde_json;
-use serde_derive::{Serialize, Deserialize};
-use std::collections::BTreeMap;
-use std::io::Write;
+use std::{collections::BTreeMap, io::Write};
 
 use crate::Result;
 
@@ -50,7 +49,7 @@ impl Header {
             // This probably comes from an sccs file.
             Ok(Header {
                 version: 0,
-                deltas: vec![]
+                deltas: vec![],
             })
         }
     }

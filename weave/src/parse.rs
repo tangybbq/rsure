@@ -1,16 +1,16 @@
 //! Weave parsing
 
-use crate::NamingConvention;
-use crate::Result;
+use crate::{header::Header, NamingConvention, Result};
 use failure::err_msg;
 use flate2::read::GzDecoder;
-use crate::header::Header;
 use log::{info, log};
-use std::cell::RefCell;
-use std::fs::File;
-use std::io::{BufRead, BufReader, Lines, Read};
-use std::mem;
-use std::rc::Rc;
+use std::{
+    cell::RefCell,
+    fs::File,
+    io::{BufRead, BufReader, Lines, Read},
+    mem,
+    rc::Rc,
+};
 
 /// A Sink is a place that a parsed weave can be sent to.  The insert/delete/end commands match
 /// those in the weave file, and `plain` are the lines of data.  With each plain is a flag
@@ -209,9 +209,10 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
     /// Remove the given numbered state.
     fn pop(&mut self, delta: usize) {
         // The binary search is reversed, so the largest are first.
-        let pos = match self.delta_state.binary_search_by(
-            |ent| delta.cmp(&ent.delta),
-        ) {
+        let pos = match self
+            .delta_state
+            .binary_search_by(|ent| delta.cmp(&ent.delta))
+        {
             Ok(pos) => pos,
             Err(_) => panic!("State of pop not present"),
         };
@@ -222,19 +223,18 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
     /// Add a new state.  It will be inserted in the proper place in the array, based on the delta
     /// number.
     fn push(&mut self, delta: usize, mode: StateMode) {
-        match self.delta_state.binary_search_by(
-            |ent| delta.cmp(&ent.delta),
-        ) {
+        match self
+            .delta_state
+            .binary_search_by(|ent| delta.cmp(&ent.delta))
+        {
             Ok(_) => panic!("Duplicate state in push"),
-            Err(pos) => {
-                self.delta_state.insert(
-                    pos,
-                    OneDelta {
-                        delta: delta,
-                        mode: mode,
-                    },
-                )
-            }
+            Err(pos) => self.delta_state.insert(
+                pos,
+                OneDelta {
+                    delta: delta,
+                    mode: mode,
+                },
+            ),
         }
     }
 
