@@ -12,8 +12,6 @@ extern crate regex;
 #[macro_use]
 extern crate log;
 
-#[macro_use]
-extern crate structopt_derive;
 extern crate structopt;
 
 use chrono::Local;

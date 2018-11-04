@@ -29,7 +29,6 @@ failure_derive = "0.1.1"
 weave = { path = "weave", version = "0.2.0" }
 chrono = "0.4"
 structopt = "0.2"
-structopt-derive = "0.2"
 
 # This will go away
 env_logger = "0.5"
