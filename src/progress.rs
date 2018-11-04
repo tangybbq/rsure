@@ -3,8 +3,7 @@
 /// Records updates of number of files visited, and number of bytes
 /// processed.  When given an estimate, printes a simple periodic report of
 /// how far along we think we are.
-
-use time::{Duration, Timespec, get_time};
+use time::{get_time, Duration, Timespec};
 
 pub struct Progress {
     next_update: Timespec,
@@ -68,15 +67,7 @@ pub fn humanize(value: u64) -> String {
     }
 
     static UNITS: [&'static str; 9] = [
-        "B  ",
-        "KiB",
-        "MiB",
-        "GiB",
-        "TiB",
-        "PiB",
-        "EiB",
-        "ZiB",
-        "YiB",
+        "B  ", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB",
     ];
 
     let precision = if value < 10.0 {

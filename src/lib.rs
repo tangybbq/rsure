@@ -22,50 +22,29 @@
 use std::path::Path;
 
 pub use crate::{
-    comp::{
-        TreeCompare,
-        TreeUpdate,
-    },
+    comp::{TreeCompare, TreeUpdate},
     compvisit::{
-        CompareVisitor,
-        CompareType,
-        CompareAction,
-        PrintVisitor,
-        stdout_visitor,
-        stderr_visitor,
+        stderr_visitor, stdout_visitor, CompareAction, CompareType, CompareVisitor, PrintVisitor,
     },
-    errors::{
-        Error,
-        WeaveError,
-        Result,
-    },
+    errors::{Error, Result, WeaveError},
     hashes::SureHash,
     progress::Progress,
     show::show_tree,
-    store::{
-        StoreTags,
-        Store,
-        StoreVersion,
-        Version,
-        parse_store,
-        BkSureFile,
-        BkStore,
-        bk_setup,
-    },
+    store::{bk_setup, parse_store, BkStore, BkSureFile, Store, StoreTags, StoreVersion, Version},
     surefs::scan_fs,
     suretree::SureTree,
 };
 
-mod errors;
-mod escape;
-mod show;
-mod suretree;
-mod surefs;
-mod hashes;
 mod comp;
 mod compvisit;
+mod errors;
+mod escape;
+mod hashes;
 mod progress;
+mod show;
 mod store;
+mod surefs;
+mod suretree;
 
 // Some common operations, abstracted here.
 

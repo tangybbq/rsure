@@ -14,17 +14,17 @@
 //!
 //! [BitKeeper]: http://www.bitkeeper.org/
 
+use crate::errors::WeaveError;
 use crate::Result;
 use crate::SureTree;
-use crate::errors::WeaveError;
 
+use super::{Store, StoreTags, StoreVersion, Version};
 use failure::err_msg;
 use regex::Regex;
 use std::fs::File;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use super::{Store, StoreTags, StoreVersion, Version};
 
 /// A [`Store`] that stores trees as deltas in a Bitkeeper repository.
 ///
@@ -158,12 +158,10 @@ impl BkStore {
             .current_dir(&self.base)
             .output()?;
         if !output.stderr.is_empty() {
-            return Err(
-                WeaveError::BkError(
-                    output.status,
-                    String::from_utf8_lossy(&output.stderr).into_owned(),
-                ).into(),
-            );
+            return Err(WeaveError::BkError(
+                output.status,
+                String::from_utf8_lossy(&output.stderr).into_owned(),
+            ).into());
         }
         if !output.status.success() {
             return Err(WeaveError::BkError(output.status, "".into()).into());
@@ -239,9 +237,7 @@ pub fn bk_setup<P: AsRef<Path>>(base: P) -> Result<()> {
     // to be files in it, other than the BitKeeper directory.
     {
         let mut ofd = File::create(base.join("README"))?;
-        ofd.write_all(
-            include_bytes!("../../etc/template-bk-readme.txt"),
-        )?;
+        ofd.write_all(include_bytes!("../../etc/template-bk-readme.txt"))?;
     }
 
     let status = Command::new("bk")

@@ -2,16 +2,16 @@
 
 #![feature(test)]
 
+extern crate openssl;
 extern crate rsure;
 extern crate tempdir;
 extern crate test;
-extern crate openssl;
 // extern crate sha1;
 
 use rsure::{Progress, SureHash};
-use tempdir::TempDir;
 use std::fs::File;
 use std::io::Write;
+use tempdir::TempDir;
 use test::Bencher;
 
 // To compute hashing speed, use 1 over the benchmark time in seconds, and

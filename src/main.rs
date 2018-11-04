@@ -3,11 +3,12 @@
 #![warn(bare_trait_objects)]
 
 extern crate chrono;
-extern crate rsure;
 extern crate env_logger;
 extern crate regex;
+extern crate rsure;
 
-#[macro_use] extern crate failure;
+#[macro_use]
+extern crate failure;
 
 #[macro_use]
 extern crate log;
@@ -19,8 +20,10 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use structopt::StructOpt;
 
-use rsure::{show_tree, Progress, SureHash, TreeCompare, stdout_visitor, parse_store, StoreTags,
-            StoreVersion, Version};
+use rsure::{
+    parse_store, show_tree, stdout_visitor, Progress, StoreTags, StoreVersion, SureHash,
+    TreeCompare, Version,
+};
 
 mod bkcmd;
 
@@ -64,9 +67,7 @@ enum Command {
     Show,
     #[structopt(name = "bknew")]
     /// Create a new bitkeeper-based sure store
-    BkNew {
-        dir: String,
-    },
+    BkNew { dir: String },
     #[structopt(name = "bkimport")]
     /// Import a tree of surefiles into a bk store
     BkImport {

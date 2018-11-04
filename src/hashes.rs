@@ -1,5 +1,4 @@
 /// Computing hashes for files.
-
 use log::{error, log};
 use std::ffi::OsString;
 use std::io::prelude::*;
@@ -10,10 +9,10 @@ use openssl::hash::{DigestBytes, Hasher, MessageDigest};
 
 use data_encoding::HEXLOWER;
 
-use super::Result;
-use super::suretree::{SureFile, SureTree};
 use super::escape::*;
 use super::progress::Progress;
+use super::suretree::{SureFile, SureTree};
+use super::Result;
 
 pub trait SureHash {
     /// Estimate how much work (files and bytes) need to be hashed.
@@ -53,17 +52,15 @@ impl SureHash for SureTree {
             let fpath = path.join(&s);
 
             match noatime_open(&fpath) {
-                Ok(mut fd) => {
-                    match hash_file(&mut fd) {
-                        Ok(ref h) => {
-                            let hex = HEXLOWER.encode(h);
-                            f.atts.insert("sha1".to_string(), hex);
-                        }
-                        Err(e) => {
-                            error!("Unable to has file: '{:?}' ({})", fpath, e);
-                        }
+                Ok(mut fd) => match hash_file(&mut fd) {
+                    Ok(ref h) => {
+                        let hex = HEXLOWER.encode(h);
+                        f.atts.insert("sha1".to_string(), hex);
                     }
-                }
+                    Err(e) => {
+                        error!("Unable to has file: '{:?}' ({})", fpath, e);
+                    }
+                },
                 Err(e) => {
                     error!("Unable to open '{:?}' for hashing ({})", fpath, e);
                 }
@@ -131,8 +128,8 @@ use self::atime_impl::noatime_open;
 #[cfg(target_os = "linux")]
 mod atime_impl {
     use std::fs::{File, OpenOptions};
-    use std::os::unix::fs::OpenOptionsExt;
     use std::io;
+    use std::os::unix::fs::OpenOptionsExt;
     use std::path::Path;
 
     // From linux's fcntl.h, not exported in the libc crate.
@@ -141,9 +138,11 @@ mod atime_impl {
     pub fn noatime_open(name: &Path) -> io::Result<File> {
         // Try opening it first with noatime, and if that fails, try the open
         // again without the option.
-        match OpenOptions::new().read(true).custom_flags(O_NOATIME).open(
-            name,
-        ) {
+        match OpenOptions::new()
+            .read(true)
+            .custom_flags(O_NOATIME)
+            .open(name)
+        {
             Ok(f) => Ok(f),
             Err(_) => OpenOptions::new().read(true).open(name),
         }
@@ -154,8 +153,8 @@ mod atime_impl {
 #[cfg(not(target_os = "linux"))]
 mod atime_impl {
     use std::fs::{File, OpenOptions};
-    use std::path::Path;
     use std::io;
+    use std::path::Path;
 
     pub fn noatime_open(name: &Path) -> io::Result<File> {
         OpenOptions::new().read(true).open(name)

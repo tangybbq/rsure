@@ -99,10 +99,14 @@ fn test_unescape() {
         ( $expr:expr, $kind:pat ) => {
             match $expr {
                 Err($kind) => (),
-                Err(e) => panic!("Unexpected error kind: {:?} (want {})", e, stringify!($kind)),
+                Err(e) => panic!(
+                    "Unexpected error kind: {:?} (want {})",
+                    e,
+                    stringify!($kind)
+                ),
                 Ok(_) => panic!("Unexpected success"),
             }
-        }
+        };
     }
 
     assert_eq!("=00".unescape().unwrap(), vec![0]);

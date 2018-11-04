@@ -1,15 +1,15 @@
 // Filesystem scanning.
 
-use crate::Result;
 use crate::escape::*;
 use crate::suretree::{AttMap, SureFile, SureTree};
-use log::{error, log};
+use crate::Result;
 use failure::err_msg;
+use log::{error, log};
 
+use libc;
 use std::fs::{self, symlink_metadata, Metadata};
 use std::os::unix::prelude::*;
 use std::path::{Path, PathBuf};
-use libc;
 
 pub fn scan_fs<P: AsRef<Path>>(root: P) -> Result<SureTree> {
     let root = root.as_ref().to_path_buf();
@@ -71,8 +71,7 @@ fn walk(my_name: String, path: &Path, my_atts: AttMap, my_meta: &Metadata) -> Re
                     None
                 }
             }
-        })
-        .collect();
+        }).collect();
 
     // Sort them back by name.
     files.sort_by(|a, b| a.path.file_name().cmp(&b.path.file_name()));

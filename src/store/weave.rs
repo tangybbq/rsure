@@ -10,7 +10,7 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
 use super::{Store, StoreTags, StoreVersion, Version};
-use weave::{self, Parser, DeltaWriter, SimpleNaming, NamingConvention, NewWeave, NullSink, Sink};
+use weave::{self, DeltaWriter, NamingConvention, NewWeave, NullSink, Parser, SimpleNaming, Sink};
 
 pub struct WeaveStore {
     naming: SimpleNaming,
@@ -18,7 +18,9 @@ pub struct WeaveStore {
 
 impl WeaveStore {
     pub fn new<P: AsRef<Path>>(path: P, base: &str, compressed: bool) -> WeaveStore {
-        WeaveStore { naming: SimpleNaming::new(path, base, "dat", compressed) }
+        WeaveStore {
+            naming: SimpleNaming::new(path, base, "dat", compressed),
+        }
     }
 }
 
@@ -76,14 +78,11 @@ impl Store for WeaveStore {
         let mut versions: Vec<_> = header
             .deltas
             .iter()
-            .map(|v| {
-                StoreVersion {
-                    name: v.name.clone(),
-                    time: v.time,
-                    version: Version::Tagged(v.number.to_string()),
-                }
-            })
-            .collect();
+            .map(|v| StoreVersion {
+                name: v.name.clone(),
+                time: v.time,
+                version: Version::Tagged(v.number.to_string()),
+            }).collect();
         versions.reverse();
         Ok(versions)
     }

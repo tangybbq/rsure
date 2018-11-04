@@ -1,7 +1,7 @@
 // Bitkeeper command line utilities.
 
-use regex::Regex;
 use crate::Result;
+use regex::Regex;
 use rsure::bk_setup;
 use rsure::{BkStore, Store, SureTree};
 use std::collections::{BTreeMap, HashSet};
@@ -24,19 +24,18 @@ pub fn ensure_dir<P: AsRef<Path>>(path: P) -> Result<()> {
     if path.is_dir() {
         for ent in path.read_dir()? {
             let ent = ent?;
-            return Err(
-                format_err!(
-                    "Directory {:?} is not empty (contains {:?}",
-                    path,
-                    ent.path()
-                ),
-            );
+            return Err(format_err!(
+                "Directory {:?} is not empty (contains {:?}",
+                path,
+                ent.path()
+            ));
         }
         Ok(())
     } else if path.exists() {
-        Err(
-            format_err!("Path {:?} names something other than a directory", path),
-        )
+        Err(format_err!(
+            "Path {:?} names something other than a directory",
+            path
+        ))
     } else {
         Ok(())
     }

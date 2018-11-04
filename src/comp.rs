@@ -1,11 +1,11 @@
 // Comparisons between trees.
 
-use crate::compvisit::{CompareVisitor, CompareType, CompareAction};
-use log::{log, error};
+use crate::compvisit::{CompareAction, CompareType, CompareVisitor};
+use log::{error, log};
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use super::suretree::{AttMap, SureTree, PathAdd};
+use super::suretree::{AttMap, PathAdd, SureTree};
 
 pub trait TreeUpdate {
     /// Update any sha1 hashes in `self` using `old` as a reference.
@@ -31,7 +31,8 @@ fn walk(new: &mut SureTree, old: &SureTree) {
 
     // Walk the file nodes that are the same, and see if they can be
     // updated.
-    let old_files: BTreeMap<&str, &AttMap> = old.files
+    let old_files: BTreeMap<&str, &AttMap> = old
+        .files
         .iter()
         .map(|ch| (&ch.name[..], &ch.atts))
         .collect();
@@ -105,7 +106,8 @@ fn compwalk<V: CompareVisitor>(new: &SureTree, old: &SureTree, visitor: &mut V, 
     }
 
     // Walk and compare files.
-    let mut old_files: BTreeMap<&str, &AttMap> = old.files
+    let mut old_files: BTreeMap<&str, &AttMap> = old
+        .files
         .iter()
         .map(|ch| (&ch.name[..], &ch.atts))
         .collect();

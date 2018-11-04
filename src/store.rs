@@ -1,19 +1,19 @@
 // Surefile store
 
+use chrono::{DateTime, Utc};
 use crate::Result;
 use crate::SureTree;
-use chrono::{DateTime, Utc};
 use failure::err_msg;
 use log::{info, log};
 use std::collections::BTreeMap;
 use std::path::Path;
 
-mod plain;
 mod bk;
+mod plain;
 mod weave;
 
+pub use self::bk::{bk_setup, BkStore, BkSureFile};
 pub use self::plain::Plain;
-pub use self::bk::{BkSureFile, BkStore, bk_setup};
 pub use self::weave::WeaveStore;
 
 /// Tags are just key/value pairs.  Both key and value should be printable strings.
@@ -65,9 +65,9 @@ pub fn parse_store(text: &str) -> Result<Box<dyn Store>> {
     if p.is_dir() {
         // Check for BK directory, and reject without explicit name.
         if p.join(".bk").is_dir() {
-            return Err(
-                err_msg("Store appears to be a Bitkeeper dir, specify full filename"),
-            );
+            return Err(err_msg(
+                "Store appears to be a Bitkeeper dir, specify full filename",
+            ));
         }
 
         return Ok(Box::new(Plain {
@@ -125,9 +125,9 @@ pub fn parse_store(text: &str) -> Result<Box<dyn Store>> {
     // Check for bitkeeper.
     if dir.join(".bk").is_dir() {
         if compressed {
-            return Err(
-                err_msg("Bitkeeper names should not be compressed, remove .gz suffix"),
-            );
+            return Err(err_msg(
+                "Bitkeeper names should not be compressed, remove .gz suffix",
+            ));
         }
 
         return Ok(Box::new(BkStore::new(dir, base)));

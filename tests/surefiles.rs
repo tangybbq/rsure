@@ -3,7 +3,7 @@
 extern crate rsure;
 extern crate tempdir;
 
-use rsure::{SureTree, TreeCompare, stdout_visitor};
+use rsure::{stdout_visitor, SureTree, TreeCompare};
 use tempdir::TempDir;
 
 // Test that the API is usable.  Currently, the output only generates a
