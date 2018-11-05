@@ -3,7 +3,7 @@
 use crate::{header::Header, NamingConvention, Result};
 use failure::err_msg;
 use flate2::read::GzDecoder;
-use log::{info, log};
+use log::info;
 use std::{
     cell::RefCell,
     fs::File,

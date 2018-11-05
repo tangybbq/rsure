@@ -100,7 +100,11 @@ struct Gen {
 impl Gen {
     fn new<P: AsRef<Path>>(tdir: P, use_sccs: bool) -> Result<Gen> {
         let tdir = tdir.as_ref();
-        let seed: &[_] = &[1, 2, 3, 4];
+        let mut seed: [u8; 32] = [0; 32];
+        seed[0] = 1;
+        seed[0] = 2;
+        seed[0] = 3;
+        seed[0] = 4;
         Ok(Gen {
             tdir: tdir.to_owned(),
             sccs_plain: tdir.join("tfile"),
