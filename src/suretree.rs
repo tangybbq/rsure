@@ -3,7 +3,7 @@
 use crate::{escape::*, Result};
 use failure::{err_msg, format_err};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
-use log::{log, trace};
+use log::trace;
 use std::{
     collections::BTreeMap,
     ffi::OsString,

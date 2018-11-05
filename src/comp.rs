@@ -4,7 +4,7 @@ use crate::{
     compvisit::{CompareAction, CompareType, CompareVisitor},
     suretree::{AttMap, PathAdd, SureTree},
 };
-use log::{error, log};
+use log::error;
 use std::{collections::BTreeMap, path::Path};
 
 pub trait TreeUpdate {

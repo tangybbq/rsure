@@ -7,7 +7,7 @@ use crate::{
     Result,
 };
 use data_encoding::HEXLOWER;
-use log::{error, log};
+use log::error;
 use openssl::hash::{DigestBytes, Hasher, MessageDigest};
 use std::{ffi::OsString, io::prelude::*, os::unix::ffi::OsStringExt, path::Path};
 

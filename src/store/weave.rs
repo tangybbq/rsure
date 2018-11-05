@@ -5,7 +5,7 @@ use crate::{
     Result, SureTree,
 };
 use failure::format_err;
-use log::{log, warn};
+use log::warn;
 use std::{
     io::{self, Read},
     path::Path,

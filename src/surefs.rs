@@ -6,7 +6,7 @@ use crate::{
     Result,
 };
 use failure::err_msg;
-use log::{error, log};
+use log::error;
 
 use libc;
 use std::{

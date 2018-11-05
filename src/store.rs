@@ -3,7 +3,7 @@
 use chrono::{DateTime, Utc};
 use crate::{Result, SureTree};
 use failure::err_msg;
-use log::{info, log};
+use log::info;
 use std::{collections::BTreeMap, path::Path};
 
 mod bk;
