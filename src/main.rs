@@ -188,7 +188,7 @@ fn dump_versions(versions: &[StoreVersion]) {
             Version::Tagged(ref v) => v,
         };
         println!(
-            "{:4} | {} | {}",
+            "{:>4} | {} | {}",
             vers,
             v.time.with_timezone(&Local).format("%Y-%m-%d %H:%M:%S"),
             v.name
