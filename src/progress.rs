@@ -188,6 +188,54 @@ impl Progress {
     }
 }
 
+/// A progress meter used when initially scanning.
+pub struct ScanProgress {
+    dirs: u64,
+    files: u64,
+    bytes: u64,
+}
+
+impl ScanProgress {
+    /// Construct a new scanning progress meter.
+    pub fn new() -> ScanProgress {
+        ScanProgress {
+            dirs: 0,
+            files: 0,
+            bytes: 0,
+        }
+    }
+
+    /// Update the meter.
+    pub fn update(&mut self, dirs: u64, files: u64, bytes: u64) {
+        self.dirs += dirs;
+        self.files += files;
+        self.bytes += bytes;
+
+        let mut st = STATE.lock().unwrap();
+        if st.need_update() {
+            st.update(self.message());
+        }
+    }
+
+    fn message(&self) -> String {
+        format!(
+            "scan: {} dirs {} files, {} bytes\n",
+            self.dirs,
+            self.files,
+            humanize(self.bytes)
+        )
+    }
+}
+
+impl Drop for ScanProgress {
+    fn drop(&mut self) {
+        let mut st = STATE.lock().unwrap();
+        st.update(self.message());
+
+        st.message.clear();
+    }
+}
+
 /// Print a size in a more human-friendly format.
 pub fn humanize(value: u64) -> String {
     let mut value = value as f64;

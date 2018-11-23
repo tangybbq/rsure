@@ -2,6 +2,7 @@
 
 use crate::{
     escape::*,
+    progress::ScanProgress,
     suretree::{AttMap, SureFile, SureTree},
     Result,
 };
@@ -28,15 +29,23 @@ fn walk_root(path: &Path) -> Result<SureTree> {
         return Err(err_msg("Root must be a directory"));
     }
 
+    let mut progress = ScanProgress::new();
     walk(
         "__root__".to_string(),
         path,
         encode_atts(path, &meta),
         &meta,
+        &mut progress,
     )
 }
 
-fn walk(my_name: String, path: &Path, my_atts: AttMap, my_meta: &Metadata) -> Result<SureTree> {
+fn walk(
+    my_name: String,
+    path: &Path,
+    my_atts: AttMap,
+    my_meta: &Metadata,
+    progress: &mut ScanProgress,
+) -> Result<SureTree> {
     let mut entries = vec![];
 
     // TODO: Instead of failing everything because of read failure, just
@@ -88,11 +97,21 @@ fn walk(my_name: String, path: &Path, my_atts: AttMap, my_meta: &Metadata) -> Re
         files: Vec::new(),
     };
 
+    progress.update(
+        files.iter().filter(|x| x.meta.is_dir()).count() as u64,
+        files.iter().filter(|x| !x.meta.is_dir()).count() as u64,
+        files
+            .iter()
+            .filter(|x| !x.meta.is_dir())
+            .map(|x| x.meta.len())
+            .sum(),
+    );
+
     // Process all of the nodes.
     for ch in files {
         if ch.meta.is_dir() {
             let child_name = ch.path.file_name().unwrap().as_bytes().escaped();
-            let child = walk(child_name, &ch.path, ch.atts, &ch.meta)?;
+            let child = walk(child_name, &ch.path, ch.atts, &ch.meta, progress)?;
             node.children.push(child);
         } else {
             let child_name = ch.path.file_name().unwrap().as_bytes().escaped();
