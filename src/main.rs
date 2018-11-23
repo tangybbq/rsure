@@ -20,7 +20,7 @@ use std::{collections::BTreeMap, path::Path};
 use structopt::StructOpt;
 
 use rsure::{
-    parse_store, show_tree, stdout_visitor, Progress, StoreTags, StoreVersion, SureHash,
+    log_init, parse_store, show_tree, stdout_visitor, Progress, StoreTags, StoreVersion, SureHash,
     TreeCompare, Version,
 };
 
@@ -82,7 +82,7 @@ enum Command {
 
 #[allow(dead_code)]
 fn main() {
-    env_logger::init();
+    log_init();
 
     let opt = Opt::from_args();
 

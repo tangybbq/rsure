@@ -28,7 +28,7 @@ pub use crate::{
     },
     errors::{Error, Result, WeaveError},
     hashes::SureHash,
-    progress::Progress,
+    progress::{log_init, Progress},
     show::show_tree,
     store::{bk_setup, parse_store, BkStore, BkSureFile, Store, StoreTags, StoreVersion, Version},
     surefs::scan_fs,

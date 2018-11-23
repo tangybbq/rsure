@@ -19,6 +19,7 @@ exclude = [
 
 [dependencies]
 data-encoding = "2.1.1"
+lazy_static = "1.2"
 libc = "0.2.11"
 flate2 = "1.0"
 log = "0.4.6"  # 0.4.6 needed to fix problem with named macro imports.
@@ -32,7 +33,7 @@ chrono = "0.4"
 structopt = "0.2"
 
 # This will go away
-env_logger = "0.5"
+env_logger = "0.6"
 
 [dev-dependencies]
 tempdir = "0.3"
