@@ -1,5 +1,22 @@
 # Changelog
 
+## Release 0.8.2
+
+This is a minor release with some minor improvements, mostly having to
+do with moving to Rust 2018.  As of this release, Rust 2018 is
+required to build Rsure.
+
+In addition to the 2018 changes, this release also makes some
+improvements to the progress meter.  If the client of the library uses
+`log_init` to initialize the logging system, the progress meter will
+cooperate with the logging system to present a clean, and frequently
+updated message.  Otherwise, the meter will remain as before, only
+updated ever 5 seconds.
+
+This also adds a separate progress meter to indicate the status of the
+initial filesystem scan.  With large trees, this scan can take some
+time, and the meter is a useful indicator of what is happening.
+
 ## Release 0.8.1
 
 This is a minor release that updates the versions of child dependencies.
