@@ -3,7 +3,8 @@ sudo: false
 language: rust
 
 rust:
-    - stable
+  # For now, disable stable, until Rust 2018 becomes stable.
+  #    - stable
     - beta
     - nightly
 
