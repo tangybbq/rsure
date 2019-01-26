@@ -27,7 +27,7 @@ pub use crate::{
         stderr_visitor, stdout_visitor, CompareAction, CompareType, CompareVisitor, PrintVisitor,
     },
     errors::{Error, Result, WeaveError},
-    hashes::SureHash,
+    hashes::{Estimate, SureHash},
     progress::{log_init, Progress},
     show::show_tree,
     store::{bk_setup, parse_store, BkStore, BkSureFile, Store, StoreTags, StoreVersion, Version},

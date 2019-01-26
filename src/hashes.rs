@@ -102,7 +102,7 @@ impl Estimate {
 }
 
 // TODO: Reuse buffer and hasher for a given thread.
-fn hash_file<R: Read>(rd: &mut R) -> Result<DigestBytes> {
+pub(crate) fn hash_file<R: Read>(rd: &mut R) -> Result<DigestBytes> {
     let mut h = Hasher::new(MessageDigest::sha1())?;
     let mut buf = vec![0u8; 8192];
 
@@ -117,7 +117,7 @@ fn hash_file<R: Read>(rd: &mut R) -> Result<DigestBytes> {
     Ok(h.finish()?)
 }
 
-use self::atime_impl::noatime_open;
+pub(crate) use self::atime_impl::noatime_open;
 
 /// Open the given file, trying to not update the atime if that is
 /// possible.

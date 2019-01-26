@@ -129,7 +129,7 @@ fn walk(
 // Encode the attributes for the given node.  Note that this returns, even
 // when there is an error (resolving a symlink).  It logs an error, and
 // returns a placeholder.
-fn encode_atts(name: &Path, meta: &Metadata) -> AttMap {
+pub(crate) fn encode_atts(name: &Path, meta: &Metadata) -> AttMap {
     // let fname = name.file_name().unwrap().as_bytes().escaped();
     let mode = meta.mode() as libc::mode_t & libc::S_IFMT;
 
