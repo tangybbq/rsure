@@ -18,19 +18,22 @@ exclude = [
 ]
 
 [dependencies]
+chrono = "0.4"
 data-encoding = "2.1.1"
-lazy_static = "1.2"
-libc = "0.2.11"
-flate2 = "1.0"
-log = "0.4.6"  # 0.4.6 needed to fix problem with named macro imports.
-openssl = "0.10"
-regex = "1.0"
-time = "0.1"
 failure = "0.1.1"
 failure_derive = "0.1.1"
-weave = { path = "weave", version = "0.2.0" }
-chrono = "0.4"
+flate2 = "1.0"
+lazy_static = "1.2"
+libc = "0.2.11"
+log = "0.4.6"  # 0.4.6 needed to fix problem with named macro imports.
+naming = { path = "naming" }
+num_cpus = "1.9"
+openssl = "0.10"
+regex = "1.0"
+rusqlite = "0.16"
 structopt = "0.2"
+time = "0.1"
+weave = { path = "weave", version = "0.2.0" }
 
 # This will go away
 env_logger = "0.6"

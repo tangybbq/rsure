@@ -40,6 +40,7 @@ mod compvisit;
 mod errors;
 mod escape;
 mod hashes;
+pub mod node;
 mod progress;
 mod show;
 mod store;
