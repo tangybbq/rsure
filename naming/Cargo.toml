@@ -1,0 +1,10 @@
+[package]
+name = "naming"
+version = "0.1.0"
+authors = ["David Brown <davidb@davidb.org>"]
+edition = "2018"
+
+[dependencies]
+failure = "0.1.5"
+flate2 = "1.0"
+log = "0.4.6"
