@@ -28,6 +28,7 @@ pub use crate::{
     },
     errors::{Error, Result, WeaveError},
     hashes::{Estimate, SureHash},
+    node::{SureNode},
     progress::{log_init, Progress},
     show::show_tree,
     store::{bk_setup, parse_store, BkStore, BkSureFile, Store, StoreTags, StoreVersion, Version},

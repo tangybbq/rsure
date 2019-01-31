@@ -285,7 +285,7 @@ impl<R: Read> ReadIterator<R> {
 }
 
 // TODO: This should return Result to handle errors.
-fn decode_entity(text: &[u8]) -> (String, AttMap) {
+pub(crate) fn decode_entity(text: &[u8]) -> (String, AttMap) {
     let (name, mut text) = get_delim(text, b' ');
     assert!(text[0] == b'[');
     text = &text[1..];

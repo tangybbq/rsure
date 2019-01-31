@@ -1,8 +1,9 @@
 //! SCCS-style delta weave stores.
 
 use crate::{
+    node,
     store::{Store, StoreTags, StoreVersion, Version},
-    Result, SureTree,
+    Result, SureNode, SureTree,
 };
 use failure::format_err;
 use log::warn;
@@ -10,7 +11,7 @@ use std::{
     io::{self, Read},
     path::Path,
     sync::mpsc::{self, Receiver, Sender},
-    thread,
+    thread::{self, JoinHandle},
 };
 use weave::{self, DeltaWriter, NamingConvention, NewWeave, NullSink, Parser, SimpleNaming, Sink};
 
@@ -88,6 +89,67 @@ impl Store for WeaveStore {
         versions.reverse();
         Ok(versions)
     }
+
+    fn load_iter(&self, version: Version) -> Result<Box<dyn Iterator<Item = Result<SureNode>>>> {
+        let last = weave::get_last_delta(&self.naming)?;
+        let last = match version {
+            Version::Latest => last,
+            Version::Prior => last - 1,
+            Version::Tagged(vers) => vers.parse()?,
+        };
+
+        let child_naming = self.naming.clone();
+        let (sender, receiver) = mpsc::channel();
+        let child = thread::spawn(move || {
+            if let Err(err) = read_parse(&child_naming, last, sender.clone()) {
+                // Attempt to send the last error over.
+                if let Err(inner) = sender.send(Some(Err(err))) {
+                    warn!("Error sending error on channel {:?}", inner);
+                }
+            }
+        });
+
+        fixed(&receiver, b"asure-2.0")?;
+        fixed(&receiver, b"-----")?;
+
+        Ok(Box::new(WeaveIter {
+            child: child,
+            receiver: receiver,
+        }))
+    }
+}
+
+pub struct WeaveIter {
+    child: JoinHandle<()>,
+    receiver: Receiver<Option<Result<String>>>,
+}
+
+impl Iterator for WeaveIter {
+    type Item = Result<SureNode>;
+
+    fn next(&mut self) -> Option<Result<SureNode>> {
+        let line = match self.receiver.recv() {
+            Ok(None) => return None,
+            Ok(Some(Err(e))) => return Some(Err(e)),
+            Ok(Some(Ok(line))) => line,
+            Err(e) => return Some(Err(e.into())),
+        };
+        let line = line.as_bytes();
+
+        match line[0] {
+            b'd' => {
+                let (dname, datts) = node::decode_entity(&line[1..]);
+                Some(Ok(SureNode::Enter{name: dname, atts: datts}))
+            }
+            b'f' => {
+                let (fname, fatts) = node::decode_entity(&line[1..]);
+                Some(Ok(SureNode::File{name: fname, atts: fatts}))
+            }
+            b'-' => Some(Ok(SureNode::Sep)),
+            b'u' => Some(Ok(SureNode::Leave)),
+            ch => Some(Err(format_err!("Invalid surefile line start: {:?}", ch)))
+        }
+    }
 }
 
 // Parse a given delta, emitting the lines to the given channel.  Finishes with Ok(()), or an error
@@ -105,6 +167,23 @@ fn read_parse(
         Err(e) => return Err(format_err!("chan send error: {:?}", e)),
     }
     Ok(())
+}
+
+/// Try reading a specific line from the given channel.  Returns Err if the
+/// line didn't match, or something went wrong with the read.
+fn fixed(recv: &Receiver<Option<Result<String>>>, expect: &[u8]) -> Result<()> {
+    match recv.recv() {
+        Ok(Some(Ok(line))) => {
+            if line.as_bytes() == expect {
+                Ok(())
+            } else {
+                Err(format_err!("Unexpect line from channel: {:?} expect {:?}", line, expect))
+            }
+        }
+        Ok(Some(Err(e))) => Err(format_err!("Error reading suredata: {:?}", e)),
+        Ok(None) => Err(format_err!("Unexpected eof reading suredata")),
+        Err(e) => Err(e.into()),
+    }
 }
 
 struct ReadSync {

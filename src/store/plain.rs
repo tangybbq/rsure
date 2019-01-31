@@ -2,6 +2,7 @@
 
 use crate::{
     store::{Store, StoreTags, StoreVersion, Version},
+    node::SureNode,
     Result, SureTree,
 };
 use failure::err_msg;
@@ -86,5 +87,9 @@ impl Store for Plain {
     /// Retrieve available versions.
     fn get_versions(&self) -> Result<Vec<StoreVersion>> {
         Ok(vec![])
+    }
+
+    fn load_iter(&self, _version: Version) -> Result<Box<dyn Iterator<Item = Result<SureNode>>>> {
+        unimplemented!()
     }
 }

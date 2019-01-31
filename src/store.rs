@@ -1,7 +1,7 @@
 // Surefile store
 
 use chrono::{DateTime, Utc};
-use crate::{Result, SureTree};
+use crate::{Result, SureTree, SureNode};
 use failure::err_msg;
 use log::info;
 use std::{collections::BTreeMap, path::Path};
@@ -28,6 +28,9 @@ pub trait Store {
 
     /// Retrieve the available versions, in the store.  These should be listed, newest first.
     fn get_versions(&self) -> Result<Vec<StoreVersion>>;
+
+    /// Load the specified version, returning an iterator over the nodes.
+    fn load_iter(&self, version: Version) -> Result<Box<dyn Iterator<Item = Result<SureNode>>>>;
 }
 
 /// Indicator of which version of sure data to load.

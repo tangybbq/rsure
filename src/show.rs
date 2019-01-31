@@ -1,11 +1,15 @@
 // Show module.
 
-use crate::{suretree::SureTree, Result};
-use std::path::Path;
+use crate::{
+    Store,
+    Result,
+    Version,
+};
 
-pub fn show_tree(name: &Path) -> Result<()> {
-    let tree = SureTree::load(name)?;
-    println!("Nodes: {}", tree.count_nodes());
-    // println!("{:#?}", tree);
+pub fn show_tree(store: &dyn Store) -> Result<()> {
+    for node in store.load_iter(Version::Latest)? {
+        let node = node?;
+        println!("{:?}", node);
+    }
     Ok(())
 }

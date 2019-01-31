@@ -124,7 +124,7 @@ fn main() {
         }
         Command::Show => {
             println!("show {}", opt.file);
-            show_tree(&Path::new(&opt.file)).unwrap();
+            show_tree(&*store).unwrap();
         }
         Command::BkNew { ref dir } => {
             bkcmd::new(dir).unwrap();
