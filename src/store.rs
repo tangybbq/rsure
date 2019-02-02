@@ -4,7 +4,11 @@ use chrono::{DateTime, Utc};
 use crate::{Result, SureTree, SureNode};
 use failure::err_msg;
 use log::info;
-use std::{collections::BTreeMap, path::Path};
+use std::{
+    collections::BTreeMap,
+    io::{BufRead, Write},
+    path::Path,
+};
 
 mod bk;
 mod plain;
@@ -31,7 +35,54 @@ pub trait Store {
 
     /// Load the specified version, returning an iterator over the nodes.
     fn load_iter(&self, version: Version) -> Result<Box<dyn Iterator<Item = Result<SureNode>>>>;
+
+    /// Create a temporary storage location.
+    fn make_temp(&self) -> Result<Box<dyn TempFile + '_>>;
+
+    /// Create a writer for a new version.
+    fn make_new(&self, tags: &StoreTags) -> Result<Box<dyn StoreWriter + '_>>;
 }
+
+/// A TempFile is a temporary storage location that can be written to, and
+/// then committed as a new version, or discarded entirely if it is
+/// dropped.
+/// Typical usage patterns are:
+/// - Write to the file, turn into a reader to reread the data.  Will be
+///   deleted on drop.
+/// - Write to the file, turn into a loader which can make multiple
+///   readers.  Will be deleted on drop.
+/// - Write to the file, which can then be committed.  File will be
+///   deleted, but data merged into the latest version in the store.
+pub trait TempFile<'a>: Write {
+    fn into_loader(self: Box<Self>) -> Result<Box<dyn TempLoader + 'a>>;
+
+    // Close the file, returning a TempCleaner that will clean up the file
+    // when it is dropped.  Significantly, this has no lifetime
+    // dependencies.
+    fn into_cleaner(self: Box<Self>) -> Result<Box<dyn TempCleaner>>;
+}
+
+/// A temp file that can spawn multiple loaders.
+pub trait TempLoader {
+    /// Open the temp file, and return a reader on it.
+    fn new_loader(&self) -> Result<Box<dyn BufRead>>;
+
+    /// Return the name of the temp file.
+    fn path_ref(&self) -> &Path;
+
+    // Close the file, returning a TempCleaner that will clean up the file
+    // when it is dropped.  Significantly, this has no lifetime
+    // dependencies.
+    fn into_cleaner(self: Box<Self>) -> Result<Box<dyn TempCleaner>>;
+}
+
+/// A Writer for adding a new version.
+pub trait StoreWriter<'a>: Write {
+    /// All data has been written, commit this as a new version.
+    fn commit(self: Box<Self>) -> Result<()>;
+}
+
+pub trait TempCleaner{}
 
 /// Indicator of which version of sure data to load.
 #[derive(Clone, Debug)]

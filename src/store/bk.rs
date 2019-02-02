@@ -16,7 +16,7 @@
 
 use crate::{
     errors::WeaveError,
-    store::{Store, StoreTags, StoreVersion, Version},
+    store::{Store, StoreTags, StoreVersion, StoreWriter, TempFile, Version},
     node::SureNode,
     Result, SureTree,
 };
@@ -129,6 +129,14 @@ impl Store for BkStore {
     }
 
     fn load_iter(&self, _version: Version) -> Result<Box<dyn Iterator<Item = Result<SureNode>>>> {
+        unimplemented!()
+    }
+
+    fn make_temp(&self) -> Result<Box<dyn TempFile>> {
+        unimplemented!()
+    }
+
+    fn make_new(&self, _tags: &StoreTags) -> Result<Box<dyn StoreWriter + '_>> {
         unimplemented!()
     }
 }

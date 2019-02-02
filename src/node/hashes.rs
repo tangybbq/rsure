@@ -7,6 +7,7 @@ use crate::{
         NodeWriter,
         into_tracker,
     },
+    store::{Store, TempCleaner},
     Result,
 
     hashes::{Estimate, hash_file, noatime_open},
@@ -19,7 +20,6 @@ use rusqlite::{
     Connection,
     NO_PARAMS,
 };
-use naming::Naming;
 use std::{
     io::Write,
     sync::{
@@ -33,25 +33,28 @@ use std::{
 /// A Source is something that can repeatedly give us an iterator over
 /// nodes.
 pub trait Source {
-    fn iter(&mut self) -> Result<Box<dyn Iterator<Item = Result<SureNode>> + Send>>;
+    fn iter(&self) -> Result<Box<dyn Iterator<Item = Result<SureNode>> + Send>>;
 }
 
 /// The HashUpdater is able to update hashes.  This is the first pass.
 pub struct HashUpdater<'n, S> {
     source: S,
-    naming: &'n mut Naming,
+    store: &'n dyn Store,
 }
 
 pub struct HashMerger<S> {
     source: S,
     conn: Connection,
+    // Own the temp, so it won't be deleted until the connection is also
+    // closed.
+    _temp: Box<dyn TempCleaner>,
 }
 
 impl <'a, S: Source> HashUpdater<'a, S> {
-    pub fn new(source: S, naming: &mut Naming) -> HashUpdater<S> {
+    pub fn new(source: S, store: &dyn Store) -> HashUpdater<S> {
         HashUpdater {
             source: source,
-            naming: naming,
+            store: store,
         }
     }
 
@@ -61,7 +64,7 @@ impl <'a, S: Source> HashUpdater<'a, S> {
     /// to merge the hash results into a datastream.
     pub fn compute(mut self, base: &str, estimate: &Estimate) -> Result<HashMerger<S>> {
         let meter = Arc::new(Mutex::new(Progress::new(estimate.files, estimate.bytes)));
-        let mut conn = self.setup_db()?;
+        let (mut conn, temp) = self.setup_db()?;
 
         let (tx, rx) = sync_channel(num_cpus::get());
 
@@ -112,24 +115,24 @@ impl <'a, S: Source> HashUpdater<'a, S> {
         meter.lock().unwrap().flush();
         Ok(HashMerger {
             source: self.source,
-            conn: conn
+            conn: conn,
+            _temp: temp,
         })
     }
 
     /// Set up the sqlite database to hold the hash updates.
-    fn setup_db(&mut self) -> Result<Connection> {
+    fn setup_db(&mut self) -> Result<(Connection, Box<dyn TempCleaner>)> {
         // Create the temp file.  Discard the file so that it will be
         // closed.
-        let (path, _) = self.naming.temp_file(false)?;
-        self.naming.add_cleanup(path.clone());
-        let conn = Connection::open(path)?;
+        let tmp = self.store.make_temp()?.into_loader()?;
+        let conn = Connection::open(tmp.path_ref())?;
         conn.execute(
             "CREATE TABLE hashes (
                 id INTEGER PRIMARY KEY,
                 hash BLOB)",
             NO_PARAMS)?;
 
-        Ok(conn)
+        Ok((conn, tmp.into_cleaner()?))
     }
 }
 
@@ -139,7 +142,7 @@ impl <S: Source> HashMerger<S> {
     /// chain of lifetime dependencies from Connection->Statement->Rows and
     /// if we tried to return something holding the Rows iterator, the user
     /// would have to manage these lifetimes.
-    pub fn merge<W: Write>(mut self, writer: &mut NodeWriter<W>) -> Result<()> {
+    pub fn merge<W: Write>(self, writer: &mut NodeWriter<W>) -> Result<()> {
         let mut stmt = self.conn.prepare("SELECT id, hash FROM hashes ORDER BY id")?;
         let mut hash_iter = stmt
             .query_map(NO_PARAMS, |row| HashInfo {

@@ -2,14 +2,16 @@
 
 use crate::{
     node,
-    store::{Store, StoreTags, StoreVersion, Version},
+    store::{Store, StoreTags, StoreVersion, StoreWriter, TempCleaner, TempFile, TempLoader, Version},
     Result, SureNode, SureTree,
 };
 use failure::format_err;
 use log::warn;
 use std::{
-    io::{self, Read},
-    path::Path,
+    env,
+    fs::{self, File},
+    io::{self, BufRead, BufReader, Read, BufWriter, Write},
+    path::{Path, PathBuf},
     sync::mpsc::{self, Receiver, Sender},
     thread::{self, JoinHandle},
 };
@@ -113,14 +115,135 @@ impl Store for WeaveStore {
         fixed(&receiver, b"-----")?;
 
         Ok(Box::new(WeaveIter {
-            child: child,
+            _child: child,
             receiver: receiver,
         }))
+    }
+
+    fn make_temp(&self) -> Result<Box<dyn TempFile + '_>> {
+        // TODO: Fixup naming to allow uncompressed writes.
+        let (path, file) = self.naming.temp_file()?;
+        let cpath = path.clone();
+        Ok(Box::new(WeaveTemp {
+            parent: self,
+            path: path,
+            file: BufWriter::new(file),
+            cleaner: FileClean(cpath),
+        }))
+    }
+
+    fn make_new(&self, tags: &StoreTags) -> Result<Box<dyn StoreWriter + '_>> {
+        let itags = tags.iter().map(|(k, v)| (k.as_ref(), v.as_ref()));
+        match weave::get_last_delta(&self.naming) {
+            Ok(base) => {
+                let wv = DeltaWriter::new(&self.naming, itags, base)?;
+                Ok(Box::new(NewWeaveDelta { weave: wv }))
+            }
+            Err(_) => {
+                // Create a new weave file.
+                let wv = NewWeave::new(&self.naming, itags)?;
+                Ok(Box::new(NewWeaveWriter { weave: wv }))
+            }
+        }
+    }
+}
+
+struct WeaveTemp<'a> {
+    parent: &'a WeaveStore,
+    path: PathBuf,
+    file: BufWriter<File>,
+    cleaner: FileClean,
+}
+
+impl<'a> TempFile<'a> for WeaveTemp<'a> {
+    fn into_loader(self: Box<Self>) -> Result<Box<dyn TempLoader + 'a>> {
+        drop(self.file);
+        Ok(Box::new(WeaveTempLoader {
+            _parent: self.parent,
+            path: self.path,
+            cleaner: self.cleaner,
+        }))
+    }
+
+    fn into_cleaner(self: Box<Self>) -> Result<Box<dyn TempCleaner>> {
+        Ok(Box::new(self.cleaner))
+    }
+}
+
+impl<'a> Write for WeaveTemp<'a> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.file.write(buf)
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        self.file.flush()
+    }
+}
+
+pub struct WeaveTempLoader<'a> {
+    _parent: &'a WeaveStore,
+    path: PathBuf,
+    cleaner: FileClean,
+}
+
+impl<'a> TempLoader for WeaveTempLoader<'a> {
+    fn new_loader(&self) -> Result<Box<dyn BufRead>> {
+        let read = BufReader::new(File::open(&self.path)?);
+        Ok(Box::new(read))
+    }
+
+    fn path_ref(&self) -> &Path {
+        &self.path
+    }
+
+    fn into_cleaner(self: Box<Self>) -> Result<Box<dyn TempCleaner>> {
+        Ok(Box::new(self.cleaner))
+    }
+}
+
+pub struct NewWeaveWriter<'a> {
+    weave: NewWeave<'a>,
+}
+
+impl<'a> StoreWriter<'a> for NewWeaveWriter<'a> {
+    fn commit(self: Box<Self>) -> Result<()> {
+        self.weave.close()
+    }
+}
+
+impl<'a> Write for NewWeaveWriter<'a> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.weave.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.weave.flush()
+    }
+}
+
+pub struct NewWeaveDelta<'a> {
+    weave: DeltaWriter<'a>,
+}
+
+impl<'a> StoreWriter<'a> for NewWeaveDelta<'a> {
+    fn commit(self: Box<Self>) -> Result<()> {
+        self.weave.close()
+    }
+}
+
+impl<'a> Write for NewWeaveDelta<'a> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.weave.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.weave.flush()
     }
 }
 
 pub struct WeaveIter {
-    child: JoinHandle<()>,
+    // This field doesn't need to be referenced, just held onto, the Drop
+    // implementation for it is sufficient cleanup.
+    _child: JoinHandle<()>,
     receiver: Receiver<Option<Result<String>>>,
 }
 
@@ -235,3 +358,19 @@ impl Read for ReadReceiver {
         Ok(chars.len() + 1)
     }
 }
+
+/// Own a PathBuf, and delete this file on drop.  This is in its own type
+/// for two reason. 1. I makes it easy to have cleaning in multiple types,
+/// passing ownership between them, and 2.  It prevents the need for those
+/// types to implement drop, which prevents moves out of the fields.
+struct FileClean(PathBuf);
+
+impl Drop for FileClean {
+    fn drop(&mut self) {
+        if env::var_os("RSURE_KEEP").is_none() {
+            let _ = fs::remove_file(&self.0);
+        }
+    }
+}
+
+impl TempCleaner for FileClean{}

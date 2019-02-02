@@ -19,7 +19,10 @@
 
 #![warn(bare_trait_objects)]
 
-use std::path::Path;
+use std::{
+    fs::File,
+    path::Path,
+};
 
 pub use crate::{
     comp::{TreeCompare, TreeUpdate},
@@ -28,10 +31,20 @@ pub use crate::{
     },
     errors::{Error, Result, WeaveError},
     hashes::{Estimate, SureHash},
-    node::{SureNode},
+    node::{fs, load_from, SureNode, HashUpdater, ReadIterator, Source, NodeWriter},
     progress::{log_init, Progress},
     show::show_tree,
-    store::{bk_setup, parse_store, BkStore, BkSureFile, Store, StoreTags, StoreVersion, Version},
+    store::{
+        BkStore,
+        BkSureFile,
+        Store,
+        StoreTags,
+        StoreVersion,
+        TempLoader,
+        Version,
+        bk_setup,
+        parse_store,
+    },
     surefs::scan_fs,
     suretree::SureTree,
 };
@@ -82,6 +95,44 @@ pub fn update<P: AsRef<Path>>(
 ) -> Result<()> {
     let dir = dir.as_ref();
 
+    if is_update {
+        unimplemented!();
+    }
+
+    let mut estimate = Estimate { files: 0, bytes: 0 };
+    let tmp = {
+        let mut tmp = store.make_temp()?;
+        let src = fs::scan_fs(dir)?
+            .inspect(|node| {
+                match node {
+                    // TODO: This is only correct if this is not an update.
+                    Ok(n @ SureNode::File { .. }) => {
+                        if n.needs_hash() {
+                            estimate.files += 1;
+                            estimate.bytes += n.size();
+                        }
+                    }
+                    _ => (),
+                }
+            });
+        node::save_to(&mut tmp, src)?;
+        tmp
+    }.into_loader()?;
+
+    // TODO: If this is an update, pull in hashes from the old version.
+
+    // Update any missing hashes.
+    let loader = Loader(&*tmp);
+    let hu = HashUpdater::new(loader, store);
+    // TODO: This will panic on non-unicode directories.
+    let hm = hu.compute(dir.to_str().unwrap(), &estimate)?;
+    let mut tmp2 = store.make_new(tags)?;
+    hm.merge(&mut NodeWriter::new(&mut tmp2)?)?;
+
+    tmp2.commit()?;
+/*
+    let dir = dir.as_ref();
+
     let mut new_tree = scan_fs(dir)?;
 
     if is_update {
@@ -95,5 +146,15 @@ pub fn update<P: AsRef<Path>>(
     progress.flush();
 
     store.write_new(&new_tree, tags)?;
+*/
     Ok(())
+}
+
+struct Loader<'a>(&'a dyn TempLoader);
+
+impl<'a> Source for Loader<'a> {
+    fn iter(&self) -> Result<Box<dyn Iterator<Item = Result<SureNode>> + Send>> {
+        let rd = File::open(self.0.path_ref())?;
+        Ok(Box::new(load_from(rd)?))
+    }
 }
