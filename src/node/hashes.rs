@@ -12,6 +12,9 @@ use crate::{
 
     hashes::{Estimate, hash_file, noatime_open},
 };
+use crossbeam::{
+    channel::{bounded, Sender},
+};
 use data_encoding::HEXLOWER;
 use failure::format_err;
 use log::error;
@@ -22,6 +25,7 @@ use rusqlite::{
 };
 use std::{
     io::Write,
+    path::PathBuf,
     sync::{
         Arc,
         Mutex,
@@ -120,6 +124,80 @@ impl <'a, S: Source> HashUpdater<'a, S> {
         })
     }
 
+    /// First pass, multi-threaded version.  Go through the source nodes,
+    /// and for any that need a hash, compute the hash, and collect the
+    /// result into a temporary file.  Consumes the updater, returning the
+    /// HashMerger which is used to merge the hash results into a
+    /// datastream.
+    pub fn compute_parallel(mut self, base: &str, estimate: &Estimate) -> Result<HashMerger<S>> {
+        let meter = Arc::new(Mutex::new(Progress::new(estimate.files, estimate.bytes)));
+        let iter = into_tracker(self.source.iter()?, base);
+        let (mut conn, temp) = self.setup_db()?;
+        let trans = conn.transaction()?;
+
+        let meter2 = meter.clone();
+        crossbeam::scope(move |s| {
+            let ncpu = num_cpus::get();
+
+            // The work channel.  Single sender, multiple receivers (one
+            // for each CPU).
+            let (work_send, work_recv) = bounded(ncpu);
+
+            // The result channel.  Multiple senders, single receiver.
+            let (result_send, result_recv) = bounded(ncpu);
+
+            // This thread reads the nodes, and submits work requests for
+            // them.  This will close the channel when it finishes, as the
+            // work_send is moved in.
+            s.spawn(move |_| {
+                let mut count = 0;
+                for entry in iter {
+                    let entry = entry.unwrap(); // TODO: Handle error.
+                    if entry.node.needs_hash() {
+                        let path = entry.path.unwrap();
+                        work_send.send(HashWork {
+                            id: count,
+                            path: path,
+                            size: entry.node.size(),
+                        }).unwrap();
+                        count += 1;
+                    }
+                }
+            });
+
+            // Fire off a thread for each worker.
+            for _ in 0 .. ncpu {
+                let work_recv = work_recv.clone();
+                let result_send = result_send.clone();
+                let meter2 = meter2.clone();
+                s.spawn(move |_| {
+                    for work in work_recv {
+                        hash_one_file(&work, &result_send, &meter2);
+                    }
+                });
+            }
+            drop(result_send);
+
+            // And, in the main thread, take all of the results, and add
+            // them to the sql database.
+            for info in result_recv {
+                trans.execute(
+                    "INSERT INTO hashes (id, hash) VALUES (?1, ?2)",
+                    &[&info.id as &dyn ToSql,
+                    &info.hash as &dyn ToSql]).unwrap();
+            }
+            trans.commit()?;
+            ok_result()
+        }).map_err(|e| format_err!("Hash error: {:?}", e))??;
+
+        meter.lock().unwrap().flush();
+        Ok(HashMerger {
+            source: self.source,
+            conn: conn,
+            _temp: temp,
+        })
+    }
+
     /// Set up the sqlite database to hold the hash updates.
     fn setup_db(&mut self) -> Result<(Connection, Box<dyn TempCleaner>)> {
         // Create the temp file.  Discard the file so that it will be
@@ -134,6 +212,31 @@ impl <'a, S: Source> HashUpdater<'a, S> {
 
         Ok((conn, tmp.into_cleaner()?))
     }
+}
+
+fn hash_one_file(work: &HashWork, sender: &Sender<HashInfo>, meter: &Arc<Mutex<Progress>>) {
+    match noatime_open(&work.path) {
+        Ok(mut fd) => match hash_file(&mut fd) {
+            Ok(ref h) => {
+                sender.send(HashInfo {
+                    id: work.id,
+                    hash: h.as_ref().to_owned(),
+                }).unwrap();
+            }
+            Err(e) => {
+                error!("Unable to hash file: '{:?}' ({})", work.path, e);
+            }
+        }
+        Err(e) => {
+            error!("Unable to open '{:?}' for hashing ({})", work.path, e);
+        }
+    }
+    meter.lock().unwrap().update(1, work.size);
+}
+
+// To make it easier to return a typed result.
+fn ok_result() -> Result<()> {
+    Ok(())
 }
 
 impl <S: Source> HashMerger<S> {
@@ -198,4 +301,11 @@ impl <S: Source> HashMerger<S> {
 struct HashInfo {
     id: i64,
     hash: Vec<u8>,
+}
+
+#[derive(Debug)]
+struct HashWork {
+    id: i64,
+    size: u64,
+    path: PathBuf,
 }

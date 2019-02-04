@@ -125,7 +125,7 @@ pub fn update<P: AsRef<Path>>(
     let loader = Loader(&*tmp);
     let hu = HashUpdater::new(loader, store);
     // TODO: This will panic on non-unicode directories.
-    let hm = hu.compute(dir.to_str().unwrap(), &estimate)?;
+    let hm = hu.compute_parallel(dir.to_str().unwrap(), &estimate)?;
     let mut tmp2 = store.make_new(tags)?;
     hm.merge(&mut NodeWriter::new(&mut tmp2)?)?;
 
