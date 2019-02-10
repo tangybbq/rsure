@@ -31,7 +31,7 @@ pub use crate::{
     },
     errors::{Error, Result, WeaveError},
     hashes::{Estimate, SureHash},
-    node::{fs, load_from, SureNode, HashUpdater, ReadIterator, Source, NodeWriter},
+    node::{fs, load_from, HashCombiner, SureNode, HashUpdater, ReadIterator, Source, NodeWriter},
     progress::{log_init, Progress},
     show::show_tree,
     store::{
@@ -95,12 +95,39 @@ pub fn update<P: AsRef<Path>>(
 ) -> Result<()> {
     let dir = dir.as_ref();
 
-    if is_update {
-        unimplemented!();
-    }
-
     let mut estimate = Estimate { files: 0, bytes: 0 };
-    let tmp = {
+    let tmp = if is_update {
+        // In update mode, first tmp file is just the scan.
+        let scan_temp = {
+            let mut tmp = store.make_temp()?;
+            let src = fs::scan_fs(dir)?;
+            node::save_to(&mut tmp, src)?;
+            tmp
+        }.into_loader()?;
+
+        let latest = store.load_iter(Version::Latest)?;
+
+        let tmp = {
+            let mut tmp = store.make_temp()?;
+            let loader = Loader(&*scan_temp);
+            let combiner = HashCombiner::new(latest, loader.iter()?)?
+                .inspect(|node| {
+                    match node {
+                        Ok(n @ SureNode::File { .. }) => {
+                            if n.needs_hash() {
+                                estimate.files += 1;
+                                estimate.bytes += n.size();
+                            }
+                        }
+                        _ => (),
+                    }
+                });
+            node::save_to(&mut tmp, combiner)?;
+            tmp
+        };
+
+        tmp
+    } else {
         let mut tmp = store.make_temp()?;
         let src = fs::scan_fs(dir)?
             .inspect(|node| {

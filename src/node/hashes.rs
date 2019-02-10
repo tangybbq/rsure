@@ -17,7 +17,7 @@ use crossbeam::{
 };
 use data_encoding::HEXLOWER;
 use failure::format_err;
-use log::error;
+use log::{debug, error};
 use rusqlite::{
     types::ToSql,
     Connection,
@@ -25,6 +25,7 @@ use rusqlite::{
 };
 use std::{
     io::Write,
+    iter::Peekable,
     path::PathBuf,
     sync::{
         Arc,
@@ -308,4 +309,307 @@ struct HashWork {
     id: i64,
     size: u64,
     path: PathBuf,
+}
+
+/// An iterator that pulls hash from old nodes if the file is unchanged.
+pub struct HashCombiner<Iold: Iterator, Inew: Iterator> {
+    left: Peekable<Iold>,
+    right: Peekable<Inew>,
+    state: Vec<CombineState>,
+    seen_root: bool,
+}
+
+#[derive(Debug)]
+enum CombineState {
+    // Discard one tree level on the left side, we are viewing the dir
+    // nodes.
+    LeftDirs,
+
+    // We are passing through the tree on the right.  Visiting the dir
+    // nodes.
+    RightDirs,
+
+    // We are in a common directory, visiting the dir nodes.
+    SameDirs,
+
+    // We are in a common directory, visiting the file nodes.
+    SameFiles,
+}
+
+impl<Iold, Inew> HashCombiner<Iold, Inew>
+    where
+        Iold: Iterator<Item = Result<SureNode>>,
+        Inew: Iterator<Item = Result<SureNode>>,
+{
+    pub fn new(
+        left: Iold,
+        right: Inew,
+    ) -> Result<HashCombiner<Iold, Inew>> {
+        Ok(HashCombiner {
+            left: left.peekable(),
+            right: right.peekable(),
+            state: vec![],
+            seen_root: false,
+        })
+    }
+}
+
+/// The result of one of the visitors.  Continue means to go ahead and
+/// process the next nodes.  Return means that this result should be
+/// returned.  Note that we handle the EoF case specially, so this is not
+/// an option.
+enum VisitResult {
+    Continue,
+    Return(Result<SureNode>),
+}
+
+macro_rules! vre {
+    ($err:expr) => (VisitResult::Return(Err($err)))
+}
+
+macro_rules! vro {
+    ($result:expr) => (VisitResult::Return(Ok($result)))
+}
+
+// The iterator for the hash combiner.  This iterator lazily traverses two
+// iterators that are assumed to be and old and new traversal of the same
+// filesystem.  The output will be the same nodes as the new, but possibly
+// with 'sha1' values carried over from the old tree when there is a
+// sufficient match.
+impl<Iold, Inew> Iterator for HashCombiner<Iold, Inew>
+    where Iold: Iterator<Item = Result<SureNode>>,
+          Inew: Iterator<Item = Result<SureNode>>
+{
+    type Item = Result<SureNode>;
+
+    fn next(&mut self) -> Option<Result<SureNode>> {
+        loop {
+            // Handle the completion state separately, so we don't have as
+            // many to deal with below.
+            if self.seen_root && self.state.is_empty() {
+                return None;
+            }
+
+            // Peek each of left and right.  We handle the end state
+            // specially above, so these should never be past the end.
+            // TODO: Can we do this without cloning?  The problem is that
+            // peek() borrows a mutable reference, and there isn't any way
+            // to tell Rust that the resulting reference no longer needs
+            // the mutable borrow.  For now, we just clone the nodes, which
+            // is less efficient.
+            let left = match self.left.peek() {
+                None => return Some(Err(format_err!("Unexpected early end on older tree"))),
+                Some(Err(e)) => return Some(Err(format_err!("Error reading older stream: {:?}", e))),
+                Some(Ok(node)) => node.clone(),
+            };
+            let right = match self.right.peek() {
+                None => return Some(Err(format_err!("Unexpected early end on newer tree"))),
+                Some(Err(e)) => return Some(Err(format_err!("Error reading newer stream: {:?}", e))),
+                Some(Ok(node)) => node.clone(),
+            };
+
+            let vr = match self.state.pop() {
+                None => self.visit_root(&left, &right),
+                Some(CombineState::SameDirs) => self.visit_samedir(&left, &right),
+                Some(CombineState::SameFiles) => self.visit_samefiles(&left, &right),
+                Some(CombineState::RightDirs) => self.visit_rightdirs(&left, &right),
+                Some(CombineState::LeftDirs) => self.visit_leftdirs(&left, &right),
+            };
+
+            match vr {
+                VisitResult::Continue => (),
+                VisitResult::Return(item) => return Some(item),
+            }
+        }
+        // TODO: Implement combine algorithm.
+        // self.newer.next()
+    }
+}
+
+// The body, a method for each state.
+impl<Iold, Inew> HashCombiner<Iold, Inew>
+    where Iold: Iterator<Item = Result<SureNode>>,
+          Inew: Iterator<Item = Result<SureNode>>
+{
+    fn visit_root(&mut self, left: &SureNode, right: &SureNode) -> VisitResult {
+        if !left.is_enter() {
+            vre!(format_err!("Unexpected node in old tree"))
+        } else if !right.is_enter() {
+            vre!(format_err!("Unexpected node in new tree"))
+        } else if left.name() != "__root__" {
+            vre!(format_err!("Old tree root is incorrect name"))
+        } else if right.name() != "__root__" {
+            vre!(format_err!("New tree root is incorrect name"))
+        } else {
+            self.left.next().unwrap().unwrap();
+            let rnode = self.right.next().unwrap().unwrap();
+            self.state.push(CombineState::SameDirs);
+            self.seen_root = true;
+            vro!(rnode)
+        }
+    }
+
+    // Both trees are in the same directory, and we are looking at
+    // directory nodes.
+    fn visit_samedir(&mut self, left: &SureNode, right: &SureNode) -> VisitResult {
+        // Handle the cases where they aren't finished together.
+        debug!("visit samedir: {:?}, {:?}", left, right);
+        match (left.is_sep(), right.is_sep()) {
+            (true, true) => {
+                // Both have finished with child directories.
+                let _ = self.left.next();
+                let rnode = self.right.next().unwrap().unwrap();
+                // Push the new state.
+                self.state.push(CombineState::SameFiles);
+                vro!(rnode)
+            }
+            (false, false) => {
+                // We are still visiting directories.  Assume it is well
+                // formed, and we are only going to see Enter nodes.
+                if left.name() == right.name() {
+                    // This is the same directory, descend it.
+                    self.state.push(CombineState::SameDirs);
+                    self.state.push(CombineState::SameDirs);
+                    let _ = self.left.next();
+                    vro!(self.right.next().unwrap().unwrap())
+                } else if left.name() < right.name() {
+                    // A directory in the old tree we no longer have.
+                    let _ = self.left.next();
+                    self.state.push(CombineState::SameDirs);
+                    self.state.push(CombineState::LeftDirs);
+                    VisitResult::Continue
+                } else {
+                    // A new directory entirely.
+                    self.state.push(CombineState::SameDirs);
+                    self.state.push(CombineState::RightDirs);
+                    vro!(self.right.next().unwrap().unwrap())
+                }
+            }
+            (false, true) => {
+                // Old has an old directory no longer present.
+                let _ = self.left.next();
+                self.state.push(CombineState::SameDirs);
+                self.state.push(CombineState::LeftDirs);
+                VisitResult::Continue
+            }
+            (true, false) => {
+                // Directories present in new, not in old.
+                self.state.push(CombineState::SameDirs);
+                self.state.push(CombineState::RightDirs);
+                vro!(self.right.next().unwrap().unwrap())
+            }
+        }
+    }
+
+    // Both trees are in the same directory, and we are looking at file
+    // nodes.
+    fn visit_samefiles(&mut self, left: &SureNode, right: &SureNode) -> VisitResult {
+        debug!("visit samefiles: {:?}, {:?}", left, right);
+        match (left.is_leave(), right.is_leave()) {
+            (true, true) => {
+                // Both are leaving at the same time, nothing to push onto
+                // state.  Consume the nodes, and return the leave.
+                let _ = self.left.next();
+                vro!(self.right.next().unwrap().unwrap())
+            }
+            (true, false) => {
+                self.state.push(CombineState::SameFiles);
+                // New file added in new, not present in old.
+                vro!(self.right.next().unwrap().unwrap())
+            }
+            (false, true) => {
+                // File removed.
+                self.state.push(CombineState::SameFiles);
+                let _ = self.left.next();
+                VisitResult::Continue
+            },
+            (false, false) => {
+                self.state.push(CombineState::SameFiles);
+
+                // Two names within a directory.
+                if left.name() == right.name() {
+                    // TODO: Here is where we copy the sha1 if there is a
+                    // good match.
+                    let left = self.left.next().unwrap().unwrap();
+                    let mut right = self.right.next().unwrap().unwrap();
+                    maybe_copy_sha(&left, &mut right);
+                    vro!(right)
+                } else if left.name() < right.name() {
+                    // An old name no longer present.
+                    let _ = self.left.next();
+                    VisitResult::Continue
+                } else {
+                    // A new name with no corresponding old name.
+                    vro!(self.right.next().unwrap().unwrap())
+                }
+            },
+        }
+    }
+
+    fn visit_rightdirs(&mut self, left: &SureNode, right: &SureNode) -> VisitResult {
+        debug!("visit rightdirs: {:?}, {:?}", left, right);
+        if right.is_sep() {
+            // Since we don't care about files, or matching, no need for
+            // self.state.push(CombineState::RightFiles)
+            // the RightFiles state, just stay.
+            self.state.push(CombineState::RightDirs);
+        } else if right.is_enter() {
+            self.state.push(CombineState::RightDirs);
+            self.state.push(CombineState::RightDirs);
+        } else if right.is_leave() {
+            // No state change.
+        } else {
+            // Otherwise, stays the same.
+            self.state.push(CombineState::RightDirs);
+        }
+        vro!(self.right.next().unwrap().unwrap())
+    }
+
+    fn visit_leftdirs(&mut self, left: &SureNode, right: &SureNode) -> VisitResult {
+        debug!("visit rightdirs: {:?}, {:?}", left, right);
+        if left.is_sep() {
+            // Since we don't care about files, or matching, no need for
+            // self.state.push(CombineState::RightFiles)
+            // the RightFiles state, just stay.
+            self.state.push(CombineState::LeftDirs);
+        } else if left.is_enter() {
+            self.state.push(CombineState::LeftDirs);
+            self.state.push(CombineState::LeftDirs);
+        } else if left.is_leave() {
+            // No state change.
+        } else {
+            // Otherwise, stays the same.
+            self.state.push(CombineState::LeftDirs);
+        }
+        let _ = self.left.next();
+        VisitResult::Continue
+    }
+}
+
+fn maybe_copy_sha(left: &SureNode, right: &mut SureNode) {
+    let latts = left.atts().unwrap();
+    let ratts = right.atts_mut().unwrap();
+
+    // If we already have a sha1, don't do anything.
+    if ratts.contains_key("sha1") {
+        return;
+    }
+
+    // Only compare regular files.
+    if latts["kind"] != "file" || ratts["kind"] != "file" {
+        return;
+    }
+
+    // Make sure inode and ctime are identical.
+    if latts.get("ino") != ratts.get("ino") || latts.get("ctime") != ratts.get("ctime") {
+        return;
+    }
+
+    // And only update if there is a sha1 to get.
+    match latts.get("sha1") {
+        None => (),
+        Some(v) => {
+            ratts.insert("sha1".to_string(), v.to_string());
+        }
+    }
 }

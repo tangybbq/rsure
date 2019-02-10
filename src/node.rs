@@ -25,9 +25,9 @@ mod fullpath;
 mod hashes;
 
 pub use fullpath::into_tracker;
-pub use hashes::{HashUpdater, Source};
+pub use hashes::{HashCombiner, HashUpdater, Source};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum SureNode {
     Enter {
         name: String,
@@ -66,6 +66,13 @@ impl SureNode {
     pub fn is_leave(&self) -> bool {
         match self {
             SureNode::Leave => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_sep(&self) -> bool {
+        match self {
+            SureNode::Sep => true,
             _ => false,
         }
     }
