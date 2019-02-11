@@ -117,10 +117,10 @@ fn main() {
             new_tree.compare_from(&mut stdout_visitor(), &old_tree, pdir);
         }
         Command::Signoff => {
-            let old_tree = store.load(Version::Prior).unwrap();
-            let new_tree = store.load(Version::Latest).unwrap();
+            let old_tree = store.load_iter(Version::Prior).unwrap();
+            let new_tree = store.load_iter(Version::Latest).unwrap();
             println!("signoff {}", opt.file);
-            new_tree.compare_from(&mut stdout_visitor(), &old_tree, &Path::new(&opt.dir));
+            rsure::compare_trees(old_tree, new_tree, &Path::new(&opt.dir)).unwrap();
         }
         Command::Show => {
             println!("show {}", opt.file);

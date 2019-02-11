@@ -31,7 +31,17 @@ pub use crate::{
     },
     errors::{Error, Result, WeaveError},
     hashes::{Estimate, SureHash},
-    node::{fs, load_from, HashCombiner, SureNode, HashUpdater, ReadIterator, Source, NodeWriter},
+    node::{
+        HashCombiner,
+        HashUpdater,
+        NodeWriter,
+        ReadIterator,
+        Source,
+        SureNode,
+        compare_trees,
+        fs,
+        load_from,
+    },
     progress::{log_init, Progress},
     show::show_tree,
     store::{

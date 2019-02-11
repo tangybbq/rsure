@@ -20,12 +20,14 @@ use weave::{
     NamingConvention,
 };
 
+mod compare;
 pub mod fs;
 mod fullpath;
 mod hashes;
 
 pub use fullpath::into_tracker;
 pub use hashes::{HashCombiner, HashUpdater, Source};
+pub use compare::compare_trees;
 
 #[derive(Clone, Debug)]
 pub enum SureNode {
@@ -100,6 +102,18 @@ impl SureNode {
             SureNode::Enter { ref name, .. } => name,
             _ => panic!("Node does not have a name"),
         }
+    }
+
+    /// Get a nice representation of the kind of this node.  Returns "???"
+    /// if the kind isn't meaningful.
+    pub fn kind(&self) -> &str {
+        self.atts()
+            .map(|a| {
+                a.get("kind")
+                    .map(|k| &k[..])
+                    .unwrap_or("???")
+            })
+            .unwrap_or("???")
     }
 
     /// Access the nodes attributes.
