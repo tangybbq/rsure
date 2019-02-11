@@ -5,6 +5,9 @@ use crate::{
     store::{Store, StoreTags, StoreVersion, StoreWriter, TempCleaner, TempFile, TempLoader, Version},
     Result, SureNode, SureTree,
 };
+use crossbeam::{
+    channel::{bounded, Receiver, Sender},
+};
 use failure::format_err;
 use log::warn;
 use std::{
@@ -12,7 +15,6 @@ use std::{
     fs::{self, File},
     io::{self, BufRead, BufReader, Read, BufWriter, Write},
     path::{Path, PathBuf},
-    sync::mpsc::{self, Receiver, SyncSender},
     thread::{self, JoinHandle},
 };
 use weave::{self, DeltaWriter, NamingConvention, NewWeave, NullSink, Parser, SimpleNaming, Sink};
@@ -60,7 +62,7 @@ impl Store for WeaveStore {
         };
 
         let child_naming = self.naming.clone();
-        let (sender, receiver) = mpsc::sync_channel(32);
+        let (sender, receiver) = bounded(32);
         let child = thread::spawn(move || {
             if let Err(err) = read_parse(&child_naming, last, sender.clone()) {
                 // Attempt to send the last error over.
@@ -101,7 +103,7 @@ impl Store for WeaveStore {
         };
 
         let child_naming = self.naming.clone();
-        let (sender, receiver) = mpsc::sync_channel(32);
+        let (sender, receiver) = bounded(32);
         let child = thread::spawn(move || {
             if let Err(err) = read_parse(&child_naming, last, sender.clone()) {
                 // Attempt to send the last error over.
@@ -280,7 +282,7 @@ impl Iterator for WeaveIter {
 fn read_parse(
     naming: &dyn NamingConvention,
     delta: usize,
-    chan: SyncSender<Option<Result<String>>>,
+    chan: Sender<Option<Result<String>>>,
 ) -> Result<()> {
     let mut parser = Parser::new(naming, ReadSync { chan: chan }, delta)?;
     parser.parse_to(0)?;
@@ -310,7 +312,7 @@ fn fixed(recv: &Receiver<Option<Result<String>>>, expect: &[u8]) -> Result<()> {
 }
 
 struct ReadSync {
-    chan: SyncSender<Option<Result<String>>>,
+    chan: Sender<Option<Result<String>>>,
 }
 
 impl Sink for ReadSync {
