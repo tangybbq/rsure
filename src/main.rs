@@ -10,18 +10,17 @@ extern crate rsure;
 #[macro_use]
 extern crate failure;
 
-#[macro_use]
-extern crate log;
-
 extern crate structopt;
 
 use chrono::Local;
 use std::{collections::BTreeMap, path::Path};
 use structopt::StructOpt;
+use tempdir::TempDir;
 
 use rsure::{
-    log_init, parse_store, show_tree, stdout_visitor, Progress, StoreTags, StoreVersion, SureHash,
-    TreeCompare, Version,
+    log_init, parse_store, show_tree, StoreTags, StoreVersion,
+    Store,
+    Version,
 };
 
 mod bkcmd;
@@ -95,7 +94,7 @@ fn main() {
     // Note that only the "check" command uses the version tag.
     let latest = match opt.version {
         None => Version::Latest,
-        Some(x) => Version::Tagged(x.to_string()),
+        Some(ref x) => Version::Tagged(x.to_string()),
     };
 
     match opt.command {
@@ -106,15 +105,7 @@ fn main() {
             rsure::update(&opt.dir, &*store, true, &tags).unwrap();
         }
         Command::Check => {
-            let old_tree = store.load(latest).unwrap();
-            let mut new_tree = rsure::scan_fs(&opt.dir).unwrap();
-            let estimate = new_tree.hash_estimate();
-            let pdir = &Path::new(&opt.dir);
-            let mut progress = Progress::new(estimate.files, estimate.bytes);
-            new_tree.hash_update(pdir, &mut progress);
-            progress.flush();
-            info!("check {:?}", opt.file);
-            new_tree.compare_from(&mut stdout_visitor(), &old_tree, pdir);
+            run_check(&*store, &opt, latest).unwrap();
         }
         Command::Signoff => {
             let old_tree = store.load_iter(Version::Prior).unwrap();
@@ -137,6 +128,23 @@ fn main() {
             dump_versions(&version);
         }
     }
+}
+
+fn run_check(store: &dyn Store, opt: &Opt, latest: Version) -> Result<()> {
+    // Perform a full scan to a temp store.
+    let tdir = TempDir::new("rsure")?;
+    let tpath = tdir.path().join("check.dat.gz");
+    let tstore = parse_store(tpath.to_str().unwrap())?;
+    let mut tags = BTreeMap::new();
+    add_name_tag(&mut tags, &opt.dir);
+    println!("Scanning");
+    rsure::update(&opt.dir, &*tstore, false, &tags)?;
+
+    let old_tree = store.load_iter(latest)?;
+    let new_tree = tstore.load_iter(Version::Latest)?;
+    println!("Check {}", opt.file);
+    rsure::compare_trees(old_tree, new_tree, &Path::new(&opt.dir))?;
+    Ok(())
 }
 
 /// Decode the command-line tags.  Tags should be of the form key=value, and multiple can be

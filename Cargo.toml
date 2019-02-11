@@ -33,14 +33,12 @@ openssl = "0.10"
 regex = "1.0"
 rusqlite = "0.16"
 structopt = "0.2"
+tempdir = "0.3"
 time = "0.1"
 weave = { path = "weave", version = "0.2.0" }
 
 # This will go away
 env_logger = "0.6"
-
-[dev-dependencies]
-tempdir = "0.3"
 
 [[bin]]
 name = "rsure"
