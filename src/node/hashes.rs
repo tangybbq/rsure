@@ -25,7 +25,7 @@ use rusqlite::{
 };
 use std::{
     io::Write,
-    iter::Peekable,
+    mem,
     path::PathBuf,
     sync::{
         Arc,
@@ -313,8 +313,22 @@ struct HashWork {
 
 /// An iterator that pulls hash from old nodes if the file is unchanged.
 pub struct HashCombiner<Iold: Iterator, Inew: Iterator> {
-    left: Peekable<Iold>,
-    right: Peekable<Inew>,
+    // This works like Peekable, but we keep the head in this structure and
+    // swap it out to advance.  Because the nodes are a strict tree
+    // traversal, we always have a node to view, which makes this simpler
+    // to use than Peekable, where every call can return a node or a
+    // failure.
+
+    /// The current head of the left tree.
+    left: SureNode,
+    /// The current head of the right tree.
+    right: SureNode,
+
+    /// The iterator for the left node.
+    left_iter: Iold,
+    /// The iterator for the right node.
+    right_iter: Inew,
+
     state: Vec<CombineState>,
     seen_root: bool,
 }
@@ -342,15 +356,56 @@ impl<Iold, Inew> HashCombiner<Iold, Inew>
         Inew: Iterator<Item = Result<SureNode>>,
 {
     pub fn new(
-        left: Iold,
-        right: Inew,
+        mut left_iter: Iold,
+        mut right_iter: Inew,
     ) -> Result<HashCombiner<Iold, Inew>> {
+        let left = match left_iter.next() {
+            None => return Err(format_err!("Empty left iterator")),
+            Some(Err(e)) => return Err(e),
+            Some(Ok(node)) => node,
+        };
+        let right = match right_iter.next() {
+            None => return Err(format_err!("Empty right iterator")),
+            Some(Err(e)) => return Err(e),
+            Some(Ok(node)) => node,
+        };
+
         Ok(HashCombiner {
-            left: left.peekable(),
-            right: right.peekable(),
+            left: left,
+            right: right,
+            left_iter: left_iter,
+            right_iter: right_iter,
             state: vec![],
             seen_root: false,
         })
+    }
+
+    /// Advance the left iterator, replacing 'left' with the new value, and
+    /// returning that old value.  Returns the error from the iterator if
+    /// that happened.  If we see the end of the iterator, places 'Leave'
+    /// in the node, which should be the same as what was there.
+    fn next_left(&mut self) -> Result<SureNode> {
+        let next = match self.left_iter.next() {
+            None => SureNode::Leave,
+            Some(Ok(node)) => node,
+            Some(Err(e)) => return Err(e),
+        };
+
+        Ok(mem::replace(&mut self.left, next))
+    }
+
+    /// Advance the right iterator, replacing 'right' with the new value, and
+    /// returning that old value.  Returns the error from the iterator if
+    /// that happened.  If we see the end of the iterator, places 'Leave'
+    /// in the node, which should be the same as what was there.
+    fn next_right(&mut self) -> Result<SureNode> {
+        let next = match self.right_iter.next() {
+            None => SureNode::Leave,
+            Some(Ok(node)) => node,
+            Some(Err(e)) => return Err(e),
+        };
+
+        Ok(mem::replace(&mut self.right, next))
     }
 }
 
@@ -360,15 +415,15 @@ impl<Iold, Inew> HashCombiner<Iold, Inew>
 /// an option.
 enum VisitResult {
     Continue,
-    Return(Result<SureNode>),
+    Node(SureNode),
 }
 
 macro_rules! vre {
-    ($err:expr) => (VisitResult::Return(Err($err)))
+    ($err:expr) => (Err($err))
 }
 
 macro_rules! vro {
-    ($result:expr) => (VisitResult::Return(Ok($result)))
+    ($result:expr) => (Ok(VisitResult::Node($result)))
 }
 
 // The iterator for the hash combiner.  This iterator lazily traverses two
@@ -390,39 +445,20 @@ impl<Iold, Inew> Iterator for HashCombiner<Iold, Inew>
                 return None;
             }
 
-            // Peek each of left and right.  We handle the end state
-            // specially above, so these should never be past the end.
-            // TODO: Can we do this without cloning?  The problem is that
-            // peek() borrows a mutable reference, and there isn't any way
-            // to tell Rust that the resulting reference no longer needs
-            // the mutable borrow.  For now, we just clone the nodes, which
-            // is less efficient.
-            let left = match self.left.peek() {
-                None => return Some(Err(format_err!("Unexpected early end on older tree"))),
-                Some(Err(e)) => return Some(Err(format_err!("Error reading older stream: {:?}", e))),
-                Some(Ok(node)) => node.clone(),
-            };
-            let right = match self.right.peek() {
-                None => return Some(Err(format_err!("Unexpected early end on newer tree"))),
-                Some(Err(e)) => return Some(Err(format_err!("Error reading newer stream: {:?}", e))),
-                Some(Ok(node)) => node.clone(),
-            };
-
             let vr = match self.state.pop() {
-                None => self.visit_root(&left, &right),
-                Some(CombineState::SameDirs) => self.visit_samedir(&left, &right),
-                Some(CombineState::SameFiles) => self.visit_samefiles(&left, &right),
-                Some(CombineState::RightDirs) => self.visit_rightdirs(&left, &right),
-                Some(CombineState::LeftDirs) => self.visit_leftdirs(&left, &right),
+                None => self.visit_root(),
+                Some(CombineState::SameDirs) => self.visit_samedir(),
+                Some(CombineState::SameFiles) => self.visit_samefiles(),
+                Some(CombineState::RightDirs) => self.visit_rightdirs(),
+                Some(CombineState::LeftDirs) => self.visit_leftdirs(),
             };
 
             match vr {
-                VisitResult::Continue => (),
-                VisitResult::Return(item) => return Some(item),
+                Ok(VisitResult::Continue) => (),
+                Ok(VisitResult::Node(node)) => return Some(Ok(node)),
+                Err(e) => return Some(Err(e)),
             }
         }
-        // TODO: Implement combine algorithm.
-        // self.newer.next()
     }
 }
 
@@ -431,18 +467,18 @@ impl<Iold, Inew> HashCombiner<Iold, Inew>
     where Iold: Iterator<Item = Result<SureNode>>,
           Inew: Iterator<Item = Result<SureNode>>
 {
-    fn visit_root(&mut self, left: &SureNode, right: &SureNode) -> VisitResult {
-        if !left.is_enter() {
+    fn visit_root(&mut self) -> Result<VisitResult> {
+        if !self.left.is_enter() {
             vre!(format_err!("Unexpected node in old tree"))
-        } else if !right.is_enter() {
+        } else if !self.right.is_enter() {
             vre!(format_err!("Unexpected node in new tree"))
-        } else if left.name() != "__root__" {
+        } else if self.left.name() != "__root__" {
             vre!(format_err!("Old tree root is incorrect name"))
-        } else if right.name() != "__root__" {
+        } else if self.right.name() != "__root__" {
             vre!(format_err!("New tree root is incorrect name"))
         } else {
-            self.left.next().unwrap().unwrap();
-            let rnode = self.right.next().unwrap().unwrap();
+            let _ = self.next_left()?;
+            let rnode = self.next_right()?;
             self.state.push(CombineState::SameDirs);
             self.seen_root = true;
             vro!(rnode)
@@ -451,14 +487,14 @@ impl<Iold, Inew> HashCombiner<Iold, Inew>
 
     // Both trees are in the same directory, and we are looking at
     // directory nodes.
-    fn visit_samedir(&mut self, left: &SureNode, right: &SureNode) -> VisitResult {
+    fn visit_samedir(&mut self) -> Result<VisitResult> {
         // Handle the cases where they aren't finished together.
-        debug!("visit samedir: {:?}, {:?}", left, right);
-        match (left.is_sep(), right.is_sep()) {
+        debug!("visit samedir: {:?}, {:?}", self.left, self.right);
+        match (self.left.is_sep(), self.right.is_sep()) {
             (true, true) => {
                 // Both have finished with child directories.
-                let _ = self.left.next();
-                let rnode = self.right.next().unwrap().unwrap();
+                let _ = self.next_left()?;
+                let rnode = self.next_right()?;
                 // Push the new state.
                 self.state.push(CombineState::SameFiles);
                 vro!(rnode)
@@ -466,123 +502,121 @@ impl<Iold, Inew> HashCombiner<Iold, Inew>
             (false, false) => {
                 // We are still visiting directories.  Assume it is well
                 // formed, and we are only going to see Enter nodes.
-                if left.name() == right.name() {
+                if self.left.name() == self.right.name() {
                     // This is the same directory, descend it.
                     self.state.push(CombineState::SameDirs);
                     self.state.push(CombineState::SameDirs);
-                    let _ = self.left.next();
-                    vro!(self.right.next().unwrap().unwrap())
-                } else if left.name() < right.name() {
+                    let _ = self.next_left()?;
+                    vro!(self.next_right()?)
+                } else if self.left.name() < self.right.name() {
                     // A directory in the old tree we no longer have.
-                    let _ = self.left.next();
+                    let _ = self.next_left()?;
                     self.state.push(CombineState::SameDirs);
                     self.state.push(CombineState::LeftDirs);
-                    VisitResult::Continue
+                    Ok(VisitResult::Continue)
                 } else {
                     // A new directory entirely.
                     self.state.push(CombineState::SameDirs);
                     self.state.push(CombineState::RightDirs);
-                    vro!(self.right.next().unwrap().unwrap())
+                    vro!(self.next_right()?)
                 }
             }
             (false, true) => {
                 // Old has an old directory no longer present.
-                let _ = self.left.next();
+                let _ = self.next_left()?;
                 self.state.push(CombineState::SameDirs);
                 self.state.push(CombineState::LeftDirs);
-                VisitResult::Continue
+                Ok(VisitResult::Continue)
             }
             (true, false) => {
                 // Directories present in new, not in old.
                 self.state.push(CombineState::SameDirs);
                 self.state.push(CombineState::RightDirs);
-                vro!(self.right.next().unwrap().unwrap())
+                vro!(self.next_right()?)
             }
         }
     }
 
     // Both trees are in the same directory, and we are looking at file
     // nodes.
-    fn visit_samefiles(&mut self, left: &SureNode, right: &SureNode) -> VisitResult {
-        debug!("visit samefiles: {:?}, {:?}", left, right);
-        match (left.is_leave(), right.is_leave()) {
+    fn visit_samefiles(&mut self) -> Result<VisitResult> {
+        debug!("visit samefiles: {:?}, {:?}", self.left, self.right);
+        match (self.left.is_leave(), self.right.is_leave()) {
             (true, true) => {
                 // Both are leaving at the same time, nothing to push onto
                 // state.  Consume the nodes, and return the leave.
-                let _ = self.left.next();
-                vro!(self.right.next().unwrap().unwrap())
+                let _ = self.next_left()?;
+                vro!(self.next_right()?)
             }
             (true, false) => {
                 self.state.push(CombineState::SameFiles);
                 // New file added in new, not present in old.
-                vro!(self.right.next().unwrap().unwrap())
+                vro!(self.next_right()?)
             }
             (false, true) => {
                 // File removed.
                 self.state.push(CombineState::SameFiles);
-                let _ = self.left.next();
-                VisitResult::Continue
+                let _ = self.next_left()?;
+                Ok(VisitResult::Continue)
             },
             (false, false) => {
                 self.state.push(CombineState::SameFiles);
 
                 // Two names within a directory.
-                if left.name() == right.name() {
-                    // TODO: Here is where we copy the sha1 if there is a
-                    // good match.
-                    let left = self.left.next().unwrap().unwrap();
-                    let mut right = self.right.next().unwrap().unwrap();
+                if self.left.name() == self.right.name() {
+                    let left = self.next_left()?;
+                    let mut right = self.next_right()?;
                     maybe_copy_sha(&left, &mut right);
                     vro!(right)
-                } else if left.name() < right.name() {
+                } else if self.left.name() < self.right.name() {
                     // An old name no longer present.
-                    let _ = self.left.next();
-                    VisitResult::Continue
+                    let _ = self.next_left()?;
+                    Ok(VisitResult::Continue)
                 } else {
                     // A new name with no corresponding old name.
-                    vro!(self.right.next().unwrap().unwrap())
+                    vro!(self.next_right()?)
                 }
             },
         }
     }
 
-    fn visit_rightdirs(&mut self, left: &SureNode, right: &SureNode) -> VisitResult {
-        debug!("visit rightdirs: {:?}, {:?}", left, right);
-        if right.is_sep() {
+    fn visit_rightdirs(&mut self) -> Result<VisitResult> {
+        debug!("visit rightdirs: {:?}, {:?}", self.left, self.right);
+        if self.right.is_sep() {
             // Since we don't care about files, or matching, no need for
             // self.state.push(CombineState::RightFiles)
             // the RightFiles state, just stay.
             self.state.push(CombineState::RightDirs);
-        } else if right.is_enter() {
+        } else if self.right.is_enter() {
             self.state.push(CombineState::RightDirs);
             self.state.push(CombineState::RightDirs);
-        } else if right.is_leave() {
+        } else if self.right.is_leave() {
             // No state change.
         } else {
             // Otherwise, stays the same.
             self.state.push(CombineState::RightDirs);
         }
-        vro!(self.right.next().unwrap().unwrap())
+        vro!(self.next_right()?)
     }
 
-    fn visit_leftdirs(&mut self, left: &SureNode, right: &SureNode) -> VisitResult {
-        debug!("visit rightdirs: {:?}, {:?}", left, right);
-        if left.is_sep() {
+    fn visit_leftdirs(&mut self) -> Result<VisitResult> {
+        debug!("visit rightdirs: {:?}, {:?}", self.left, self.right);
+        if self.left.is_sep() {
             // Since we don't care about files, or matching, no need for
             // self.state.push(CombineState::RightFiles)
             // the RightFiles state, just stay.
             self.state.push(CombineState::LeftDirs);
-        } else if left.is_enter() {
+        } else if self.left.is_enter() {
             self.state.push(CombineState::LeftDirs);
             self.state.push(CombineState::LeftDirs);
-        } else if left.is_leave() {
+        } else if self.left.is_leave() {
             // No state change.
         } else {
             // Otherwise, stays the same.
             self.state.push(CombineState::LeftDirs);
         }
-        let _ = self.left.next();
-        VisitResult::Continue
+        let _ = self.next_left()?;
+        Ok(VisitResult::Continue)
     }
 }
 
