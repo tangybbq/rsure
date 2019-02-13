@@ -1,6 +1,7 @@
 // Bitkeeper command line utilities.
 
 use crate::Result;
+use failure::format_err;
 use regex::Regex;
 use rsure::{bk_setup, BkStore, Store, SureTree};
 use std::{

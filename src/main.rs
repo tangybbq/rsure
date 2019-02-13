@@ -2,16 +2,6 @@
 
 #![warn(bare_trait_objects)]
 
-extern crate chrono;
-extern crate env_logger;
-extern crate regex;
-extern crate rsure;
-
-#[macro_use]
-extern crate failure;
-
-extern crate structopt;
-
 use chrono::Local;
 use std::{collections::BTreeMap, path::Path};
 use structopt::StructOpt;
