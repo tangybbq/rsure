@@ -48,8 +48,6 @@ pub use crate::{
         Version,
         parse_store,
     },
-    surefs::scan_fs,
-    suretree::SureTree,
 };
 
 mod errors;

@@ -2,129 +2,16 @@
 
 use crate::{
     escape::*,
-    progress::ScanProgress,
-    suretree::{AttMap, SureFile, SureTree},
-    Result,
+    suretree::AttMap,
 };
-use failure::err_msg;
 use log::error;
 
 use libc;
 use std::{
-    fs::{self, symlink_metadata, Metadata},
+    fs::{self, Metadata},
     os::unix::prelude::*,
-    path::{Path, PathBuf},
+    path::Path,
 };
-
-pub fn scan_fs<P: AsRef<Path>>(root: P) -> Result<SureTree> {
-    let root = root.as_ref().to_path_buf();
-
-    walk_root(&root)
-}
-
-fn walk_root(path: &Path) -> Result<SureTree> {
-    let meta = symlink_metadata(path)?;
-
-    if !meta.is_dir() {
-        return Err(err_msg("Root must be a directory"));
-    }
-
-    let mut progress = ScanProgress::new();
-    walk(
-        "__root__".to_string(),
-        path,
-        encode_atts(path, &meta),
-        &meta,
-        &mut progress,
-    )
-}
-
-fn walk(
-    my_name: String,
-    path: &Path,
-    my_atts: AttMap,
-    my_meta: &Metadata,
-    progress: &mut ScanProgress,
-) -> Result<SureTree> {
-    let mut entries = vec![];
-
-    // TODO: Instead of failing everything because of read failure, just
-    // fail some things.
-
-    for entry in fs::read_dir(path)? {
-        let entry = entry?;
-        entries.push(entry);
-    }
-
-    // Sort by inode before sorting.  This helps performance on some
-    // filesystems (such as ext4).
-    entries.sort_by(|a, b| a.ino().cmp(&b.ino()));
-
-    let mut files: Vec<_> = entries
-        .iter()
-        .filter_map(|e| {
-            match e.metadata() {
-                Ok(m) => {
-                    let path = e.path();
-                    let atts = encode_atts(&path, &m);
-
-                    // Check for crossing mountpoints.
-                    if m.is_dir() && m.dev() != my_meta.dev() {
-                        return None;
-                    }
-
-                    Some(OneFile {
-                        path: path,
-                        meta: m,
-                        atts: atts,
-                    })
-                }
-                Err(err) => {
-                    error!("Unable to stat file: {:?} ({})", e.path(), err);
-                    None
-                }
-            }
-        }).collect();
-
-    // Sort them back by name.
-    files.sort_by(|a, b| a.path.file_name().cmp(&b.path.file_name()));
-
-    // Build the SureTree data.
-    let mut node = SureTree {
-        name: my_name,
-        atts: my_atts,
-        children: Vec::new(),
-        files: Vec::new(),
-    };
-
-    progress.update(
-        files.iter().filter(|x| x.meta.is_dir()).count() as u64,
-        files.iter().filter(|x| !x.meta.is_dir()).count() as u64,
-        files
-            .iter()
-            .filter(|x| !x.meta.is_dir())
-            .map(|x| x.meta.len())
-            .sum(),
-    );
-
-    // Process all of the nodes.
-    for ch in files {
-        if ch.meta.is_dir() {
-            let child_name = ch.path.file_name().unwrap().as_bytes().escaped();
-            let child = walk(child_name, &ch.path, ch.atts, &ch.meta, progress)?;
-            node.children.push(child);
-        } else {
-            let child_name = ch.path.file_name().unwrap().as_bytes().escaped();
-            let child = SureFile {
-                name: child_name,
-                atts: ch.atts,
-            };
-            node.files.push(child);
-        }
-    }
-
-    Ok(node)
-}
 
 // Encode the attributes for the given node.  Note that this returns, even
 // when there is an error (resolving a symlink).  It logs an error, and
@@ -202,11 +89,4 @@ fn time_info(base: &mut AttMap, meta: &Metadata) {
     // TODO: Handle the nsec part of the time.
     base.insert("mtime".to_string(), meta.mtime().to_string());
     base.insert("ctime".to_string(), meta.ctime().to_string());
-}
-
-// Temp struct to hold information on intermediate files.
-struct OneFile {
-    path: PathBuf,
-    meta: Metadata,
-    atts: AttMap,
 }
