@@ -1,5 +1,6 @@
 // Test the rsure API for save and load.
 
+/*
 extern crate rsure;
 extern crate tempdir;
 
@@ -43,3 +44,4 @@ fn save_writer() {
     let t2 = SureTree::load_from(&sf1[..]).unwrap();
     t2.compare_from(&mut stdout_visitor(), &t1, tmp.path());
 }
+*/

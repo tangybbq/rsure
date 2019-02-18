@@ -10,11 +10,9 @@ use std::{
     path::Path,
 };
 
-mod bk;
 mod plain;
 mod weave;
 
-pub use self::bk::{bk_setup, BkStore, BkSureFile};
 pub use self::plain::Plain;
 pub use self::weave::WeaveStore;
 
@@ -115,13 +113,6 @@ pub fn parse_store(text: &str) -> Result<Box<dyn Store>> {
     // If we're given an existing directory, construct a store directly from it.
     // TODO: Look in the directory to see what might be there.
     if p.is_dir() {
-        // Check for BK directory, and reject without explicit name.
-        if p.join(".bk").is_dir() {
-            return Err(err_msg(
-                "Store appears to be a Bitkeeper dir, specify full filename",
-            ));
-        }
-
         return Ok(Box::new(Plain {
             path: p.to_path_buf(),
             base: "2sure".to_string(),
@@ -173,17 +164,6 @@ pub fn parse_store(text: &str) -> Result<Box<dyn Store>> {
     } else {
         base
     };
-
-    // Check for bitkeeper.
-    if dir.join(".bk").is_dir() {
-        if compressed {
-            return Err(err_msg(
-                "Bitkeeper names should not be compressed, remove .gz suffix",
-            ));
-        }
-
-        return Ok(Box::new(BkStore::new(dir, base)));
-    }
 
     Ok(Box::new(WeaveStore::new(dir, base, compressed)))
 }

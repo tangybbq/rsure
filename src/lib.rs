@@ -25,10 +25,6 @@ use std::{
 };
 
 pub use crate::{
-    comp::{TreeCompare, TreeUpdate},
-    compvisit::{
-        stderr_visitor, stdout_visitor, CompareAction, CompareType, CompareVisitor, PrintVisitor,
-    },
     errors::{Error, Result, WeaveError},
     hashes::{Estimate, SureHash},
     node::{
@@ -45,22 +41,17 @@ pub use crate::{
     progress::{log_init, Progress},
     show::show_tree,
     store::{
-        BkStore,
-        BkSureFile,
         Store,
         StoreTags,
         StoreVersion,
         TempLoader,
         Version,
-        bk_setup,
         parse_store,
     },
     surefs::scan_fs,
     suretree::SureTree,
 };
 
-mod comp;
-mod compvisit;
 mod errors;
 mod escape;
 mod hashes;
