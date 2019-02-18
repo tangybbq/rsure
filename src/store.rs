@@ -1,7 +1,7 @@
 // Surefile store
 
 use chrono::{DateTime, Utc};
-use crate::{Result, SureTree, SureNode};
+use crate::{Result, SureNode};
 use failure::err_msg;
 use log::info;
 use std::{
@@ -10,10 +10,8 @@ use std::{
     path::Path,
 };
 
-mod plain;
 mod weave;
 
-pub use self::plain::Plain;
 pub use self::weave::WeaveStore;
 
 /// Tags are just key/value pairs.  Both key and value should be printable strings.
@@ -21,13 +19,6 @@ pub type StoreTags = BTreeMap<String, String>;
 
 /// Something that can store and retrieve SureTrees.
 pub trait Store {
-    /// Write a new SureTree to the store.  The store may write the tags in the version to help
-    /// identify information about what was captured.
-    fn write_new(&self, tree: &SureTree, tags: &StoreTags) -> Result<()>;
-
-    /// Attempt to load a sure version, based on the descriptor given.
-    fn load(&self, version: Version) -> Result<SureTree>;
-
     /// Retrieve the available versions, in the store.  These should be listed, newest first.
     fn get_versions(&self) -> Result<Vec<StoreVersion>>;
 
@@ -113,11 +104,7 @@ pub fn parse_store(text: &str) -> Result<Box<dyn Store>> {
     // If we're given an existing directory, construct a store directly from it.
     // TODO: Look in the directory to see what might be there.
     if p.is_dir() {
-        return Ok(Box::new(Plain {
-            path: p.to_path_buf(),
-            base: "2sure".to_string(),
-            compressed: true,
-        }));
+        return Ok(Box::new(WeaveStore::new(p.to_path_buf(), "2sure", true)));
     }
 
     // Otherwise, try to get the parent.  If it seems to be empty, use the current directory as the

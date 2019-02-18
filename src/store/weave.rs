@@ -3,7 +3,7 @@
 use crate::{
     node,
     store::{Store, StoreTags, StoreVersion, StoreWriter, TempCleaner, TempFile, TempLoader, Version},
-    Result, SureNode, SureTree,
+    Result, SureNode,
 };
 use crossbeam::{
     channel::{bounded, Receiver, Sender},
@@ -13,7 +13,7 @@ use log::warn;
 use std::{
     env,
     fs::{self, File},
-    io::{self, BufRead, BufReader, Read, BufWriter, Write},
+    io::{self, BufRead, BufReader, BufWriter, Write},
     path::{Path, PathBuf},
     thread::{self, JoinHandle},
 };
@@ -32,54 +32,6 @@ impl WeaveStore {
 }
 
 impl Store for WeaveStore {
-    fn write_new(&self, tree: &SureTree, tags: &StoreTags) -> Result<()> {
-        let itags = tags.iter().map(|(k, v)| (k.as_ref(), v.as_ref()));
-        match weave::get_last_delta(&self.naming) {
-            Ok(base) => {
-                let mut wv = DeltaWriter::new(&self.naming, itags, base)?;
-                tree.save_to(&mut wv)?;
-                wv.close()?;
-                Ok(())
-            }
-            Err(_) => {
-                // Create a new weave file.
-                let mut wv = NewWeave::new(&self.naming, itags)?;
-
-                tree.save_to(&mut wv)?;
-
-                wv.close()?;
-                Ok(())
-            }
-        }
-    }
-
-    fn load(&self, version: Version) -> Result<SureTree> {
-        let last = weave::get_last_delta(&self.naming)?;
-        let last = match version {
-            Version::Latest => last,
-            Version::Prior => last - 1,
-            Version::Tagged(vers) => vers.parse()?,
-        };
-
-        let child_naming = self.naming.clone();
-        let (sender, receiver) = bounded(32);
-        let child = thread::spawn(move || {
-            if let Err(err) = read_parse(&child_naming, last, sender.clone()) {
-                // Attempt to send the last error over.
-                if let Err(inner) = sender.send(Some(Err(err))) {
-                    warn!("Error sending error on channel {:?}", inner);
-                }
-            }
-        });
-        let rd = ReadReceiver(receiver);
-        let tree = SureTree::load_from(rd);
-        match child.join() {
-            Ok(()) => (),
-            Err(e) => warn!("Problem joining child thread: {:?}", e),
-        }
-        tree
-    }
-
     fn get_versions(&self) -> Result<Vec<StoreVersion>> {
         let header = Parser::new(&self.naming, NullSink, 1)?.into_header();
         let mut versions: Vec<_> = header
@@ -325,39 +277,6 @@ impl Sink for ReadSync {
         } else {
             Ok(())
         }
-    }
-}
-
-struct ReadReceiver(Receiver<Option<Result<String>>>);
-
-impl Read for ReadReceiver {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let line = match self.0.recv() {
-            Ok(line) => line,
-            Err(e) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("channel error: {:?}", e),
-                ))
-            }
-        };
-        let line = match line {
-            None => return Ok(0),
-            Some(Ok(line)) => line,
-            Some(Err(e)) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("channel error: {:?}", e),
-                ))
-            }
-        };
-        let chars = line.as_bytes();
-        if chars.len() + 1 > buf.len() {
-            panic!("TODO: Handle line longer than buffer");
-        }
-        buf[..chars.len()].copy_from_slice(chars);
-        buf[chars.len()] = b'\n';
-        Ok(chars.len() + 1)
     }
 }
 
