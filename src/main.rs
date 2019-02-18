@@ -13,8 +13,6 @@ use rsure::{
     Version,
 };
 
-mod bkcmd;
-
 // For now, just use the crate's error type.
 pub use rsure::Result;
 
@@ -53,17 +51,6 @@ enum Command {
     #[structopt(name = "show")]
     /// Pretty print the dat file
     Show,
-    #[structopt(name = "bknew")]
-    /// Create a new bitkeeper-based sure store
-    BkNew { dir: String },
-    #[structopt(name = "bkimport")]
-    /// Import a tree of surefiles into a bk store
-    BkImport {
-        #[structopt(long = "src")]
-        src: String,
-        #[structopt(long = "dest")]
-        dest: String,
-    },
     #[structopt(name = "list")]
     /// List revisions in a given sure store
     List,
@@ -106,12 +93,6 @@ fn main() {
         Command::Show => {
             println!("show {}", opt.file);
             show_tree(&*store).unwrap();
-        }
-        Command::BkNew { ref dir } => {
-            bkcmd::new(dir).unwrap();
-        }
-        Command::BkImport { ref src, ref dest } => {
-            bkcmd::import(src, dest).unwrap();
         }
         Command::List => {
             let version = store.get_versions().unwrap();
