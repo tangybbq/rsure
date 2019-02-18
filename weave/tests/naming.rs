@@ -26,7 +26,7 @@ fn test_names() {
 
     for i in 0..100 {
         let (tname, _tfd) = nm.temp_file().unwrap();
-        assert_eq!(tname, Path::new(&format!("{}/sample.{}.gz", path, i)));
+        assert_eq!(tname, Path::new(&format!("{}/sample.{}", path, i)));
         println!("tname: {:?}", tname);
     }
 }

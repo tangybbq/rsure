@@ -79,12 +79,12 @@ impl SimpleNaming {
         }
     }
 
-    pub fn make_name(&self, ext: &str) -> PathBuf {
+    pub fn make_name(&self, ext: &str, compressed: bool) -> PathBuf {
         let name = format!(
             "{}.{}{}",
             self.base,
             ext,
-            if self.compressed { ".gz" } else { "" }
+            if compressed { ".gz" } else { "" }
         );
         self.path.join(name)
     }
@@ -92,17 +92,17 @@ impl SimpleNaming {
 
 impl NamingConvention for SimpleNaming {
     fn main_file(&self) -> PathBuf {
-        self.make_name(&self.ext)
+        self.make_name(&self.ext, self.compressed)
     }
 
     fn backup_file(&self) -> PathBuf {
-        self.make_name("bak")
+        self.make_name("bak", self.compressed)
     }
 
     fn temp_file(&self) -> Result<(PathBuf, File)> {
         let mut n = 0;
         loop {
-            let name = self.make_name(&n.to_string());
+            let name = self.make_name(&n.to_string(), false);
 
             match OpenOptions::new().write(true).create_new(true).open(&name) {
                 Ok(fd) => return Ok((name, fd)),
