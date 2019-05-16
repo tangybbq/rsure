@@ -44,10 +44,18 @@ enum Command {
     Update,
     #[structopt(name = "check")]
     /// Compare the directory with the dat/weave file
-    Check,
+    Check {
+        #[structopt(short = "i", long = "ignore")]
+        /// Tag to ignore when comparing.
+        ignore: Vec<String>,
+    },
     #[structopt(name = "signoff")]
     /// Compare dat with bak file, or last two versions in weave file
-    Signoff,
+    Signoff {
+        #[structopt(short = "i", long = "ignore")]
+        /// Tag to ignore when comparing.
+        ignore: Vec<String>,
+    },
     #[structopt(name = "show")]
     /// Pretty print the dat file
     Show,
@@ -74,21 +82,23 @@ fn main() {
         Some(ref x) => Version::Tagged(x.to_string()),
     };
 
-    match opt.command {
+    match &opt.command {
         Command::Scan => {
             rsure::update(&opt.dir, &*store, false, &tags).unwrap();
         }
         Command::Update => {
             rsure::update(&opt.dir, &*store, true, &tags).unwrap();
         }
-        Command::Check => {
-            run_check(&*store, &opt, latest).unwrap();
+        Command::Check { ignore } => {
+            let ignore: Vec<_> = ignore.iter().map(|x| x.as_str()).collect();
+            run_check(&*store, &opt, latest, &ignore).unwrap();
         }
-        Command::Signoff => {
+        Command::Signoff { ignore } => {
+            let ignore: Vec<_> = ignore.iter().map(|x| x.as_str()).collect();
             let old_tree = store.load_iter(Version::Prior).unwrap();
             let new_tree = store.load_iter(Version::Latest).unwrap();
             println!("signoff {}", opt.file);
-            rsure::compare_trees(old_tree, new_tree, &Path::new(&opt.dir)).unwrap();
+            rsure::compare_trees(old_tree, new_tree, &Path::new(&opt.dir), &ignore).unwrap();
         }
         Command::Show => {
             println!("show {}", opt.file);
@@ -101,7 +111,7 @@ fn main() {
     }
 }
 
-fn run_check(store: &dyn Store, opt: &Opt, latest: Version) -> Result<()> {
+fn run_check(store: &dyn Store, opt: &Opt, latest: Version, ignore: &[&str]) -> Result<()> {
     // Perform a full scan to a temp store.
     let tdir = TempDir::new("rsure")?;
     let tpath = tdir.path().join("check.dat.gz");
@@ -114,7 +124,7 @@ fn run_check(store: &dyn Store, opt: &Opt, latest: Version) -> Result<()> {
     let old_tree = store.load_iter(latest)?;
     let new_tree = tstore.load_iter(Version::Latest)?;
     println!("Check {}", opt.file);
-    rsure::compare_trees(old_tree, new_tree, &Path::new(&opt.dir))?;
+    rsure::compare_trees(old_tree, new_tree, &Path::new(&opt.dir), ignore)?;
     Ok(())
 }
 

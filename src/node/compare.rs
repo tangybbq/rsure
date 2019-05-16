@@ -22,17 +22,27 @@ struct State<IA, IB> {
     // Track warning messages about added and deleted attributes.
     adds: HashSet<String>,
     missings: HashSet<String>,
+
+    // Attributes to be ignored
+    ignore: HashSet<String>,
 }
 
 pub fn compare_trees<P: AsRef<Path>, IA, IB>(
     mut left: IA,
     mut right: IB,
     dir: P,
+    ignore: &[&str],
 ) -> Result<()>
 where
     IA: Iterator<Item = Result<SureNode>>,
     IB: Iterator<Item = Result<SureNode>>,
 {
+    let mut ignore: HashSet<String> = ignore.iter().map(|x| (*x).to_owned()).collect();
+    // The ctime and ino will be different if a backup is restored, and we'd still like to get
+    // meaningful results.  Add these to the list of ignored attributes.
+    ignore.insert("ctime".to_owned());
+    ignore.insert("ino".to_owned());
+
     let ln = match left.next() {
         None => return Err(format_err!("Empty left iterator")),
         Some(Err(e)) => return Err(e),
@@ -50,6 +60,7 @@ where
         right_iter: right,
         adds: HashSet::new(),
         missings: HashSet::new(),
+        ignore: ignore,
     };
 
     state.walk_root(dir.as_ref())
@@ -250,12 +261,10 @@ impl<IA, IB> State<IA, IB>
         let mut new = self.right.atts().unwrap().clone();
         let mut diffs = vec![];
 
-        // The ctime and ino will be different if a backup is restored, and
-        // we'd still like to get meaningful results out of it.
-        old.remove("ctime");
-        new.remove("ctime");
-        old.remove("ino");
-        new.remove("ino");
+        for att in self.ignore.iter() {
+            old.remove(att);
+            new.remove(att);
+        }
 
         for (k, v) in &new {
             match old.get(k) {
