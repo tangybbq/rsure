@@ -47,8 +47,8 @@ pub trait NamingConvention {
             Box::new(BufWriter::new(file)) as Box<dyn Write>
         };
         Ok(WriterInfo {
-            name: name,
-            writer: writer,
+            name,
+            writer,
         })
     }
 }
@@ -75,7 +75,7 @@ impl SimpleNaming {
             path: path.as_ref().to_path_buf(),
             base: base.to_string(),
             ext: ext.to_string(),
-            compressed: compressed,
+            compressed,
         }
     }
 

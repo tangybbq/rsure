@@ -32,17 +32,18 @@ pub struct DeltaInfo {
 
 const THIS_VERSION: usize = 1;
 
-impl Header {
-    /// Construct a new header, with no deltas in it.
-    pub fn new() -> Header {
+impl Default for Header {
+    fn default() -> Header {
         Header {
             version: THIS_VERSION,
             deltas: vec![],
         }
     }
+}
 
+impl Header {
     /// Decode from the first line of the file.
-    pub fn from_str(line: &str) -> Result<Header> {
+    pub fn decode(line: &str) -> Result<Header> {
         if line.starts_with("\x01t") {
             Ok(serde_json::from_str(&line[2..])?)
         } else {
@@ -65,9 +66,9 @@ impl Header {
         let next_delta = self.deltas.iter().map(|x| x.number).max().unwrap_or(0) + 1;
 
         self.deltas.push(DeltaInfo {
-            name: name,
+            name,
             number: next_delta,
-            tags: tags,
+            tags,
             time: Utc::now(),
         });
 
@@ -78,7 +79,7 @@ impl Header {
     pub fn write<W: Write>(&self, mut wr: &mut W) -> Result<()> {
         write!(&mut wr, "\x01t")?;
         serde_json::to_writer(&mut wr, &self)?;
-        writeln!(&mut wr, "")?;
+        writeln!(&mut wr)?;
         Ok(())
     }
 }

@@ -81,11 +81,11 @@ impl<'n> DeltaWriter<'n> {
         Ok(DeltaWriter {
             naming: nc,
             temp: Some(new_info),
-            base: base,
-            new_delta: new_delta,
-            base_name: base_name,
+            base,
+            new_delta,
+            base_name,
             diff_re: Regex::new(r"^(\d+)(,(\d+))?([acd]).*$").unwrap(),
-            header: header,
+            header,
         })
     }
 
@@ -126,53 +126,50 @@ impl<'n> DeltaWriter<'n> {
 
             for line in lines {
                 let line = line?;
-                match self.diff_re.captures(&line) {
-                    Some(cap) => {
-                        // If adding, this completes the add.
-                        if is_adding {
-                            weave_write.borrow_mut().end(self.new_delta)?;
-                            is_adding = false;
-                        }
-
-                        let left = cap.get(1).unwrap().as_str().parse::<usize>().unwrap();
-                        let right = match cap.get(3) {
-                            None => left,
-                            Some(r) => r.as_str().parse().unwrap(),
-                        };
-                        let cmd = cap.get(4).unwrap().as_str().chars().next().unwrap();
-
-                        if cmd == 'd' || cmd == 'c' {
-                            // These include deletions.
-                            match parser.parse_to(left)? {
-                                0 => return Err(err_msg("Unexpected eof")),
-                                n if n == left => (),
-                                _ => panic!("Unexpected parse result"),
-                            }
-                            weave_write.borrow_mut().delete(self.new_delta)?;
-                            match parser.parse_to(right + 1) {
-                                Ok(0) => is_done = true,
-                                Ok(n) if n == right + 1 => (),
-                                Ok(_) => panic!("Unexpected parse result"),
-                                Err(e) => return Err(e),
-                            }
-                            weave_write.borrow_mut().end(self.new_delta)?;
-                        } else {
-                            match parser.parse_to(right + 1) {
-                                Ok(0) => is_done = true,
-                                Ok(n) if n == right + 1 => (),
-                                Ok(_) => panic!("Unexpected parse result"),
-                                Err(e) => return Err(e),
-                            }
-                        }
-
-                        if cmd == 'c' || cmd == 'a' {
-                            weave_write.borrow_mut().insert(self.new_delta)?;
-                            is_adding = true;
-                        }
-
-                        continue;
+                if let Some(cap) = self.diff_re.captures(&line) {
+                    // If adding, this completes the add.
+                    if is_adding {
+                        weave_write.borrow_mut().end(self.new_delta)?;
+                        is_adding = false;
                     }
-                    None => (),
+
+                    let left = cap.get(1).unwrap().as_str().parse::<usize>().unwrap();
+                    let right = match cap.get(3) {
+                        None => left,
+                        Some(r) => r.as_str().parse().unwrap(),
+                    };
+                    let cmd = cap.get(4).unwrap().as_str().chars().next().unwrap();
+
+                    if cmd == 'd' || cmd == 'c' {
+                        // These include deletions.
+                        match parser.parse_to(left)? {
+                            0 => return Err(err_msg("Unexpected eof")),
+                            n if n == left => (),
+                            _ => panic!("Unexpected parse result"),
+                        }
+                        weave_write.borrow_mut().delete(self.new_delta)?;
+                        match parser.parse_to(right + 1) {
+                            Ok(0) => is_done = true,
+                            Ok(n) if n == right + 1 => (),
+                            Ok(_) => panic!("Unexpected parse result"),
+                            Err(e) => return Err(e),
+                        }
+                        weave_write.borrow_mut().end(self.new_delta)?;
+                    } else {
+                        match parser.parse_to(right + 1) {
+                            Ok(0) => is_done = true,
+                            Ok(n) if n == right + 1 => (),
+                            Ok(_) => panic!("Unexpected parse result"),
+                            Err(e) => return Err(e),
+                        }
+                    }
+
+                    if cmd == 'c' || cmd == 'a' {
+                        weave_write.borrow_mut().insert(self.new_delta)?;
+                        is_adding = true;
+                    }
+
+                    continue;
                 }
 
                 match line.chars().next() {

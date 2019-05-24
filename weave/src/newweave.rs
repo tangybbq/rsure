@@ -29,7 +29,7 @@ impl<'n> NewWeave<'n> {
         for (k, v) in tags {
             ntags.insert(k.to_owned(), v.to_owned());
         }
-        let mut header = Header::new();
+        let mut header: Header = Default::default();
         let delta = header.add(ntags)?;
         header.write(&mut writeinfo.writer)?;
         writeln!(&mut writeinfo.writer, "\x01I {}", delta)?;

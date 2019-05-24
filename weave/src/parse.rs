@@ -98,17 +98,17 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
     ) -> Result<Parser<S, B>> {
         if let Some(line) = source.next() {
             let line = line?;
-            let header = Header::from_str(&line)?;
+            let header = Header::decode(&line)?;
 
             Ok(Parser {
-                source: source,
-                sink: sink,
-                delta: delta,
+                source,
+                sink,
+                delta,
                 delta_state: vec![],
                 pending: None,
                 keeping: false,
                 lineno: 0,
-                header: header,
+                header,
             })
         } else {
             Err(err_msg("Weave file appears empty"))
@@ -214,7 +214,7 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
             .binary_search_by(|ent| delta.cmp(&ent.delta))
         {
             Ok(pos) => pos,
-            Err(_) => panic!("State of pop not present"),
+            Err(_) => unreachable!(),
         };
 
         self.delta_state.remove(pos);
@@ -231,8 +231,8 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
             Err(pos) => self.delta_state.insert(
                 pos,
                 OneDelta {
-                    delta: delta,
-                    mode: mode,
+                    delta,
+                    mode,
                 },
             ),
         }
