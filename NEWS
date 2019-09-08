@@ -1,5 +1,26 @@
 # Changelog
 
+## Release 0.9
+
+This is a fairly major release, with most changes under the hood.
+There are some minor updates in dependencies.
+
+The underlying mechanism for updating sure files has been rewritten.
+Earlier versions of rsure would read an entire tree into memory, and
+perform updates on this in-memory structure.  For large directory
+trees, this could take up a lot of memory.  The new version always
+performs scans in a linear manner, and updates are performed using a
+few temp files (where the rsure file is).  This slightly increases the
+space needed where the surefile is stored, but greatly reduces memory
+usage.
+
+By recording hash updates to a temporary sqlite database, we can now
+perform these hash updates in parallel, using multiple cores.  On fast
+disks, this can result in a speed improvement.
+
+Other than the lower memory usage, this change shouldn't be visible to
+users of rsure.
+
 ## Release 0.8.2
 
 This is a minor release with some minor improvements, mostly having to
