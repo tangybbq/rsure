@@ -9,7 +9,7 @@ extern crate rand;
 extern crate tempdir;
 extern crate weave;
 
-use rand::{Rng, SeedableRng, StdRng};
+use rand::{Rng, SeedableRng, rngs::StdRng};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::env;
