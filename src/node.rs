@@ -104,6 +104,15 @@ impl SureNode {
         }
     }
 
+    /// Safely get the name of this node.
+    pub fn get_name(&self) -> Option<&str> {
+        match self {
+            SureNode::File { ref name, .. } => Some(name),
+            SureNode::Enter { ref name, .. } => Some(name),
+            _ => None,
+        }
+    }
+
     /// Get a nice representation of the kind of this node.  Returns "???"
     /// if the kind isn't meaningful.
     pub fn kind(&self) -> &str {
