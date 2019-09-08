@@ -1,8 +1,13 @@
 [package]
-name = "naming"
+name = "rsure-naming"
 version = "0.1.0"
 authors = ["David Brown <davidb@davidb.org>"]
 edition = "2018"
+description = """
+rsure-naming implements a simple naming convention used by the 'rsure'
+crate.  It manages an associated set of files, typically a data file,
+a backup file, and zero or more temporary files.
+"""
 
 [dependencies]
 failure = "0.1.5"
