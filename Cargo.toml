@@ -27,7 +27,7 @@ flate2 = "1.0"
 lazy_static = "1.4"
 libc = "0.2.11"
 log = "0.4.6"  # 0.4.6 needed to fix problem with named macro imports.
-naming = { path = "naming", version = "0.1.0" }
+# rsure-naming = { path = "naming", version = "0.1.0" }
 num_cpus = "1.10"
 openssl = "0.10"
 regex = "1.0"
