@@ -70,9 +70,9 @@ impl Unescape for str {
             } else {
                 tmp <<= 4;
                 match byte {
-                    b'A'...b'F' => tmp |= byte - b'A' + 10,
-                    b'a'...b'f' => tmp |= byte - b'a' + 10,
-                    b'0'...b'f' => tmp |= byte - b'0',
+                    b'A'..=b'F' => tmp |= byte - b'A' + 10,
+                    b'a'..=b'f' => tmp |= byte - b'a' + 10,
+                    b'0'..=b'f' => tmp |= byte - b'0',
                     _ => return Err(EscapeError::InvalidHexCharacter(byte)),
                 }
                 phase += 1;
