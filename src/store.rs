@@ -81,6 +81,18 @@ pub enum Version {
     Tagged(String),
 }
 
+impl Version {
+    /// Retrieve this version as a number, or none if that makes no sense
+    /// (either it is `Latest`, `Prior`, or the textual version is not an
+    /// integer).
+    pub fn numeric(&self) -> Option<usize> {
+        match self {
+            Version::Latest | Version::Prior => None,
+            Version::Tagged(text) => text.parse().ok()
+        }
+    }
+}
+
 /// Information about a given version in the store.
 #[derive(Clone, Debug)]
 pub struct StoreVersion {
