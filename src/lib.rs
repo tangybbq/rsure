@@ -48,6 +48,7 @@ pub use crate::{
         Version,
         parse_store,
     },
+    suretree::AttMap,
 };
 
 mod errors;
