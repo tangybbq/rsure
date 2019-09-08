@@ -1,6 +1,6 @@
 [package]
 name = "rsure"
-version = "0.8.2"
+version = "0.9.0"
 authors = ["David Brown <davidb@davidb.org>"]
 description = """
 Rsure captures hashes and metadata about a tree of files, and can
