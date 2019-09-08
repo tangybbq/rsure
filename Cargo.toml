@@ -31,7 +31,7 @@ naming = { path = "naming" }
 num_cpus = "1.10"
 openssl = "0.10"
 regex = "1.0"
-rusqlite = "0.16"   # 0.20 doesn't build, API change
+rusqlite = "0.20"
 structopt = "0.3"
 tempdir = "0.3"
 time = "0.1"

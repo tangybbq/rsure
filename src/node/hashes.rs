@@ -249,10 +249,10 @@ impl <S: Source> HashMerger<S> {
     pub fn merge<W: Write>(self, writer: &mut NodeWriter<W>) -> Result<()> {
         let mut stmt = self.conn.prepare("SELECT id, hash FROM hashes ORDER BY id")?;
         let mut hash_iter = stmt
-            .query_map(NO_PARAMS, |row| HashInfo {
-                id: row.get(0),
-                hash: row.get(1),
-            })?
+            .query_map(NO_PARAMS, |row| Ok(HashInfo {
+                id: row.get(0)?,
+                hash: row.get(1)?,
+            }))?
             .peekable();
 
         let mut count = 0;
