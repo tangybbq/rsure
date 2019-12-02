@@ -301,7 +301,7 @@ impl<IA, IB> State<IA, IB>
                 }
                 buf.extend(d.chars());
             }
-            println!("  [{:<20}] {:?}", buf, dir.join(self.left.name()));
+            println!("  [{:<20}] {:?}", buf, dir);
         }
 
         Ok(())
