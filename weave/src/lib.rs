@@ -35,7 +35,7 @@ pub use crate::{
     naming::NamingConvention,
     naming::SimpleNaming,
     newweave::NewWeave,
-    parse::{Parser, Sink},
+    parse::{Entry, Parser, PullParser, Sink},
 };
 
 use std::{io::Write, path::PathBuf};

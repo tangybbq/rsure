@@ -40,6 +40,33 @@ pub trait Sink {
     }
 }
 
+/// The PullParser returns the entries as nodes.  These are equivalent to
+/// the values in Sink.
+#[derive(Debug)]
+pub enum Entry {
+    /// Begin an insert sequence for the given delta.
+    Insert {
+        delta: usize,
+    },
+
+    /// Begin a delete sequence.
+    Delete {
+        delta: usize,
+    },
+
+    /// End a previous insert or delete.
+    End {
+        delta: usize,
+    },
+
+    /// A single line of plaintext from the weave.  `keep` indicates if the
+    /// line should be included in the requested delta.
+    Plain {
+        text: String,
+        keep: bool,
+    },
+}
+
 /// A Parser is used to process a weave file, extracting either everything, or only a specific
 /// delta.
 pub struct Parser<S: Sink, B> {
@@ -273,6 +300,210 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
     /// Get a copy of the sink.
     pub fn get_sink(&self) -> Rc<RefCell<S>> {
         self.sink.clone()
+    }
+}
+
+/*
+/// A PullIterator returns entities in a weave file, extracting either
+/// everything, or only a specific delta.
+pub struct PullIterator<B> {
+    /// The lines of the input.
+    source: Lines<B>,
+
+    /// The desired delta to retrieve.
+    delta: usize,
+
+    /// The delta state is kept sorted with the newest (largest) delta at
+    /// element 0.
+    delta_state: Vec<OneDelta>,
+
+    /// Indicates we are currently keeping lines.
+    keeping: bool,
+
+    /// The current line number.
+    lineno: usize,
+
+    /// The header extracted from the file.
+    header: Header,
+}
+*/
+
+pub struct PullParser<B> {
+    /// The lines of the input.
+    source: Lines<B>,
+
+    /// The desired delta to retrieve.
+    delta: usize,
+
+    /// The delta state is kept sorted with the newest (largest) delta at element 0.
+    delta_state: Vec<OneDelta>,
+
+    /// Indicates that we are currently "keeping" lines.
+    keeping: bool,
+
+    /// The header extracted from the file.
+    header: Header,
+}
+
+impl<B: BufRead> PullParser<B> {
+    /// Construct a new Parser, reading from the given Reader.  The parser
+    /// will act as an iterator.  This is the intended constructor, normal
+    /// users should use `new`.  (This is public for testing).
+    pub fn new_raw(
+        mut source: Lines<B>,
+        delta: usize,
+    ) -> Result<PullParser<B>> {
+        if let Some(line) = source.next() {
+            let line = line?;
+            let header = Header::decode(&line)?;
+
+            Ok(PullParser {
+                source,
+                delta,
+                delta_state: vec![],
+                keeping: false,
+                header,
+            })
+        } else {
+            Err(err_msg("Weave file appears empty"))
+        }
+    }
+
+    /// Remove the given numbered state.
+    fn pop(&mut self, delta: usize) {
+        // The binary search is reversed, so the largest are first.
+        let pos = match self
+            .delta_state
+            .binary_search_by(|ent| delta.cmp(&ent.delta))
+        {
+            Ok(pos) => pos,
+            Err(_) => unreachable!(),
+        };
+
+        self.delta_state.remove(pos);
+    }
+
+    /// Add a new state.  It will be inserted in the proper place in the array, based on the delta
+    /// number.
+    fn push(&mut self, delta: usize, mode: StateMode) {
+        match self
+            .delta_state
+            .binary_search_by(|ent| delta.cmp(&ent.delta))
+        {
+            Ok(_) => panic!("Duplicate state in push"),
+            Err(pos) => self.delta_state.insert(
+                pos,
+                OneDelta {
+                    delta,
+                    mode,
+                },
+            ),
+        }
+    }
+
+    /// Update the keep field, based on the current state.
+    fn update_keep(&mut self) {
+        info!("Update: {:?}", self.delta_state);
+        for st in &self.delta_state {
+            match st.mode {
+                StateMode::Keep => {
+                    self.keeping = true;
+                    return;
+                }
+                StateMode::Skip => {
+                    self.keeping = false;
+                    return;
+                }
+                _ => (),
+            }
+        }
+
+        // This shouldn't be reached if there are any more context lines, but we may get here when
+        // we reach the end of the input.
+        self.keeping = false;
+    }
+
+    /// Get the header read from this weave file.
+    pub fn get_header(&self) -> &Header {
+        &self.header
+    }
+
+    /// Consume the parser, returning the header.
+    pub fn into_header(self) -> Header {
+        self.header
+    }
+
+}
+
+impl<B: BufRead> Iterator for PullParser<B> {
+    type Item = Result<Entry>;
+
+    fn next(&mut self) -> Option<Result<Entry>> {
+        // At this level, there is a 1:1 correspondence between weave input
+        // lines and those returned.
+        let line = match self.source.next() {
+            None => return None,
+            Some(Ok(line)) => line,
+            Some(Err(e)) => return Some(Err(From::from(e))),
+        };
+
+        info!("line: {:?}", line);
+
+        // Detect the first character, without borrowing.
+        let textual = match line.bytes().next() {
+            None => true,
+            Some(ch) if ch != b'\x01' => true,
+            _ => false,
+        };
+
+        if textual {
+            return Some(Ok(Entry::Plain {
+                text: line,
+                keep: self.keeping,
+            }));
+        }
+
+        let linebytes = line.as_bytes();
+
+        if linebytes.len() < 4 {
+            panic!("TODO: Handle short control lines");
+        }
+
+        if linebytes[1] != b'I' && linebytes[1] != b'D' && linebytes[1] != b'E' {
+            panic!("TODO: Handle unrecognized control lines");
+        };
+
+        // TODO: Don't panic, but fail.
+        let this_delta: usize = line[3..].parse().unwrap();
+
+        match linebytes[1] {
+            b'E' => {
+                self.pop(this_delta);
+                self.update_keep();
+                return Some(Ok(Entry::End{ delta: this_delta }));
+            }
+            b'I' => {
+                if self.delta >= this_delta {
+                    self.push(this_delta, StateMode::Keep);
+                } else {
+                    self.push(this_delta, StateMode::Skip);
+                }
+                self.update_keep();
+
+                return Some(Ok(Entry::Insert{ delta: this_delta }));
+            }
+            b'D' => {
+                if self.delta >= this_delta {
+                    self.push(this_delta, StateMode::Skip);
+                } else {
+                    self.push(this_delta, StateMode::Next);
+                }
+                self.update_keep();
+
+                return Some(Ok(Entry::Delete{ delta: this_delta }));
+            }
+            _ => unreachable!(),
+        }
     }
 }
 

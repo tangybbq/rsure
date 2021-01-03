@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::rc::Rc;
 use tempdir::TempDir;
-use weave::{DeltaWriter, NewWeave, Parser, Result, SimpleNaming, Sink};
+use weave::{DeltaWriter, Entry, NewWeave, Parser, PullParser, Result, SimpleNaming, Sink};
 
 /// Number of iterations to make.  Note that the default check is greater than O(n^2) so the test
 /// will run very long if this is increased too much.
@@ -214,6 +214,7 @@ impl Gen {
             for (i, del) in self.deltas.iter().enumerate() {
                 self.weave_sccs_check_one(i, del);
                 self.weave_check_one(i, del);
+                self.weave_check_pull(i, del);
             }
         } else {
             // This only checks the last delta for each one.  It will miss any bugs that result in
@@ -221,6 +222,7 @@ impl Gen {
             let del = self.deltas.iter().last().unwrap();
             self.weave_sccs_check_one(self.deltas.len() - 1, del);
             self.weave_check_one(self.deltas.len() - 1, del);
+            self.weave_check_pull(self.deltas.len() - 1, del);
         }
     }
 
@@ -258,6 +260,23 @@ impl Gen {
         }
 
         assert_eq!(data, &dsink.borrow().nums[..]);
+    }
+
+    fn weave_check_pull(&self, num: usize, data: &[usize]) {
+        let fd = File::open(self.tdir.join("sample.weave")).unwrap();
+        let lines = BufReader::new(fd).lines();
+        let mut nums = vec![];
+        for line in PullParser::new_raw(lines, num + 1).unwrap() {
+            let line = line.unwrap();
+            match line {
+                Entry::Plain { keep, text } if keep => {
+                    nums.push(text.parse::<usize>().unwrap());
+                },
+                _ => ()
+            }
+        }
+
+        assert_eq!(data, &nums[..]);
     }
 
     fn new_weave(&mut self) {
