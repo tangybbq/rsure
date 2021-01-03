@@ -5,19 +5,14 @@ use crate::{
     store::{Store, StoreTags, StoreVersion, StoreWriter, TempCleaner, TempFile, TempLoader, Version},
     Result, SureNode,
 };
-use crossbeam::{
-    channel::{bounded, Receiver, Sender},
-};
 use failure::format_err;
-use log::warn;
 use std::{
     env,
     fs::{self, File},
     io::{self, BufRead, BufReader, BufWriter, Write},
     path::{Path, PathBuf},
-    thread::{self, JoinHandle},
 };
-use weave::{self, DeltaWriter, NamingConvention, NewWeave, NullSink, Parser, SimpleNaming, Sink};
+use weave::{self, DeltaWriter, NamingConvention, NewWeave, NullSink, Parser, PullParser, SimpleNaming};
 
 pub struct WeaveStore {
     naming: SimpleNaming,
@@ -54,24 +49,7 @@ impl Store for WeaveStore {
             Version::Tagged(vers) => vers.parse()?,
         };
 
-        let child_naming = self.naming.clone();
-        let (sender, receiver) = bounded(32);
-        let child = thread::spawn(move || {
-            if let Err(err) = read_parse(&child_naming, last, sender.clone()) {
-                // Attempt to send the last error over.
-                if let Err(inner) = sender.send(Some(Err(err))) {
-                    warn!("Error sending error on channel {:?}", inner);
-                }
-            }
-        });
-
-        fixed(&receiver, b"asure-2.0")?;
-        fixed(&receiver, b"-----")?;
-
-        Ok(Box::new(WeaveIter {
-            _child: child,
-            receiver: receiver,
-        }))
+        Ok(Box::new(WeaveIter::new(&self.naming, last)?))
     }
 
     fn make_temp(&self) -> Result<Box<dyn TempFile + '_>> {
@@ -195,21 +173,26 @@ impl<'a> Write for NewWeaveDelta<'a> {
 }
 
 pub struct WeaveIter {
-    // This field doesn't need to be referenced, just held onto, the Drop
-    // implementation for it is sufficient cleanup.
-    _child: JoinHandle<()>,
-    receiver: Receiver<Option<Result<String>>>,
+    pull: Box<dyn Iterator<Item = Result<String>>>,
+}
+
+impl WeaveIter {
+    fn new(naming: &dyn NamingConvention, delta: usize) -> Result<WeaveIter> {
+        let mut pull = PullParser::new(naming, delta)?.filter_map(kept_text);
+        fixed(&mut pull, "asure-2.0")?;
+        fixed(&mut pull, "-----")?;
+        Ok(WeaveIter { pull: Box::new(pull) })
+    }
 }
 
 impl Iterator for WeaveIter {
     type Item = Result<SureNode>;
 
     fn next(&mut self) -> Option<Result<SureNode>> {
-        let line = match self.receiver.recv() {
-            Ok(None) => return None,
-            Ok(Some(Err(e))) => return Some(Err(e)),
-            Ok(Some(Ok(line))) => line,
-            Err(e) => return Some(Err(e.into())),
+        let line = match self.pull.next() {
+            Some(Err(e)) => return Some(Err(e)),
+            Some(Ok(line)) => line,
+            None => return None,
         };
         let line = line.as_bytes();
 
@@ -229,25 +212,33 @@ impl Iterator for WeaveIter {
     }
 }
 
-// Parse a given delta, emitting the lines to the given channel.  Finishes with Ok(()), or an error
-// if something goes wrong.
-fn read_parse(
-    naming: &dyn NamingConvention,
-    delta: usize,
-    chan: Sender<Option<Result<String>>>,
-) -> Result<()> {
-    let mut parser = Parser::new(naming, ReadSync { chan: chan }, delta)?;
-    parser.parse_to(0)?;
-    let sink = parser.get_sink();
-    match sink.borrow().chan.send(None) {
-        Ok(()) => (),
-        Err(e) => return Err(format_err!("chan send error: {:?}", e)),
+// Filter nodes to only include kept text lines.
+fn kept_text(node: Result<weave::Entry>) -> Option<Result<String>> {
+    match node {
+        Err(e) => Some(Err(e)),
+        Ok(weave::Entry::Plain { text, keep }) if keep => Some(Ok(text)),
+        _ => None,
     }
-    Ok(())
 }
 
-/// Try reading a specific line from the given channel.  Returns Err if the
-/// line didn't match, or something went wrong with the read.
+/// Try reading a specific line from the given iterator.  Returns Err if
+/// the line didn't match, or something went wrong with the read.
+fn fixed<I>(pull: &mut I, expect: &str) -> Result<()>
+    where I: Iterator<Item = Result<String>>
+{
+    match pull.next() {
+        Some(Ok(line)) => {
+            if line == expect {
+                Ok(())
+            } else {
+                Err(format_err!("Unexpected line from weave: {:?} expect {:?}", line, expect))
+            }
+        }
+        Some(Err(e)) => Err(e),
+        None => Err(format_err!("Unexpected eof reading suredata")),
+    }
+}
+/*
 fn fixed(recv: &Receiver<Option<Result<String>>>, expect: &[u8]) -> Result<()> {
     match recv.recv() {
         Ok(Some(Ok(line))) => {
@@ -262,23 +253,7 @@ fn fixed(recv: &Receiver<Option<Result<String>>>, expect: &[u8]) -> Result<()> {
         Err(e) => Err(e.into()),
     }
 }
-
-struct ReadSync {
-    chan: Sender<Option<Result<String>>>,
-}
-
-impl Sink for ReadSync {
-    fn plain(&mut self, text: &str, keep: bool) -> weave::Result<()> {
-        if keep {
-            match self.chan.send(Some(Ok(text.to_string()))) {
-                Ok(()) => Ok(()),
-                Err(e) => Err(format_err!("chan send error: {:?}", e)),
-            }
-        } else {
-            Ok(())
-        }
-    }
-}
+*/
 
 /// Own a PathBuf, and delete this file on drop.  This is in its own type
 /// for two reason. 1. I makes it easy to have cleaning in multiple types,
