@@ -345,6 +345,24 @@ pub struct PullParser<B> {
     header: Header,
 }
 
+impl PullParser<BufReader<Box<dyn Read>>> {
+    /// Construct a parser, based on the main file of the naming
+    /// convention.
+    pub fn new(
+        naming: &dyn NamingConvention,
+        delta: usize,
+    ) -> Result<PullParser<BufReader<Box<dyn Read>>>> {
+        let rd = if naming.is_compressed() {
+            let fd = File::open(naming.main_file())?;
+            Box::new(GzDecoder::new(fd)) as Box<dyn Read>
+        } else {
+            Box::new(File::open(naming.main_file())?) as Box<dyn Read>
+        };
+        let lines = BufReader::new(rd).lines();
+        PullParser::new_raw(lines, delta)
+    }
+}
+
 impl<B: BufRead> PullParser<B> {
     /// Construct a new Parser, reading from the given Reader.  The parser
     /// will act as an iterator.  This is the intended constructor, normal
