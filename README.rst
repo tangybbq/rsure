@@ -85,9 +85,8 @@ home directory::
 This will scan the filesystem (possibly showing progress), and leave a
 ``2sure.dat.gz`` (the 2sure is historical, FreeVeracity used a name
 starting with a 0, and having the digit makes it near the beginning of
-a directory listing).  You can view this file if you'd like.  Aside
-from being compressed, the format is plain ASCII (even if your
-filenames are not).
+a directory listing).  You can view this file if you'd like.  The
+format is somewhat readable.
 
 Then you can do::
 
@@ -97,15 +96,16 @@ to verify the directory.  This will show any differences.  If you back
 up this file with your data, you can run ``rsure`` after a restore to
 check if the backup is correct.
 
-Later, you can run ::
+Later, you can run::
 
     $ rsure update
 
-which will move the ``2sure.dat.gz`` file to ``2sure.bak.gz``, and refresh
-the hashes of any files that have changed.  After you have these two
-files::
+which will update the ``2sure.dat.gz`` file with the new data.  Rust
+uses a "weave" format to hold multiple revisions efficiently in the
+same file.  The update command will refresh the hashes of any files
+that have changed.  After this, you can run:::
 
     $ rsure signoff
 
-will compare the old scan with the current, and report on what has
+to compare the old scan with the current, and report on what has
 changed between them.
