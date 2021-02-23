@@ -55,7 +55,7 @@ pub enum Error {
     #[error("Sql error: {0}")]
     WrappedSql(String),
     #[error("Hash error: {0:?}")]
-    Hash(Box<dyn std::any::Any + Send>),
+    Hash(String),
     #[error("mpsc error: {0:?}")]
     Mpsc(#[from] std::sync::mpsc::RecvError),
 }

@@ -189,7 +189,7 @@ impl <'a, S: Source> HashUpdater<'a, S> {
             }
             trans.commit()?;
             ok_result()
-        }).map_err(|e| Error::Hash(e))??;
+        }).map_err(|e| Error::Hash(format!("{:?}", e)))??;
 
         meter.lock().unwrap().flush();
         Ok(HashMerger {
