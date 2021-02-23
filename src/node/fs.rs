@@ -1,6 +1,7 @@
 /// Sure tree scanning from the filesystem.
 
 use crate::{
+    Error,
     escape::Escape,
     node::SureNode,
     progress::ScanProgress,
@@ -8,7 +9,6 @@ use crate::{
     suretree::AttMap,
     Result,
 };
-use failure::err_msg;
 use log::error;
 use std::{
     collections::VecDeque,
@@ -33,7 +33,7 @@ pub fn scan_fs<P: AsRef<Path>>(root: P) -> Result<ScanIterator> {
     let meta = symlink_metadata(&root)?;
 
     if !meta.is_dir() {
-        return Err(err_msg("Root must be a directory"));
+        return Err(Error::RootMustBeDir);
     }
 
     let atts = encode_atts(&root, &meta);

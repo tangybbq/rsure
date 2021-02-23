@@ -21,8 +21,6 @@ exclude = [
 chrono = "0.4"
 crossbeam = "0.8"
 data-encoding = "2.1.1"
-failure = "0.1.1"
-failure_derive = "0.1.1"
 flate2 = "1.0"
 lazy_static = "1.4"
 libc = "0.2.11"
@@ -34,6 +32,7 @@ regex = "1.4"
 rusqlite = "0.24"
 structopt = "0.3"
 tempdir = "0.3"
+thiserror = "1.0"
 time = "0.1"
 weave = { path = "weave", version = "0.2.0" }
 

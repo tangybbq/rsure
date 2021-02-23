@@ -1,11 +1,11 @@
 //! SCCS-style delta weave stores.
 
 use crate::{
+    Error,
     node,
     store::{Store, StoreTags, StoreVersion, StoreWriter, TempCleaner, TempFile, TempLoader, Version},
     Result, SureNode,
 };
-use failure::format_err;
 use std::{
     env,
     fs::{self, File},
@@ -138,7 +138,8 @@ pub struct NewWeaveWriter<'a> {
 
 impl<'a> StoreWriter<'a> for NewWeaveWriter<'a> {
     fn commit(self: Box<Self>) -> Result<()> {
-        self.weave.close()
+        self.weave.close()?;
+        Ok(())
     }
 }
 
@@ -158,7 +159,8 @@ pub struct NewWeaveDelta<'a> {
 
 impl<'a> StoreWriter<'a> for NewWeaveDelta<'a> {
     fn commit(self: Box<Self>) -> Result<()> {
-        self.weave.close()
+        self.weave.close()?;
+        Ok(())
     }
 }
 
@@ -207,15 +209,15 @@ impl Iterator for WeaveIter {
             }
             b'-' => Some(Ok(SureNode::Sep)),
             b'u' => Some(Ok(SureNode::Leave)),
-            ch => Some(Err(format_err!("Invalid surefile line start: {:?}", ch)))
+            ch => Some(Err(Error::InvalidSurefileChar(ch as char))),
         }
     }
 }
 
 // Filter nodes to only include kept text lines.
-fn kept_text(node: Result<weave::Entry>) -> Option<Result<String>> {
+fn kept_text(node: weave::Result<weave::Entry>) -> Option<Result<String>> {
     match node {
-        Err(e) => Some(Err(e)),
+        Err(e) => Some(Err(e.into())),
         Ok(weave::Entry::Plain { text, keep }) if keep => Some(Ok(text)),
         _ => None,
     }
@@ -231,11 +233,11 @@ fn fixed<I>(pull: &mut I, expect: &str) -> Result<()>
             if line == expect {
                 Ok(())
             } else {
-                Err(format_err!("Unexpected line from weave: {:?} expect {:?}", line, expect))
+                Err(Error::UnexpectedLine(line.into(), expect.into()))
             }
         }
         Some(Err(e)) => Err(e),
-        None => Err(format_err!("Unexpected eof reading suredata")),
+        None => Err(Error::SureFileEof),
     }
 }
 /*

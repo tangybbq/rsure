@@ -1,7 +1,6 @@
 //! Weave parsing
 
-use crate::{header::Header, NamingConvention, Result};
-use failure::err_msg;
+use crate::{header::Header, NamingConvention, Error, Result};
 use flate2::read::GzDecoder;
 use log::info;
 use std::{
@@ -138,7 +137,7 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
                 header,
             })
         } else {
-            Err(err_msg("Weave file appears empty"))
+            Err(Error::EmptyWeave)
         }
     }
 
@@ -383,7 +382,7 @@ impl<B: BufRead> PullParser<B> {
                 header,
             })
         } else {
-            Err(err_msg("Weave file appears empty"))
+            Err(Error::EmptyWeave)
         }
     }
 

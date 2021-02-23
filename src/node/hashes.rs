@@ -1,6 +1,7 @@
 //! Hash updates for node-based sure file.
 
 use crate::{
+    Error,
     progress::Progress,
     node::{
         SureNode,
@@ -16,7 +17,6 @@ use crossbeam::{
     channel::{bounded, Sender},
 };
 use data_encoding::HEXLOWER;
-use failure::format_err;
 use log::{debug, error};
 use rusqlite::{
     types::ToSql,
@@ -189,7 +189,7 @@ impl <'a, S: Source> HashUpdater<'a, S> {
             }
             trans.commit()?;
             ok_result()
-        }).map_err(|e| format_err!("Hash error: {:?}", e))??;
+        }).map_err(|e| Error::Hash(e))??;
 
         meter.lock().unwrap().flush();
         Ok(HashMerger {
@@ -275,9 +275,7 @@ impl <S: Source> HashMerger<S> {
                             }
                         }
                         Some(Err(e)) => {
-                            // TODO: Can we convert this error, rather than
-                            // just printing it?
-                            return Err(format_err!("sql error: {:?}", e));
+                            return Err(Error::WrappedSql(format!("{:?}", e)));
                         }
                         None => break None,
                     }
@@ -360,12 +358,12 @@ impl<Iold, Inew> HashCombiner<Iold, Inew>
         mut right_iter: Inew,
     ) -> Result<HashCombiner<Iold, Inew>> {
         let left = match left_iter.next() {
-            None => return Err(format_err!("Empty left iterator")),
+            None => return Err(Error::EmptyLeftIterator),
             Some(Err(e)) => return Err(e),
             Some(Ok(node)) => node,
         };
         let right = match right_iter.next() {
-            None => return Err(format_err!("Empty right iterator")),
+            None => return Err(Error::EmptyRightIterator),
             Some(Err(e)) => return Err(e),
             Some(Ok(node)) => node,
         };
@@ -469,13 +467,13 @@ impl<Iold, Inew> HashCombiner<Iold, Inew>
 {
     fn visit_root(&mut self) -> Result<VisitResult> {
         if !self.left.is_enter() {
-            vre!(format_err!("Unexpected node in old tree"))
+            vre!(Error::UnexpectedLeftNode)
         } else if !self.right.is_enter() {
-            vre!(format_err!("Unexpected node in new tree"))
+            vre!(Error::UnexpectedRightNode)
         } else if self.left.name() != "__root__" {
-            vre!(format_err!("Old tree root is incorrect name"))
+            vre!(Error::IncorrectName)
         } else if self.right.name() != "__root__" {
-            vre!(format_err!("New tree root is incorrect name"))
+            vre!(Error::IncorrectName)
         } else {
             let _ = self.next_left()?;
             let rnode = self.next_right()?;

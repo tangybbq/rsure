@@ -3,12 +3,11 @@
 //! The information about each weave file is stored in a header, as the first line of the file.
 
 use chrono::{DateTime, Utc};
-use failure::err_msg;
 use serde_derive::{Deserialize, Serialize};
 use serde_json;
 use std::{collections::BTreeMap, io::Write};
 
-use crate::Result;
+use crate::{Error, Result};
 
 /// The header placed at the beginning of the each weave file.
 #[derive(Clone, Serialize, Deserialize)]
@@ -60,7 +59,7 @@ impl Header {
         let name = if let Some(name) = tags.remove("name") {
             name
         } else {
-            return Err(err_msg("No \"name\" tag given"));
+            return Err(Error::NameMissing);
         };
 
         let next_delta = self.deltas.iter().map(|x| x.number).max().unwrap_or(0) + 1;

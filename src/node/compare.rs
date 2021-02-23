@@ -2,9 +2,9 @@
 
 use crate::{
     node::SureNode,
+    Error,
     Result,
 };
-use failure::format_err;
 use log::error;
 use std::{
     collections::HashSet,
@@ -44,12 +44,12 @@ where
     ignore.insert("ino".to_owned());
 
     let ln = match left.next() {
-        None => return Err(format_err!("Empty left iterator")),
+        None => return Err(Error::EmptyLeftIterator),
         Some(Err(e)) => return Err(e),
         Some(Ok(node)) => node,
     };
     let rn = match right.next() {
-        None => return Err(format_err!("Empty right iterator")),
+        None => return Err(Error::EmptyRightIterator),
         Some(Err(e)) => return Err(e),
         Some(Ok(node)) => node,
     };
@@ -100,13 +100,13 @@ impl<IA, IB> State<IA, IB>
 
     fn walk_root(&mut self, dir: &Path) -> Result<()> {
         if !self.left.is_enter() {
-            Err(format_err!("Unexpected node in left tree"))
+            Err(Error::UnexpectedLeftNode)
         } else if !self.right.is_enter() {
-            Err(format_err!("Unexpected node in right tree"))
+            Err(Error::UnexpectedRightNode)
         } else if self.left.name() != "__root__" {
-            Err(format_err!("Old tree root is incorrect name"))
+            Err(Error::IncorrectName)
         } else if self.right.name() != "__root__" {
-            Err(format_err!("New tree root is incorrect name"))
+            Err(Error::IncorrectName)
         } else {
             self.compare_enter(dir)?;
             self.next_left()?;

@@ -25,7 +25,7 @@ use std::{
 };
 
 pub use crate::{
-    errors::{Error, Result, WeaveError},
+    errors::{Error, Result},
     hashes::Estimate,
     node::{
         HashCombiner,

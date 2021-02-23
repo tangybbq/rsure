@@ -14,7 +14,7 @@
 //! means, for example, that a 2-byte encoded UTF-8 sequence will expand to
 //! take 6 bytes.
 
-use failure_derive::Fail;
+use thiserror::Error;
 use std::{io::prelude::*, result};
 
 pub trait Escape {
@@ -27,11 +27,11 @@ pub trait Unescape {
 
 pub type EscapeResult<T> = result::Result<T, EscapeError>;
 
-#[derive(Fail, Debug)]
+#[derive(Error, Debug)]
 pub enum EscapeError {
-    #[fail(display = "Invalid hex character: {:?}", _0)]
+    #[error("Invalid hex character: {0:?}")]
     InvalidHexCharacter(u8),
-    #[fail(display = "Invalid hex length")]
+    #[error("Invalid hex length")]
     InvalidHexLength,
 }
 

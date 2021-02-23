@@ -1,6 +1,5 @@
 //! Add a delta to a weave file.
 
-use failure::{err_msg, format_err};
 use regex::Regex;
 use std::{
     collections::BTreeMap,
@@ -11,7 +10,15 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::{header::Header, NamingConvention, Parser, Result, Sink, WriterInfo};
+use crate::{
+    header::Header,
+    NamingConvention,
+    Parser,
+    Error,
+    Result,
+    Sink,
+    WriterInfo,
+};
 
 /// A DeltaWriter is used to write a new delta.  Data should be written to the writer, and then the
 /// `close` method called to update the weave file with the new delta.
@@ -52,7 +59,7 @@ impl<'n> DeltaWriter<'n> {
             ntags.insert(k.to_owned(), v.to_owned());
         }
         if !ntags.contains_key("name") {
-            return Err(err_msg("DeltaWriter does not contain a tag \"name\""));
+            return Err(Error::NameMissing);
         }
 
         // Extract the base delta to a file.
@@ -98,7 +105,7 @@ impl<'n> DeltaWriter<'n> {
                 drop(wi.writer);
                 wi.name
             }
-            None => return Err(err_msg("DeltaWriter already closed")),
+            None => return Err(Error::AlreadyClosed),
         };
 
         let tweave_info = self.naming.new_temp()?;
@@ -143,7 +150,7 @@ impl<'n> DeltaWriter<'n> {
                     if cmd == 'd' || cmd == 'c' {
                         // These include deletions.
                         match parser.parse_to(left)? {
-                            0 => return Err(err_msg("Unexpected eof")),
+                            0 => return Err(Error::UnexpectedEof),
                             n if n == left => (),
                             _ => panic!("Unexpected parse result"),
                         }
@@ -198,10 +205,10 @@ impl<'n> DeltaWriter<'n> {
         }
 
         match child.wait()?.code() {
-            None => return Err(err_msg("diff killed by signal")),
+            None => return Err(Error::DiffKilled),
             Some(0) => (), // No diffs
             Some(1) => (), // Normal with diffs
-            Some(n) => return Err(format_err!("diff returned error status: {}", n)),
+            Some(n) => return Err(Error::DiffError(n)),
         }
 
         // Now that is all done, clean up the temp files, and cycle the backup.

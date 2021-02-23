@@ -1,8 +1,7 @@
 // Surefile store
 
 use chrono::{DateTime, Utc};
-use crate::{Result, SureNode};
-use failure::err_msg;
+use crate::{Error, Result, SureNode};
 use log::info;
 use std::{
     collections::BTreeMap,
@@ -122,7 +121,7 @@ pub fn parse_store(text: &str) -> Result<Box<dyn Store>> {
     // Otherwise, try to get the parent.  If it seems to be empty, use the current directory as the
     // path.
     let dir = match p.parent() {
-        None => return Err(err_msg("Unknown directory specified")),
+        None => return Err(Error::UnknownDirectory),
         Some(dir) => {
             if dir.as_os_str().is_empty() {
                 Path::new(".")
@@ -133,12 +132,12 @@ pub fn parse_store(text: &str) -> Result<Box<dyn Store>> {
     };
 
     if !dir.is_dir() {
-        return Err(err_msg("File is not in a directory"));
+        return Err(Error::FileNotInDirectory);
     }
 
     let base = match p.file_name() {
         Some(name) => name,
-        None => return Err(err_msg("Path does not have a final file component")),
+        None => return Err(Error::PathMissingFinalFile),
     };
     let base = match base.to_str() {
         Some(name) => name,

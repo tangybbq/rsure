@@ -1,6 +1,5 @@
 //! Writer for new weaves
 
-use failure::err_msg;
 use std::{
     collections::BTreeMap,
     fs::rename,
@@ -8,7 +7,7 @@ use std::{
     mem::replace,
 };
 
-use crate::{header::Header, NamingConvention, Result, WriterInfo};
+use crate::{header::Header, NamingConvention, Error, Result, WriterInfo};
 
 /// A builder for a new weave file.  The data should be written as a writer.  Closing the weaver
 /// will finish up the write and move the new file into place.  If the weaver is just dropped, the
@@ -47,7 +46,7 @@ impl<'n> NewWeave<'n> {
                 writeln!(&mut wi.writer, "\x01E 1")?;
                 wi.name
             }
-            None => return Err(err_msg("NewWeave already closed")),
+            None => return Err(Error::AlreadyClosed),
         };
         let _ = rename(self.naming.main_file(), self.naming.backup_file());
         rename(name, self.naming.main_file())?;

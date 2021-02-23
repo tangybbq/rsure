@@ -6,10 +6,10 @@
 /// temporary space on the hard disk instead of using memory.
 
 use crate::{
+    Error,
     Result,
     suretree::AttMap,
 };
-use failure::{format_err, err_msg};
 use flate2::{write::GzEncoder, read::GzDecoder, Compression};
 use std::{
     fs::File,
@@ -254,12 +254,11 @@ fn fixed<I>(inp: &mut I, exp: &[u8]) -> Result<()>
 {
     match inp.next() {
         Some(Ok(ref text)) if &text[..] == exp => Ok(()),
-        Some(Ok(ref text)) => Err(format_err!(
-                "Unexpected line: {:?}, expect {:?}",
-                String::from_utf8_lossy(text),
-                String::from_utf8_lossy(exp))),
-        Some(Err(e)) => Err(format_err!("Error reading surefile: {:?}", e)),
-        None => Err(err_msg("Unexpected eof on surefile")),
+        Some(Ok(ref text)) => Err(Error::UnexpectedLine(
+                String::from_utf8_lossy(text).into_owned(),
+                String::from_utf8_lossy(exp).into_owned())),
+        Some(Err(e)) => Err(Error::SureFileError(e)),
+        None => Err(Error::SureFileEof),
     }
 }
 
@@ -300,7 +299,7 @@ impl<R: Read> Iterator for ReadIterator<R> {
                 }
                 Some(Ok(SureNode::Leave))
             }
-            ch => Some(Err(format_err!("Invalid surefile line start: {}", ch))),
+            ch => Some(Err(Error::InvalidSurefileChar(ch as char))),
         }
     }
 }
@@ -308,7 +307,7 @@ impl<R: Read> Iterator for ReadIterator<R> {
 impl<R: Read> ReadIterator<R> {
     fn get_line(&mut self) -> Result<Vec<u8>> {
         match self.lines.next() {
-            None => return Err(err_msg("surefile is truncated")),
+            None => return Err(Error::TruncatedSurefile),
             Some(l) => Ok(l?),
         }
     }
