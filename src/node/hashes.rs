@@ -1,37 +1,21 @@
 //! Hash updates for node-based sure file.
 
 use crate::{
-    Error,
+    hashes::{hash_file, noatime_open, Estimate},
+    node::{into_tracker, NodeWriter, SureNode},
     progress::Progress,
-    node::{
-        SureNode,
-        NodeWriter,
-        into_tracker,
-    },
     store::{Store, TempCleaner},
-    Result,
-
-    hashes::{Estimate, hash_file, noatime_open},
+    Error, Result,
 };
-use crossbeam::{
-    channel::{bounded, Sender},
-};
+use crossbeam::channel::{bounded, Sender};
 use data_encoding::HEXLOWER;
 use log::{debug, error};
-use rusqlite::{
-    types::ToSql,
-    Connection,
-    NO_PARAMS,
-};
+use rusqlite::{types::ToSql, Connection, NO_PARAMS};
 use std::{
     io::Write,
     mem,
     path::PathBuf,
-    sync::{
-        Arc,
-        Mutex,
-        mpsc::sync_channel,
-    },
+    sync::{mpsc::sync_channel, Arc, Mutex},
     thread,
 };
 
@@ -55,7 +39,7 @@ pub struct HashMerger<S> {
     _temp: Box<dyn TempCleaner>,
 }
 
-impl <'a, S: Source> HashUpdater<'a, S> {
+impl<'a, S: Source> HashUpdater<'a, S> {
     pub fn new(source: S, store: &dyn Store) -> HashUpdater<S> {
         HashUpdater {
             source: source,
@@ -87,12 +71,13 @@ impl <'a, S: Source> HashUpdater<'a, S> {
                                 tx.send(Some(HashInfo {
                                     id: count,
                                     hash: h.as_ref().to_owned(),
-                                })).unwrap();
+                                }))
+                                .unwrap();
                             }
                             Err(e) => {
                                 error!("Unable to hash file: '{:?}' ({})", path, e);
                             }
-                        }
+                        },
                         Err(e) => {
                             error!("Unable to open '{:?}' for hashing ({})", path, e);
                         }
@@ -112,8 +97,8 @@ impl <'a, S: Source> HashUpdater<'a, S> {
         while let Some(info) = rx.recv()? {
             trans.execute(
                 "INSERT INTO hashes (id, hash) VALUES (?1, ?2)",
-                &[&info.id as &dyn ToSql,
-                &info.hash as &dyn ToSql])?;
+                &[&info.id as &dyn ToSql, &info.hash as &dyn ToSql],
+            )?;
         }
         trans.commit()?;
 
@@ -156,18 +141,20 @@ impl <'a, S: Source> HashUpdater<'a, S> {
                     let entry = entry.unwrap(); // TODO: Handle error.
                     if entry.node.needs_hash() {
                         let path = entry.path.unwrap();
-                        work_send.send(HashWork {
-                            id: count,
-                            path: path,
-                            size: entry.node.size(),
-                        }).unwrap();
+                        work_send
+                            .send(HashWork {
+                                id: count,
+                                path: path,
+                                size: entry.node.size(),
+                            })
+                            .unwrap();
                         count += 1;
                     }
                 }
             });
 
             // Fire off a thread for each worker.
-            for _ in 0 .. ncpu {
+            for _ in 0..ncpu {
                 let work_recv = work_recv.clone();
                 let result_send = result_send.clone();
                 let meter2 = meter2.clone();
@@ -182,14 +169,17 @@ impl <'a, S: Source> HashUpdater<'a, S> {
             // And, in the main thread, take all of the results, and add
             // them to the sql database.
             for info in result_recv {
-                trans.execute(
-                    "INSERT INTO hashes (id, hash) VALUES (?1, ?2)",
-                    &[&info.id as &dyn ToSql,
-                    &info.hash as &dyn ToSql]).unwrap();
+                trans
+                    .execute(
+                        "INSERT INTO hashes (id, hash) VALUES (?1, ?2)",
+                        &[&info.id as &dyn ToSql, &info.hash as &dyn ToSql],
+                    )
+                    .unwrap();
             }
             trans.commit()?;
             ok_result()
-        }).map_err(|e| Error::Hash(format!("{:?}", e)))??;
+        })
+        .map_err(|e| Error::Hash(format!("{:?}", e)))??;
 
         meter.lock().unwrap().flush();
         Ok(HashMerger {
@@ -209,7 +199,8 @@ impl <'a, S: Source> HashUpdater<'a, S> {
             "CREATE TABLE hashes (
                 id INTEGER PRIMARY KEY,
                 hash BLOB)",
-            NO_PARAMS)?;
+            NO_PARAMS,
+        )?;
 
         Ok((conn, tmp.into_cleaner()?))
     }
@@ -219,15 +210,17 @@ fn hash_one_file(work: &HashWork, sender: &Sender<HashInfo>, meter: &Arc<Mutex<P
     match noatime_open(&work.path) {
         Ok(mut fd) => match hash_file(&mut fd) {
             Ok(ref h) => {
-                sender.send(HashInfo {
-                    id: work.id,
-                    hash: h.as_ref().to_owned(),
-                }).unwrap();
+                sender
+                    .send(HashInfo {
+                        id: work.id,
+                        hash: h.as_ref().to_owned(),
+                    })
+                    .unwrap();
             }
             Err(e) => {
                 error!("Unable to hash file: '{:?}' ({})", work.path, e);
             }
-        }
+        },
         Err(e) => {
             error!("Unable to open '{:?}' for hashing ({})", work.path, e);
         }
@@ -240,19 +233,23 @@ fn ok_result() -> Result<()> {
     Ok(())
 }
 
-impl <S: Source> HashMerger<S> {
+impl<S: Source> HashMerger<S> {
     /// Second pass.  Merge the updated hashes back into the data.  Note
     /// that this is 'push' based instead of 'pull' because there is a
     /// chain of lifetime dependencies from Connection->Statement->Rows and
     /// if we tried to return something holding the Rows iterator, the user
     /// would have to manage these lifetimes.
     pub fn merge<W: Write>(self, writer: &mut NodeWriter<W>) -> Result<()> {
-        let mut stmt = self.conn.prepare("SELECT id, hash FROM hashes ORDER BY id")?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, hash FROM hashes ORDER BY id")?;
         let mut hash_iter = stmt
-            .query_map(NO_PARAMS, |row| Ok(HashInfo {
-                id: row.get(0)?,
-                hash: row.get(1)?,
-            }))?
+            .query_map(NO_PARAMS, |row| {
+                Ok(HashInfo {
+                    id: row.get(0)?,
+                    hash: row.get(1)?,
+                })
+            })?
             .peekable();
 
         let mut count = 0;
@@ -316,7 +313,6 @@ pub struct HashCombiner<Iold: Iterator, Inew: Iterator> {
     // traversal, we always have a node to view, which makes this simpler
     // to use than Peekable, where every call can return a node or a
     // failure.
-
     /// The current head of the left tree.
     left: SureNode,
     /// The current head of the right tree.
@@ -349,14 +345,11 @@ enum CombineState {
 }
 
 impl<Iold, Inew> HashCombiner<Iold, Inew>
-    where
-        Iold: Iterator<Item = Result<SureNode>>,
-        Inew: Iterator<Item = Result<SureNode>>,
+where
+    Iold: Iterator<Item = Result<SureNode>>,
+    Inew: Iterator<Item = Result<SureNode>>,
 {
-    pub fn new(
-        mut left_iter: Iold,
-        mut right_iter: Inew,
-    ) -> Result<HashCombiner<Iold, Inew>> {
+    pub fn new(mut left_iter: Iold, mut right_iter: Inew) -> Result<HashCombiner<Iold, Inew>> {
         let left = match left_iter.next() {
             None => return Err(Error::EmptyLeftIterator),
             Some(Err(e)) => return Err(e),
@@ -417,11 +410,15 @@ enum VisitResult {
 }
 
 macro_rules! vre {
-    ($err:expr) => (Err($err))
+    ($err:expr) => {
+        Err($err)
+    };
 }
 
 macro_rules! vro {
-    ($result:expr) => (Ok(VisitResult::Node($result)))
+    ($result:expr) => {
+        Ok(VisitResult::Node($result))
+    };
 }
 
 // The iterator for the hash combiner.  This iterator lazily traverses two
@@ -430,8 +427,9 @@ macro_rules! vro {
 // with 'sha1' values carried over from the old tree when there is a
 // sufficient match.
 impl<Iold, Inew> Iterator for HashCombiner<Iold, Inew>
-    where Iold: Iterator<Item = Result<SureNode>>,
-          Inew: Iterator<Item = Result<SureNode>>
+where
+    Iold: Iterator<Item = Result<SureNode>>,
+    Inew: Iterator<Item = Result<SureNode>>,
 {
     type Item = Result<SureNode>;
 
@@ -462,8 +460,9 @@ impl<Iold, Inew> Iterator for HashCombiner<Iold, Inew>
 
 // The body, a method for each state.
 impl<Iold, Inew> HashCombiner<Iold, Inew>
-    where Iold: Iterator<Item = Result<SureNode>>,
-          Inew: Iterator<Item = Result<SureNode>>
+where
+    Iold: Iterator<Item = Result<SureNode>>,
+    Inew: Iterator<Item = Result<SureNode>>,
 {
     fn visit_root(&mut self) -> Result<VisitResult> {
         if !self.left.is_enter() {
@@ -556,7 +555,7 @@ impl<Iold, Inew> HashCombiner<Iold, Inew>
                 self.state.push(CombineState::SameFiles);
                 let _ = self.next_left()?;
                 Ok(VisitResult::Continue)
-            },
+            }
             (false, false) => {
                 self.state.push(CombineState::SameFiles);
 
@@ -574,7 +573,7 @@ impl<Iold, Inew> HashCombiner<Iold, Inew>
                     // A new name with no corresponding old name.
                     vro!(self.next_right()?)
                 }
-            },
+            }
         }
     }
 

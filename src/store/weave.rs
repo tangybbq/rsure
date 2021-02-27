@@ -1,10 +1,11 @@
 //! SCCS-style delta weave stores.
 
 use crate::{
-    Error,
     node,
-    store::{Store, StoreTags, StoreVersion, StoreWriter, TempCleaner, TempFile, TempLoader, Version},
-    Result, SureNode,
+    store::{
+        Store, StoreTags, StoreVersion, StoreWriter, TempCleaner, TempFile, TempLoader, Version,
+    },
+    Error, Result, SureNode,
 };
 use std::{
     env,
@@ -12,7 +13,9 @@ use std::{
     io::{self, BufRead, BufReader, BufWriter, Write},
     path::{Path, PathBuf},
 };
-use weave::{self, DeltaWriter, NamingConvention, NewWeave, NullSink, Parser, PullParser, SimpleNaming};
+use weave::{
+    self, DeltaWriter, NamingConvention, NewWeave, NullSink, Parser, PullParser, SimpleNaming,
+};
 
 pub struct WeaveStore {
     naming: SimpleNaming,
@@ -36,7 +39,8 @@ impl Store for WeaveStore {
                 name: v.name.clone(),
                 time: v.time,
                 version: Version::Tagged(v.number.to_string()),
-            }).collect();
+            })
+            .collect();
         versions.reverse();
         Ok(versions)
     }
@@ -183,7 +187,9 @@ impl WeaveIter {
         let mut pull = PullParser::new(naming, delta)?.filter_map(kept_text);
         fixed(&mut pull, "asure-2.0")?;
         fixed(&mut pull, "-----")?;
-        Ok(WeaveIter { pull: Box::new(pull) })
+        Ok(WeaveIter {
+            pull: Box::new(pull),
+        })
     }
 }
 
@@ -201,11 +207,17 @@ impl Iterator for WeaveIter {
         match line[0] {
             b'd' => {
                 let (dname, datts) = node::decode_entity(&line[1..]);
-                Some(Ok(SureNode::Enter{name: dname, atts: datts}))
+                Some(Ok(SureNode::Enter {
+                    name: dname,
+                    atts: datts,
+                }))
             }
             b'f' => {
                 let (fname, fatts) = node::decode_entity(&line[1..]);
-                Some(Ok(SureNode::File{name: fname, atts: fatts}))
+                Some(Ok(SureNode::File {
+                    name: fname,
+                    atts: fatts,
+                }))
             }
             b'-' => Some(Ok(SureNode::Sep)),
             b'u' => Some(Ok(SureNode::Leave)),
@@ -226,7 +238,8 @@ fn kept_text(node: weave::Result<weave::Entry>) -> Option<Result<String>> {
 /// Try reading a specific line from the given iterator.  Returns Err if
 /// the line didn't match, or something went wrong with the read.
 fn fixed<I>(pull: &mut I, expect: &str) -> Result<()>
-    where I: Iterator<Item = Result<String>>
+where
+    I: Iterator<Item = Result<String>>,
 {
     match pull.next() {
         Some(Ok(line)) => {
@@ -271,4 +284,4 @@ impl Drop for FileClean {
     }
 }
 
-impl TempCleaner for FileClean{}
+impl TempCleaner for FileClean {}

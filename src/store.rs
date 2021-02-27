@@ -1,7 +1,7 @@
 // Surefile store
 
-use chrono::{DateTime, Utc};
 use crate::{Error, Result, SureNode};
+use chrono::{DateTime, Utc};
 use log::info;
 use std::{
     collections::BTreeMap,
@@ -70,7 +70,7 @@ pub trait StoreWriter<'a>: Write {
     fn commit(self: Box<Self>) -> Result<()>;
 }
 
-pub trait TempCleaner{}
+pub trait TempCleaner {}
 
 /// Indicator of which version of sure data to load.
 #[derive(Clone, Debug)]
@@ -87,7 +87,7 @@ impl Version {
     pub fn numeric(&self) -> Option<usize> {
         match self {
             Version::Latest | Version::Prior => None,
-            Version::Tagged(text) => text.parse().ok()
+            Version::Tagged(text) => text.parse().ok(),
         }
     }
 }

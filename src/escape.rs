@@ -14,8 +14,8 @@
 //! means, for example, that a 2-byte encoded UTF-8 sequence will expand to
 //! take 6 bytes.
 
-use thiserror::Error;
 use std::{io::prelude::*, result};
+use thiserror::Error;
 
 pub trait Escape {
     fn escaped(&self) -> String;

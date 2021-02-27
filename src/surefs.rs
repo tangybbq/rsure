@@ -1,9 +1,6 @@
 // Filesystem scanning.
 
-use crate::{
-    escape::*,
-    suretree::AttMap,
-};
+use crate::{escape::*, suretree::AttMap};
 use log::error;
 
 use libc;

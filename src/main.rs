@@ -7,11 +7,7 @@ use std::{collections::BTreeMap, path::Path};
 use structopt::StructOpt;
 use tempdir::TempDir;
 
-use rsure::{
-    log_init, parse_store, show_tree, StoreTags, StoreVersion,
-    Store,
-    Version,
-};
+use rsure::{log_init, parse_store, show_tree, Store, StoreTags, StoreVersion, Version};
 
 // For now, just use the crate's error type.
 pub use rsure::Result;

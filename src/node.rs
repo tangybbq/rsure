@@ -4,42 +4,29 @@
 /// representations as iterators across SureNodes instead of keeping an
 /// entire tree in memory, we can process larger filesystem trees, using
 /// temporary space on the hard disk instead of using memory.
-
-use crate::{
-    Error,
-    Result,
-    suretree::AttMap,
-};
-use flate2::{write::GzEncoder, read::GzDecoder, Compression};
+use crate::{suretree::AttMap, Error, Result};
+use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use std::{
     fs::File,
-    io::{self, BufWriter, BufRead, BufReader, Read, Write},
+    io::{self, BufRead, BufReader, BufWriter, Read, Write},
     path::{Path, PathBuf},
 };
-use weave::{
-    NamingConvention,
-};
+use weave::NamingConvention;
 
 mod compare;
 pub mod fs;
 mod fullpath;
 mod hashes;
 
+pub use compare::compare_trees;
 pub use fullpath::into_tracker;
 pub use hashes::{HashCombiner, HashUpdater, Source};
-pub use compare::compare_trees;
 
 #[derive(Clone, Debug)]
 pub enum SureNode {
-    Enter {
-        name: String,
-        atts: AttMap,
-    },
+    Enter { name: String, atts: AttMap },
     Leave,
-    File {
-        name: String,
-        atts: AttMap,
-    },
+    File { name: String, atts: AttMap },
     Sep,
 }
 
@@ -88,8 +75,9 @@ impl SureNode {
 
     pub fn size(&self) -> u64 {
         match self {
-            SureNode::File { atts, .. } =>
-                atts.get("size").map(|x| x.parse().unwrap()).unwrap_or(0),
+            SureNode::File { atts, .. } => {
+                atts.get("size").map(|x| x.parse().unwrap()).unwrap_or(0)
+            }
             _ => 0,
         }
     }
@@ -117,11 +105,7 @@ impl SureNode {
     /// if the kind isn't meaningful.
     pub fn kind(&self) -> &str {
         self.atts()
-            .map(|a| {
-                a.get("kind")
-                    .map(|k| &k[..])
-                    .unwrap_or("???")
-            })
+            .map(|a| a.get("kind").map(|k| &k[..]).unwrap_or("???"))
             .unwrap_or("???")
     }
 
@@ -149,8 +133,9 @@ impl SureNode {
 
 /// Write a sure iterator to a standard gzipped file of the given name.
 pub fn save<P, I>(name: P, nodes: I) -> Result<()>
-    where P: AsRef<Path>,
-          I: Iterator<Item = Result<SureNode>>,
+where
+    P: AsRef<Path>,
+    I: Iterator<Item = Result<SureNode>>,
 {
     let wr = File::create(name)?;
     let wr = GzEncoder::new(wr, Compression::default());
@@ -161,8 +146,9 @@ pub fn save<P, I>(name: P, nodes: I) -> Result<()>
 /// convention.  Returns the name of the file, if it could be created.  The
 /// data will not be written compressed.
 pub fn save_naming<I, N>(naming: &N, nodes: I) -> Result<PathBuf>
-    where N: NamingConvention,
-          I: Iterator<Item = Result<SureNode>>,
+where
+    N: NamingConvention,
+    I: Iterator<Item = Result<SureNode>>,
 {
     let (tmp_name, mut tmp_file) = naming.temp_file()?;
     save_to(&mut tmp_file, nodes)?;
@@ -171,8 +157,9 @@ pub fn save_naming<I, N>(naming: &N, nodes: I) -> Result<PathBuf>
 
 /// Save a sure tree to the given writer.
 pub fn save_to<W, I>(wr: W, nodes: I) -> Result<()>
-    where W: Write,
-          I: Iterator<Item = Result<SureNode>>,
+where
+    W: Write,
+    I: Iterator<Item = Result<SureNode>>,
 {
     let mut wr = BufWriter::new(wr);
 
@@ -201,9 +188,7 @@ impl<W: Write> NodeWriter<W> {
         writeln!(&mut wr, "asure-2.0")?;
         writeln!(&mut wr, "-----")?;
 
-        Ok(NodeWriter {
-            writer: wr,
-        })
+        Ok(NodeWriter { writer: wr })
     }
 
     pub fn write_node(&mut self, node: &SureNode) -> Result<()> {
@@ -250,13 +235,15 @@ pub fn load_from<R: Read>(rd: R) -> Result<ReadIterator<R>> {
 }
 
 fn fixed<I>(inp: &mut I, exp: &[u8]) -> Result<()>
-    where I: Iterator<Item = io::Result<Vec<u8>>>
+where
+    I: Iterator<Item = io::Result<Vec<u8>>>,
 {
     match inp.next() {
         Some(Ok(ref text)) if &text[..] == exp => Ok(()),
         Some(Ok(ref text)) => Err(Error::UnexpectedLine(
-                String::from_utf8_lossy(text).into_owned(),
-                String::from_utf8_lossy(exp).into_owned())),
+            String::from_utf8_lossy(text).into_owned(),
+            String::from_utf8_lossy(exp).into_owned(),
+        )),
         Some(Err(e)) => Err(Error::SureFileError(e)),
         None => Err(Error::SureFileEof),
     }
@@ -285,11 +272,17 @@ impl<R: Read> Iterator for ReadIterator<R> {
             b'd' => {
                 let (dname, datts) = decode_entity(&line[1..]);
                 self.depth += 1;
-                Some(Ok(SureNode::Enter{name: dname, atts: datts}))
+                Some(Ok(SureNode::Enter {
+                    name: dname,
+                    atts: datts,
+                }))
             }
             b'f' => {
                 let (fname, fatts) = decode_entity(&line[1..]);
-                Some(Ok(SureNode::File{name: fname, atts: fatts}))
+                Some(Ok(SureNode::File {
+                    name: fname,
+                    atts: fatts,
+                }))
             }
             b'-' => Some(Ok(SureNode::Sep)),
             b'u' => {

@@ -1,15 +1,8 @@
 //! Compare two iterator-based trees.
 
-use crate::{
-    node::SureNode,
-    Error,
-    Result,
-};
+use crate::{node::SureNode, Error, Result};
 use log::error;
-use std::{
-    collections::HashSet,
-    path::Path,
-};
+use std::{collections::HashSet, path::Path};
 
 /// This is the mutable state that is threaded through the recursive
 /// traversal of the two trees.
@@ -67,8 +60,9 @@ where
 }
 
 impl<IA, IB> State<IA, IB>
-    where IA: Iterator<Item = Result<SureNode>>,
-          IB: Iterator<Item = Result<SureNode>>
+where
+    IA: Iterator<Item = Result<SureNode>>,
+    IB: Iterator<Item = Result<SureNode>>,
 {
     /// Advance the left iterator.  If it sees the end, it will drop in a
     /// "Leave" node, which shouldn't be visited as long as the tree is
@@ -236,7 +230,11 @@ impl<IA, IB> State<IA, IB>
     /// Print a message about something added (the name will be the thing
     /// on the right.
     fn show_add(&self, dir: &Path) {
-        println!("+ {:22} {:?}", self.right.kind(), dir.join(self.right.name()));
+        println!(
+            "+ {:22} {:?}",
+            self.right.kind(),
+            dir.join(self.right.name())
+        );
     }
 
     /// Print a message about something removed (the name will be the thing

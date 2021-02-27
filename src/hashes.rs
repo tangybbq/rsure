@@ -1,12 +1,8 @@
 //! Computing hashes for files.
 
-use crate::{
-    Result,
-};
+use crate::Result;
 use openssl::hash::{DigestBytes, Hasher, MessageDigest};
-use std::{
-    io::{Read, Write},
-};
+use std::io::{Read, Write};
 #[derive(Debug)]
 pub struct Estimate {
     pub files: u64,

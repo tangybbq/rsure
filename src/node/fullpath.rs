@@ -9,19 +9,16 @@
 //! more complicated that avoids computing (and allocating) the result
 //! paths for each node encountered.
 
-use crate::{
-    escape::Unescape,
-    node::SureNode,
-    Result,
-};
+use crate::{escape::Unescape, node::SureNode, Result};
 use std::{
     ffi::OsString,
-    path::{Path, PathBuf},
     os::unix::ffi::OsStringExt,
+    path::{Path, PathBuf},
 };
 
 pub fn into_tracker<I>(iter: I, root: &str) -> impl Iterator<Item = Result<PathedNode>>
-    where I: Iterator<Item = Result<SureNode>>
+where
+    I: Iterator<Item = Result<SureNode>>,
 {
     let root: OsString = OsStringExt::from_vec(root.unescape().unwrap());
     let mut cur = Path::new(&root).to_path_buf();

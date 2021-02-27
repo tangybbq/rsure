@@ -1,7 +1,7 @@
 // Errors.
 
+use std::result;
 use thiserror::Error;
-use std::{/*process::ExitStatus,*/ result};
 
 pub type Result<T> = result::Result<T, Error>;
 #[derive(Error, Debug)]

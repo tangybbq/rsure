@@ -1,10 +1,6 @@
 // Show module.
 
-use crate::{
-    Store,
-    Result,
-    Version,
-};
+use crate::{Result, Store, Version};
 
 pub fn show_tree(store: &dyn Store) -> Result<()> {
     for node in store.load_iter(Version::Latest)? {

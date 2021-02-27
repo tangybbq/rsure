@@ -1,13 +1,7 @@
 /// Sure tree scanning from the filesystem.
-
 use crate::{
-    Error,
-    escape::Escape,
-    node::SureNode,
-    progress::ScanProgress,
-    surefs::encode_atts,
-    suretree::AttMap,
-    Result,
+    escape::Escape, node::SureNode, progress::ScanProgress, surefs::encode_atts, suretree::AttMap,
+    Error, Result,
 };
 use log::error;
 use std::{
@@ -68,7 +62,12 @@ impl Iterator for ScanIterator {
         match self.todo.pop_front() {
             None => None,
             Some(AugNode::Normal(e)) => Some(Ok(e)),
-            Some(AugNode::SubDir { path, name, atts, meta }) => {
+            Some(AugNode::SubDir {
+                path,
+                name,
+                atts,
+                meta,
+            }) => {
                 // Push the contents of this directory.  Unless we have
                 // crossed a mountpoint.
                 if !meta.is_dir() || meta.dev() == self.root_dev {
@@ -84,7 +83,7 @@ impl Iterator for ScanIterator {
                     name: name,
                     atts: atts,
                 }))
-            },
+            }
         }
     }
 }
@@ -104,24 +103,23 @@ impl ScanIterator {
 
         let mut files: Vec<_> = entries
             .iter()
-            .filter_map(|e| {
-                match e.metadata() {
-                    Ok(m) => {
-                        let path = e.path();
-                        let atts = encode_atts(&path, &m);
+            .filter_map(|e| match e.metadata() {
+                Ok(m) => {
+                    let path = e.path();
+                    let atts = encode_atts(&path, &m);
 
-                        Some(OneFile {
-                            path: path,
-                            meta: m,
-                            atts: atts,
-                        })
-                    }
-                    Err(err) => {
-                        error!("Unable to stat file: {:?} ({})", e.path(), err);
-                        None
-                    }
+                    Some(OneFile {
+                        path: path,
+                        meta: m,
+                        atts: atts,
+                    })
                 }
-            }).collect();
+                Err(err) => {
+                    error!("Unable to stat file: {:?} ({})", e.path(), err);
+                    None
+                }
+            })
+            .collect();
 
         // Sort them back by name.
         files.sort_by(|a, b| a.path.file_name().cmp(&b.path.file_name()));
@@ -131,10 +129,8 @@ impl ScanIterator {
         self.progress.update(
             dirs.len() as u64,
             files.len() as u64,
-            files
-                .iter()
-                .map(|x| x.meta.len())
-                .sum());
+            files.iter().map(|x| x.meta.len()).sum(),
+        );
 
         self.todo.push_front(AugNode::Normal(SureNode::Leave));
 

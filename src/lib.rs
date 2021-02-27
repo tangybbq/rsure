@@ -19,35 +19,18 @@
 
 #![warn(bare_trait_objects)]
 
-use std::{
-    fs::File,
-    path::Path,
-};
+use std::{fs::File, path::Path};
 
 pub use crate::{
     errors::{Error, Result},
     hashes::Estimate,
     node::{
-        HashCombiner,
-        HashUpdater,
-        NodeWriter,
-        ReadIterator,
-        Source,
+        compare_trees, fs, load_from, HashCombiner, HashUpdater, NodeWriter, ReadIterator, Source,
         SureNode,
-        compare_trees,
-        fs,
-        load_from,
     },
     progress::{log_init, Progress},
     show::show_tree,
-    store::{
-        Store,
-        StoreTags,
-        StoreVersion,
-        TempLoader,
-        Version,
-        parse_store,
-    },
+    store::{parse_store, Store, StoreTags, StoreVersion, TempLoader, Version},
     suretree::AttMap,
 };
 
@@ -103,25 +86,23 @@ pub fn update<P: AsRef<Path>>(
             let src = fs::scan_fs(dir)?;
             node::save_to(&mut tmp, src)?;
             tmp
-        }.into_loader()?;
+        }
+        .into_loader()?;
 
         let latest = store.load_iter(Version::Latest)?;
 
         let tmp = {
             let mut tmp = store.make_temp()?;
             let loader = Loader(&*scan_temp);
-            let combiner = HashCombiner::new(latest, loader.iter()?)?
-                .inspect(|node| {
-                    match node {
-                        Ok(n @ SureNode::File { .. }) => {
-                            if n.needs_hash() {
-                                estimate.files += 1;
-                                estimate.bytes += n.size();
-                            }
-                        }
-                        _ => (),
+            let combiner = HashCombiner::new(latest, loader.iter()?)?.inspect(|node| match node {
+                Ok(n @ SureNode::File { .. }) => {
+                    if n.needs_hash() {
+                        estimate.files += 1;
+                        estimate.bytes += n.size();
                     }
-                });
+                }
+                _ => (),
+            });
             node::save_to(&mut tmp, combiner)?;
             tmp
         };
@@ -129,22 +110,22 @@ pub fn update<P: AsRef<Path>>(
         tmp
     } else {
         let mut tmp = store.make_temp()?;
-        let src = fs::scan_fs(dir)?
-            .inspect(|node| {
-                match node {
-                    // TODO: This is only correct if this is not an update.
-                    Ok(n @ SureNode::File { .. }) => {
-                        if n.needs_hash() {
-                            estimate.files += 1;
-                            estimate.bytes += n.size();
-                        }
+        let src = fs::scan_fs(dir)?.inspect(|node| {
+            match node {
+                // TODO: This is only correct if this is not an update.
+                Ok(n @ SureNode::File { .. }) => {
+                    if n.needs_hash() {
+                        estimate.files += 1;
+                        estimate.bytes += n.size();
                     }
-                    _ => (),
                 }
-            });
+                _ => (),
+            }
+        });
         node::save_to(&mut tmp, src)?;
         tmp
-    }.into_loader()?;
+    }
+    .into_loader()?;
 
     // TODO: If this is an update, pull in hashes from the old version.
 
@@ -157,23 +138,23 @@ pub fn update<P: AsRef<Path>>(
     hm.merge(&mut NodeWriter::new(&mut tmp2)?)?;
 
     tmp2.commit()?;
-/*
-    let dir = dir.as_ref();
+    /*
+        let dir = dir.as_ref();
 
-    let mut new_tree = scan_fs(dir)?;
+        let mut new_tree = scan_fs(dir)?;
 
-    if is_update {
-        let old_tree = store.load(Version::Latest)?;
-        new_tree.update_from(&old_tree);
-    }
+        if is_update {
+            let old_tree = store.load(Version::Latest)?;
+            new_tree.update_from(&old_tree);
+        }
 
-    let estimate = new_tree.hash_estimate();
-    let mut progress = Progress::new(estimate.files, estimate.bytes);
-    new_tree.hash_update(dir, &mut progress);
-    progress.flush();
+        let estimate = new_tree.hash_estimate();
+        let mut progress = Progress::new(estimate.files, estimate.bytes);
+        new_tree.hash_update(dir, &mut progress);
+        progress.flush();
 
-    store.write_new(&new_tree, tags)?;
-*/
+        store.write_new(&new_tree, tags)?;
+    */
     Ok(())
 }
 
