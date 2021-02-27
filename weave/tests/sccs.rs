@@ -9,7 +9,7 @@ extern crate rand;
 extern crate tempdir;
 extern crate weave;
 
-use rand::{Rng, SeedableRng, rngs::StdRng};
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::env;
@@ -271,8 +271,8 @@ impl Gen {
             match line {
                 Entry::Plain { keep, text } if keep => {
                     nums.push(text.parse::<usize>().unwrap());
-                },
-                _ => ()
+                }
+                _ => (),
             }
         }
 

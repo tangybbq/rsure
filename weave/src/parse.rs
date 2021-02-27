@@ -1,6 +1,6 @@
 //! Weave parsing
 
-use crate::{header::Header, NamingConvention, Error, Result};
+use crate::{header::Header, Error, NamingConvention, Result};
 use flate2::read::GzDecoder;
 use log::info;
 use std::{
@@ -44,26 +44,17 @@ pub trait Sink {
 #[derive(Debug)]
 pub enum Entry {
     /// Begin an insert sequence for the given delta.
-    Insert {
-        delta: usize,
-    },
+    Insert { delta: usize },
 
     /// Begin a delete sequence.
-    Delete {
-        delta: usize,
-    },
+    Delete { delta: usize },
 
     /// End a previous insert or delete.
-    End {
-        delta: usize,
-    },
+    End { delta: usize },
 
     /// A single line of plaintext from the weave.  `keep` indicates if the
     /// line should be included in the requested delta.
-    Plain {
-        text: String,
-        keep: bool,
-    },
+    Plain { text: String, keep: bool },
 }
 
 /// A Parser is used to process a weave file, extracting either everything, or only a specific
@@ -254,13 +245,7 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
             .binary_search_by(|ent| delta.cmp(&ent.delta))
         {
             Ok(_) => panic!("Duplicate state in push"),
-            Err(pos) => self.delta_state.insert(
-                pos,
-                OneDelta {
-                    delta,
-                    mode,
-                },
-            ),
+            Err(pos) => self.delta_state.insert(pos, OneDelta { delta, mode }),
         }
     }
 
@@ -366,10 +351,7 @@ impl<B: BufRead> PullParser<B> {
     /// Construct a new Parser, reading from the given Reader.  The parser
     /// will act as an iterator.  This is the intended constructor, normal
     /// users should use `new`.  (This is public for testing).
-    pub fn new_raw(
-        mut source: Lines<B>,
-        delta: usize,
-    ) -> Result<PullParser<B>> {
+    pub fn new_raw(mut source: Lines<B>, delta: usize) -> Result<PullParser<B>> {
         if let Some(line) = source.next() {
             let line = line?;
             let header = Header::decode(&line)?;
@@ -408,13 +390,7 @@ impl<B: BufRead> PullParser<B> {
             .binary_search_by(|ent| delta.cmp(&ent.delta))
         {
             Ok(_) => panic!("Duplicate state in push"),
-            Err(pos) => self.delta_state.insert(
-                pos,
-                OneDelta {
-                    delta,
-                    mode,
-                },
-            ),
+            Err(pos) => self.delta_state.insert(pos, OneDelta { delta, mode }),
         }
     }
 
@@ -449,7 +425,6 @@ impl<B: BufRead> PullParser<B> {
     pub fn into_header(self) -> Header {
         self.header
     }
-
 }
 
 impl<B: BufRead> Iterator for PullParser<B> {
@@ -497,7 +472,7 @@ impl<B: BufRead> Iterator for PullParser<B> {
             b'E' => {
                 self.pop(this_delta);
                 self.update_keep();
-                return Some(Ok(Entry::End{ delta: this_delta }));
+                return Some(Ok(Entry::End { delta: this_delta }));
             }
             b'I' => {
                 if self.delta >= this_delta {
@@ -507,7 +482,7 @@ impl<B: BufRead> Iterator for PullParser<B> {
                 }
                 self.update_keep();
 
-                return Some(Ok(Entry::Insert{ delta: this_delta }));
+                return Some(Ok(Entry::Insert { delta: this_delta }));
             }
             b'D' => {
                 if self.delta >= this_delta {
@@ -517,7 +492,7 @@ impl<B: BufRead> Iterator for PullParser<B> {
                 }
                 self.update_keep();
 
-                return Some(Ok(Entry::Delete{ delta: this_delta }));
+                return Some(Ok(Entry::Delete { delta: this_delta }));
             }
             _ => unreachable!(),
         }

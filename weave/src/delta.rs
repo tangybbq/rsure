@@ -10,15 +10,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::{
-    header::Header,
-    NamingConvention,
-    Parser,
-    Error,
-    Result,
-    Sink,
-    WriterInfo,
-};
+use crate::{header::Header, Error, NamingConvention, Parser, Result, Sink, WriterInfo};
 
 /// A DeltaWriter is used to write a new delta.  Data should be written to the writer, and then the
 /// `close` method called to update the weave file with the new delta.

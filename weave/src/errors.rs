@@ -1,10 +1,7 @@
 // Errors in the weave code.
 
+use std::{io, result};
 use thiserror::Error;
-use std::{
-    io,
-    result,
-};
 
 #[derive(Error, Debug)]
 pub enum Error {

@@ -46,10 +46,7 @@ pub trait NamingConvention {
         } else {
             Box::new(BufWriter::new(file)) as Box<dyn Write>
         };
-        Ok(WriterInfo {
-            name,
-            writer,
-        })
+        Ok(WriterInfo { name, writer })
     }
 }
 
