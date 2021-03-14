@@ -288,7 +288,7 @@ impl<R: Read> Iterator for ReadIterator<R> {
 impl<R: Read> ReadIterator<R> {
     fn get_line(&mut self) -> Result<Vec<u8>> {
         match self.lines.next() {
-            None => return Err(Error::TruncatedSurefile),
+            None => Err(Error::TruncatedSurefile),
             Some(l) => Ok(l?),
         }
     }
