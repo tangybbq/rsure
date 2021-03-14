@@ -3,7 +3,6 @@
 use crate::{escape::*, suretree::AttMap};
 use log::error;
 
-use libc;
 use std::{
     fs::{self, Metadata},
     os::unix::prelude::*,

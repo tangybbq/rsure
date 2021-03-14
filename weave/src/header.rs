@@ -4,7 +4,6 @@
 
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
-use serde_json;
 use std::{collections::BTreeMap, io::Write};
 
 use crate::{Error, Result};
