@@ -32,10 +32,7 @@ pub enum SureNode {
 
 impl SureNode {
     pub fn is_enter(&self) -> bool {
-        match self {
-            SureNode::Enter { .. } => true,
-            _ => false,
-        }
+        matches!(self, SureNode::Enter { .. })
     }
 
     pub fn is_reg_file(&self) -> bool {
@@ -46,24 +43,15 @@ impl SureNode {
     }
 
     pub fn is_file(&self) -> bool {
-        match self {
-            SureNode::File { .. } => true,
-            _ => false,
-        }
+        matches!(self, SureNode::File { .. })
     }
 
     pub fn is_leave(&self) -> bool {
-        match self {
-            SureNode::Leave => true,
-            _ => false,
-        }
+        matches!(self, SureNode::Leave)
     }
 
     pub fn is_sep(&self) -> bool {
-        match self {
-            SureNode::Sep => true,
-            _ => false,
-        }
+        matches!(self, SureNode::Sep)
     }
 
     pub fn needs_hash(&self) -> bool {
