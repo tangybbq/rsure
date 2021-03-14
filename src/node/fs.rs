@@ -79,10 +79,7 @@ impl Iterator for ScanIterator {
                     self.push_empty_dir();
                 }
 
-                Some(Ok(SureNode::Enter {
-                    name,
-                    atts,
-                }))
+                Some(Ok(SureNode::Enter { name, atts }))
             }
         }
     }

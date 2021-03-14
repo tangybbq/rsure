@@ -94,13 +94,14 @@ pub fn update<P: AsRef<Path>>(
         let tmp = {
             let mut tmp = store.make_temp()?;
             let loader = Loader(&*scan_temp);
-            let combiner = HashCombiner::new(latest, loader.iter()?)?
-                .inspect(|node| if let Ok(n @ SureNode::File { .. }) = node {
+            let combiner = HashCombiner::new(latest, loader.iter()?)?.inspect(|node| {
+                if let Ok(n @ SureNode::File { .. }) = node {
                     if n.needs_hash() {
                         estimate.files += 1;
                         estimate.bytes += n.size();
                     }
-                });
+                }
+            });
             node::save_to(&mut tmp, combiner)?;
             tmp
         };

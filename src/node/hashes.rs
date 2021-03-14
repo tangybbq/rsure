@@ -42,10 +42,7 @@ pub struct HashMerger<S> {
 
 impl<'a, S: Source> HashUpdater<'a, S> {
     pub fn new(source: S, store: &dyn Store) -> HashUpdater<S> {
-        HashUpdater {
-            source,
-            store,
-        }
+        HashUpdater { source, store }
     }
 
     /// First pass.  Go through the source nodes, and for any that need a

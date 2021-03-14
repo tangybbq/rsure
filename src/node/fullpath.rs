@@ -49,10 +49,7 @@ where
 
         let do_pop = node.is_file() || node.is_leave();
 
-        let result = Ok(PathedNode {
-            node,
-            path,
-        });
+        let result = Ok(PathedNode { node, path });
 
         if do_pop {
             cur.pop();
