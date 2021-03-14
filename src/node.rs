@@ -210,7 +210,7 @@ pub fn load<P: AsRef<Path>>(name: P) -> Result<ReadIterator<GzDecoder<File>>> {
 /// Load a surenode sequence from the given reader.
 pub fn load_from<R: Read>(rd: R) -> Result<ReadIterator<R>> {
     let rd = BufReader::new(rd);
-    let mut lines = rd.split('\n' as u8);
+    let mut lines = rd.split(b'\n');
 
     fixed(&mut lines, b"asure-2.0")?;
     fixed(&mut lines, b"-----")?;
