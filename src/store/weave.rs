@@ -246,7 +246,7 @@ where
             if line == expect {
                 Ok(())
             } else {
-                Err(Error::UnexpectedLine(line.into(), expect.into()))
+                Err(Error::UnexpectedLine(line, expect.into()))
             }
         }
         Some(Err(e)) => Err(e),
