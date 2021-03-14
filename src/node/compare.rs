@@ -1,5 +1,8 @@
 //! Compare two iterator-based trees.
 
+// This clippy seems to be broken, as it has some false triggers in this code.
+#![allow(clippy::if_same_then_else)]
+
 use crate::{node::SureNode, Error, Result};
 use log::error;
 use std::{collections::HashSet, path::Path};

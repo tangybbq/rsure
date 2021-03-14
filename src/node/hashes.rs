@@ -1,5 +1,8 @@
 //! Hash updates for node-based sure file.
 
+// Clippy bug.
+#![allow(clippy::if_same_then_else)]
+
 use crate::{
     hashes::{hash_file, noatime_open, Estimate},
     node::{into_tracker, NodeWriter, SureNode},
