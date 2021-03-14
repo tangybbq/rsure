@@ -41,7 +41,7 @@ impl Escape for [u8] {
         let mut result = vec![];
         for &ch in self.iter() {
             // TODO: Can be made more efficient.
-            if b'!' <= ch && ch <= b'~' && ch != b'=' && ch != b'[' && ch != b']' {
+            if (b'!'..=b'~').contains(&ch) && ch != b'=' && ch != b'[' && ch != b']' {
                 result.push(ch);
             } else {
                 write!(&mut result, "={:02x}", ch).unwrap();
