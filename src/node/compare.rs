@@ -293,7 +293,7 @@ where
             }
         }
 
-        if diffs.len() > 0 {
+        if !diffs.is_empty() {
             let mut buf = String::new();
             diffs.sort();
             for d in &diffs {
