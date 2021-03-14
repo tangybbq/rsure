@@ -472,7 +472,7 @@ impl<B: BufRead> Iterator for PullParser<B> {
             b'E' => {
                 self.pop(this_delta);
                 self.update_keep();
-                return Some(Ok(Entry::End { delta: this_delta }));
+                Some(Ok(Entry::End { delta: this_delta }))
             }
             b'I' => {
                 if self.delta >= this_delta {
@@ -482,7 +482,7 @@ impl<B: BufRead> Iterator for PullParser<B> {
                 }
                 self.update_keep();
 
-                return Some(Ok(Entry::Insert { delta: this_delta }));
+                Some(Ok(Entry::Insert { delta: this_delta }))
             }
             b'D' => {
                 if self.delta >= this_delta {
@@ -492,7 +492,7 @@ impl<B: BufRead> Iterator for PullParser<B> {
                 }
                 self.update_keep();
 
-                return Some(Ok(Entry::Delete { delta: this_delta }));
+                Some(Ok(Entry::Delete { delta: this_delta }))
             }
             _ => unreachable!(),
         }

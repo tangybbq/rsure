@@ -62,7 +62,7 @@ impl Store for WeaveStore {
         let cpath = path.clone();
         Ok(Box::new(WeaveTemp {
             parent: self,
-            path: path,
+            path,
             file: BufWriter::new(file),
             cleaner: FileClean(cpath),
         }))
@@ -246,7 +246,7 @@ where
             if line == expect {
                 Ok(())
             } else {
-                Err(Error::UnexpectedLine(line.into(), expect.into()))
+                Err(Error::UnexpectedLine(line, expect.into()))
             }
         }
         Some(Err(e)) => Err(e),

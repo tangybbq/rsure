@@ -94,15 +94,13 @@ pub fn update<P: AsRef<Path>>(
         let tmp = {
             let mut tmp = store.make_temp()?;
             let loader = Loader(&*scan_temp);
-            let combiner = HashCombiner::new(latest, loader.iter()?)?.inspect(|node| match node {
-                Ok(n @ SureNode::File { .. }) => {
+            let combiner = HashCombiner::new(latest, loader.iter()?)?
+                .inspect(|node| if let Ok(n @ SureNode::File { .. }) = node {
                     if n.needs_hash() {
                         estimate.files += 1;
                         estimate.bytes += n.size();
                     }
-                }
-                _ => (),
-            });
+                });
             node::save_to(&mut tmp, combiner)?;
             tmp
         };
@@ -111,15 +109,11 @@ pub fn update<P: AsRef<Path>>(
     } else {
         let mut tmp = store.make_temp()?;
         let src = fs::scan_fs(dir)?.inspect(|node| {
-            match node {
-                // TODO: This is only correct if this is not an update.
-                Ok(n @ SureNode::File { .. }) => {
-                    if n.needs_hash() {
-                        estimate.files += 1;
-                        estimate.bytes += n.size();
-                    }
+            if let Ok(n @ SureNode::File { .. }) = node {
+                if n.needs_hash() {
+                    estimate.files += 1;
+                    estimate.bytes += n.size();
                 }
-                _ => (),
             }
         });
         node::save_to(&mut tmp, src)?;

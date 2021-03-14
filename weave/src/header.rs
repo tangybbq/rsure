@@ -4,7 +4,6 @@
 
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
-use serde_json;
 use std::{collections::BTreeMap, io::Write};
 
 use crate::{Error, Result};
@@ -43,8 +42,8 @@ impl Default for Header {
 impl Header {
     /// Decode from the first line of the file.
     pub fn decode(line: &str) -> Result<Header> {
-        if line.starts_with("\x01t") {
-            Ok(serde_json::from_str(&line[2..])?)
+        if let Some(rest) = line.strip_prefix("\x01t") {
+            Ok(serde_json::from_str(rest)?)
         } else {
             // This probably comes from an sccs file.
             Ok(Header {

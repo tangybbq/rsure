@@ -1,5 +1,8 @@
 //! Hash updates for node-based sure file.
 
+// Clippy bug.
+#![allow(clippy::if_same_then_else)]
+
 use crate::{
     hashes::{hash_file, noatime_open, Estimate},
     node::{into_tracker, NodeWriter, SureNode},
@@ -12,6 +15,7 @@ use data_encoding::HEXLOWER;
 use log::{debug, error};
 use rusqlite::{types::ToSql, Connection, NO_PARAMS};
 use std::{
+    cmp::Ordering,
     io::Write,
     mem,
     path::PathBuf,
@@ -42,8 +46,8 @@ pub struct HashMerger<S> {
 impl<'a, S: Source> HashUpdater<'a, S> {
     pub fn new(source: S, store: &dyn Store) -> HashUpdater<S> {
         HashUpdater {
-            source: source,
-            store: store,
+            source,
+            store,
         }
     }
 
@@ -105,7 +109,7 @@ impl<'a, S: Source> HashUpdater<'a, S> {
         meter.lock().unwrap().flush();
         Ok(HashMerger {
             source: self.source,
-            conn: conn,
+            conn,
             _temp: temp,
         })
     }
@@ -144,7 +148,7 @@ impl<'a, S: Source> HashUpdater<'a, S> {
                         work_send
                             .send(HashWork {
                                 id: count,
-                                path: path,
+                                path,
                                 size: entry.node.size(),
                             })
                             .unwrap();
@@ -184,7 +188,7 @@ impl<'a, S: Source> HashUpdater<'a, S> {
         meter.lock().unwrap().flush();
         Ok(HashMerger {
             source: self.source,
-            conn: conn,
+            conn,
             _temp: temp,
         })
     }
@@ -259,16 +263,18 @@ impl<S: Source> HashMerger<S> {
                 let hnode = loop {
                     match hash_iter.peek() {
                         Some(Ok(hnode)) => {
-                            if count == hnode.id {
-                                let node = hash_iter.next().unwrap()?;
-                                break Some(node);
-                            } else if count < hnode.id {
-                                // Node not present in hash, means we
-                                // weren't able to compute a hash of the
-                                // file.
-                                break None;
-                            } else {
-                                panic!("Out of sequence hash");
+                            match count.cmp(&hnode.id) {
+                                Ordering::Equal => {
+                                    let node = hash_iter.next().unwrap()?;
+                                    break Some(node);
+                                }
+                                Ordering::Less => {
+                                    // Node not present in hash, means we
+                                    // weren't able to compute a hash of the
+                                    // file.
+                                    break None;
+                                }
+                                _ => panic!("Out of sequence hash"),
                             }
                         }
                         Some(Err(e)) => {
@@ -362,10 +368,10 @@ where
         };
 
         Ok(HashCombiner {
-            left: left,
-            right: right,
-            left_iter: left_iter,
-            right_iter: right_iter,
+            left,
+            right,
+            left_iter,
+            right_iter,
             state: vec![],
             seen_root: false,
         })
@@ -499,23 +505,27 @@ where
             (false, false) => {
                 // We are still visiting directories.  Assume it is well
                 // formed, and we are only going to see Enter nodes.
-                if self.left.name() == self.right.name() {
-                    // This is the same directory, descend it.
-                    self.state.push(CombineState::SameDirs);
-                    self.state.push(CombineState::SameDirs);
-                    let _ = self.next_left()?;
-                    vro!(self.next_right()?)
-                } else if self.left.name() < self.right.name() {
-                    // A directory in the old tree we no longer have.
-                    let _ = self.next_left()?;
-                    self.state.push(CombineState::SameDirs);
-                    self.state.push(CombineState::LeftDirs);
-                    Ok(VisitResult::Continue)
-                } else {
-                    // A new directory entirely.
-                    self.state.push(CombineState::SameDirs);
-                    self.state.push(CombineState::RightDirs);
-                    vro!(self.next_right()?)
+                match self.left.name().cmp(&self.right.name()) {
+                    Ordering::Equal => {
+                        // This is the same directory, descend it.
+                        self.state.push(CombineState::SameDirs);
+                        self.state.push(CombineState::SameDirs);
+                        let _ = self.next_left()?;
+                        vro!(self.next_right()?)
+                    }
+                    Ordering::Less => {
+                        // A directory in the old tree we no longer have.
+                        let _ = self.next_left()?;
+                        self.state.push(CombineState::SameDirs);
+                        self.state.push(CombineState::LeftDirs);
+                        Ok(VisitResult::Continue)
+                    }
+                    Ordering::Greater => {
+                        // A new directory entirely.
+                        self.state.push(CombineState::SameDirs);
+                        self.state.push(CombineState::RightDirs);
+                        vro!(self.next_right()?)
+                    }
                 }
             }
             (false, true) => {
@@ -560,18 +570,22 @@ where
                 self.state.push(CombineState::SameFiles);
 
                 // Two names within a directory.
-                if self.left.name() == self.right.name() {
-                    let left = self.next_left()?;
-                    let mut right = self.next_right()?;
-                    maybe_copy_sha(&left, &mut right);
-                    vro!(right)
-                } else if self.left.name() < self.right.name() {
-                    // An old name no longer present.
-                    let _ = self.next_left()?;
-                    Ok(VisitResult::Continue)
-                } else {
-                    // A new name with no corresponding old name.
-                    vro!(self.next_right()?)
+                match self.left.name().cmp(&self.right.name()) {
+                    Ordering::Equal => {
+                        let left = self.next_left()?;
+                        let mut right = self.next_right()?;
+                        maybe_copy_sha(&left, &mut right);
+                        vro!(right)
+                    }
+                    Ordering::Less => {
+                        // An old name no longer present.
+                        let _ = self.next_left()?;
+                        Ok(VisitResult::Continue)
+                    }
+                    Ordering::Greater => {
+                        // A new name with no corresponding old name.
+                        vro!(self.next_right()?)
+                    }
                 }
             }
         }

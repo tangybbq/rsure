@@ -1,5 +1,8 @@
 //! Compare two iterator-based trees.
 
+// This clippy seems to be broken, as it has some false triggers in this code.
+#![allow(clippy::if_same_then_else)]
+
 use crate::{node::SureNode, Error, Result};
 use log::error;
 use std::{collections::HashSet, path::Path};
@@ -53,7 +56,7 @@ where
         right_iter: right,
         adds: HashSet::new(),
         missings: HashSet::new(),
-        ignore: ignore,
+        ignore,
     };
 
     state.walk_root(dir.as_ref())
@@ -290,14 +293,14 @@ where
             }
         }
 
-        if diffs.len() > 0 {
+        if !diffs.is_empty() {
             let mut buf = String::new();
             diffs.sort();
             for d in &diffs {
                 if !buf.is_empty() {
-                    buf.extend(",".chars());
+                    buf.push(',');
                 }
-                buf.extend(d.chars());
+                buf.push_str(&d);
             }
             println!("  [{:<20}] {:?}", buf, dir);
         }

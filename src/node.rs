@@ -32,10 +32,7 @@ pub enum SureNode {
 
 impl SureNode {
     pub fn is_enter(&self) -> bool {
-        match self {
-            SureNode::Enter { .. } => true,
-            _ => false,
-        }
+        matches!(self, SureNode::Enter { .. })
     }
 
     pub fn is_reg_file(&self) -> bool {
@@ -46,24 +43,15 @@ impl SureNode {
     }
 
     pub fn is_file(&self) -> bool {
-        match self {
-            SureNode::File { .. } => true,
-            _ => false,
-        }
+        matches!(self, SureNode::File { .. })
     }
 
     pub fn is_leave(&self) -> bool {
-        match self {
-            SureNode::Leave => true,
-            _ => false,
-        }
+        matches!(self, SureNode::Leave)
     }
 
     pub fn is_sep(&self) -> bool {
-        match self {
-            SureNode::Sep => true,
-            _ => false,
-        }
+        matches!(self, SureNode::Sep)
     }
 
     pub fn needs_hash(&self) -> bool {
@@ -222,13 +210,13 @@ pub fn load<P: AsRef<Path>>(name: P) -> Result<ReadIterator<GzDecoder<File>>> {
 /// Load a surenode sequence from the given reader.
 pub fn load_from<R: Read>(rd: R) -> Result<ReadIterator<R>> {
     let rd = BufReader::new(rd);
-    let mut lines = rd.split('\n' as u8);
+    let mut lines = rd.split(b'\n');
 
     fixed(&mut lines, b"asure-2.0")?;
     fixed(&mut lines, b"-----")?;
 
     Ok(ReadIterator {
-        lines: lines,
+        lines,
         depth: 0,
         done: false,
     })
@@ -300,7 +288,7 @@ impl<R: Read> Iterator for ReadIterator<R> {
 impl<R: Read> ReadIterator<R> {
     fn get_line(&mut self) -> Result<Vec<u8>> {
         match self.lines.next() {
-            None => return Err(Error::TruncatedSurefile),
+            None => Err(Error::TruncatedSurefile),
             Some(l) => Ok(l?),
         }
     }

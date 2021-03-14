@@ -136,7 +136,7 @@ where
     }
 }
 
-fn decode_tag<'a>(tag: &'a str) -> (String, String) {
+fn decode_tag(tag: &str) -> (String, String) {
     let fields: Vec<_> = tag.splitn(2, '=').collect();
     if fields.len() != 2 {
         panic!("Tag must be key=value");
