@@ -1,8 +1,5 @@
 //! Hash updates for node-based sure file.
 
-// Clippy bug.
-#![allow(clippy::if_same_then_else)]
-
 use crate::{
     hashes::{hash_file, noatime_open, Estimate},
     node::{into_tracker, NodeWriter, SureNode},
@@ -475,9 +472,7 @@ where
             vre!(Error::UnexpectedLeftNode)
         } else if !self.right.is_enter() {
             vre!(Error::UnexpectedRightNode)
-        } else if self.left.name() != "__root__" {
-            vre!(Error::IncorrectName)
-        } else if self.right.name() != "__root__" {
+        } else if self.left.name() != "__root__" || self.right.name() != "__root__" {
             vre!(Error::IncorrectName)
         } else {
             let _ = self.next_left()?;
