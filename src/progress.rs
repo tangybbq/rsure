@@ -246,7 +246,7 @@ pub fn humanize(value: u64) -> String {
         unit += 1;
     }
 
-    static UNITS: [&'static str; 9] = [
+    static UNITS: [&str; 9] = [
         "B  ", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB",
     ];
 
