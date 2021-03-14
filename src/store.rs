@@ -144,15 +144,14 @@ pub fn parse_store(text: &str) -> Result<Box<dyn Store>> {
         None => panic!("Path came from string, yet is no longer UTF-8"),
     };
 
-    let (base, compressed) = if base.ends_with(".gz") {
-        (&base[..base.len() - 3], true)
+    let (base, compressed) = if let Some(core_name) = base.strip_suffix(".gz") {
+        (core_name, true)
     } else {
         (base, false)
     };
 
     // Check for weave format.
-    if base.ends_with(".weave") {
-        let base = &base[..base.len() - 6];
+    if let Some(base) = base.strip_suffix(".weave") {
         return Ok(Box::new(WeaveStore::new(dir, base, compressed)));
     }
 
