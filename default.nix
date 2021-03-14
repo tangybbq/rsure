@@ -3,16 +3,16 @@
 with import <nixpkgs> {};
 rustPlatform.buildRustPackage rec {
   pname = "rsure";
-  version = "0.9.1";
+  version = "0.9.2";
 
   src = fetchFromGitHub {
     owner = "tangybbq";
     repo = pname;
-    rev = "728bbe7e7d9e385d7ba33ea3f43bf5d60d50b0f0";
-    sha256 = "1ni9wk4qr42b5nzqik755n07334lj8by42gyg8gqnmgb812zazy2";
+    rev = "v0.9.2";
+    sha256 = "0l7hjm5dbq2ylpqlaj360ci7598x9766d1av6lrwcq0lkc3f9jac";
   };
 
-  cargoSha256 = "14hdcca8axnzy59qq224j1z99ygvdbbxwfywhciq08rhip7lnmn8";
+  cargoSha256 = "0wjchzhgnynpl6j33b2kd4h7f1qj0bp00fn5wxfag4nnf5dn7s01";
 
   nativeBuildInputs = [
     pkgs.pkgconfig
