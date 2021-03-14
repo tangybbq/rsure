@@ -298,9 +298,9 @@ where
             diffs.sort();
             for d in &diffs {
                 if !buf.is_empty() {
-                    buf.extend(",".chars());
+                    buf.push(',');
                 }
-                buf.extend(d.chars());
+                buf.push_str(&d);
             }
             println!("  [{:<20}] {:?}", buf, dir);
         }
