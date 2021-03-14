@@ -99,7 +99,7 @@ impl ScanIterator {
 
         // Sort by inode first.  This helps performance on some filesystems
         // (such as ext4).
-        entries.sort_by(|a, b| a.ino().cmp(&b.ino()));
+        entries.sort_by_key(|a| a.ino());
 
         let mut files: Vec<_> = entries
             .iter()
