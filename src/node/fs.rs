@@ -36,13 +36,13 @@ pub fn scan_fs<P: AsRef<Path>>(root: P) -> Result<ScanIterator> {
     todo.push_back(AugNode::SubDir {
         path: root,
         name: "__root__".to_string(),
-        meta: meta,
-        atts: atts,
+        meta,
+        atts,
     });
 
     let si = ScanIterator {
-        todo: todo,
-        root_dev: root_dev,
+        todo,
+        root_dev,
         progress: ScanProgress::new(),
     };
 
@@ -80,8 +80,8 @@ impl Iterator for ScanIterator {
                 }
 
                 Some(Ok(SureNode::Enter {
-                    name: name,
-                    atts: atts,
+                    name,
+                    atts,
                 }))
             }
         }
@@ -109,9 +109,9 @@ impl ScanIterator {
                     let atts = encode_atts(&path, &m);
 
                     Some(OneFile {
-                        path: path,
+                        path,
                         meta: m,
-                        atts: atts,
+                        atts,
                     })
                 }
                 Err(err) => {
@@ -149,7 +149,7 @@ impl ScanIterator {
             let name = d.path.file_name().unwrap().as_bytes().escaped();
             self.todo.push_front(AugNode::SubDir {
                 path: d.path,
-                name: name,
+                name,
                 meta: d.meta,
                 atts: d.atts,
             });

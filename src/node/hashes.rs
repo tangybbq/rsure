@@ -42,8 +42,8 @@ pub struct HashMerger<S> {
 impl<'a, S: Source> HashUpdater<'a, S> {
     pub fn new(source: S, store: &dyn Store) -> HashUpdater<S> {
         HashUpdater {
-            source: source,
-            store: store,
+            source,
+            store,
         }
     }
 
@@ -105,7 +105,7 @@ impl<'a, S: Source> HashUpdater<'a, S> {
         meter.lock().unwrap().flush();
         Ok(HashMerger {
             source: self.source,
-            conn: conn,
+            conn,
             _temp: temp,
         })
     }
@@ -144,7 +144,7 @@ impl<'a, S: Source> HashUpdater<'a, S> {
                         work_send
                             .send(HashWork {
                                 id: count,
-                                path: path,
+                                path,
                                 size: entry.node.size(),
                             })
                             .unwrap();
@@ -184,7 +184,7 @@ impl<'a, S: Source> HashUpdater<'a, S> {
         meter.lock().unwrap().flush();
         Ok(HashMerger {
             source: self.source,
-            conn: conn,
+            conn,
             _temp: temp,
         })
     }
@@ -362,10 +362,10 @@ where
         };
 
         Ok(HashCombiner {
-            left: left,
-            right: right,
-            left_iter: left_iter,
-            right_iter: right_iter,
+            left,
+            right,
+            left_iter,
+            right_iter,
             state: vec![],
             seen_root: false,
         })

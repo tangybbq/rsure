@@ -53,7 +53,7 @@ where
         right_iter: right,
         adds: HashSet::new(),
         missings: HashSet::new(),
-        ignore: ignore,
+        ignore,
     };
 
     state.walk_root(dir.as_ref())

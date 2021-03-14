@@ -62,7 +62,7 @@ impl Store for WeaveStore {
         let cpath = path.clone();
         Ok(Box::new(WeaveTemp {
             parent: self,
-            path: path,
+            path,
             file: BufWriter::new(file),
             cleaner: FileClean(cpath),
         }))

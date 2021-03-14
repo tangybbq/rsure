@@ -216,7 +216,7 @@ pub fn load_from<R: Read>(rd: R) -> Result<ReadIterator<R>> {
     fixed(&mut lines, b"-----")?;
 
     Ok(ReadIterator {
-        lines: lines,
+        lines,
         depth: 0,
         done: false,
     })

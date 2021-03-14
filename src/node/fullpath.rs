@@ -50,8 +50,8 @@ where
         let do_pop = node.is_file() || node.is_leave();
 
         let result = Ok(PathedNode {
-            node: node,
-            path: path,
+            node,
+            path,
         });
 
         if do_pop {
