@@ -1,15 +1,12 @@
-Rsure file integrity
-********************
+# Rsure file integrity
 
-.. image:: https://travis-ci.org/d3zd3z/rsure.svg?branch=master
-    :target: https://travis-ci.org/d3zd3z/rsure
+[![Build Status](https://travis-ci.org/d3zd3z/rsure.svg?branch=master)](https://travis-ci.org/d3zd3z/rsure)
 
 It has been said that backups aren't useful unless you've tested them.
 But, how does one know that a test restore actually worked?  Rsure is
 designed to help with this.
 
-History
-=======
+## History
 
 The md5sum program captures the MD5 hash of a set of files.  It can
 also read this output and compare the hashes against the files.  By
@@ -20,8 +17,7 @@ files is at least correct.
 However, this doesn't capture the permissions and other attributes of
 the files.  Sometimes a restore can fail for this kind of reason.
 
-Intrusion detection
-===================
+## Intrusion detection
 
 There have been several similar solutions focused on intrusion
 detection.  Tripwire and FreeVeracity (or Veracity) come to mind.  The
@@ -35,8 +31,7 @@ files by absolute pathname.  FreeVeracity was quite useful for
 verifying backups, however, it appears to have vanished entirely (it
 was under an unusual license).
 
-Incremental updates
--------------------
+### Incremental updates
 
 One thing that none of these solutions addressed was that of
 incremental updates, probably because of the focus on intrusion
@@ -49,63 +44,70 @@ hash every file can make the integrity update take so long that people
 avoid running it.  Full hashing is impractical for the same reasons
 that regular full backups are usually impractical.
 
-Using rsure
-***********
+# Using rsure
 
-Getting it
-==========
+## Getting it
 
-Rsure is written in Rust_.  It began as
+Rsure is written in [Rust][rust].  It began as
 an exercise to determine how useful Rust is for a systems-type
 program, and has shown to be the easiest implementation to develop and
 maintain.
 
-.. _Rust: http://www.rust-lang.org/
+[rust]: http://www.rust-lang.org/ "The Rust Programming Language"
 
 Once you have installed rust (and cargo) using either the rust
 installer, rustup, or your distro's packaging system, building it is
-as easy as::
+as easy as:
 
-    $ cargo build --release
+```shell
+$ cargo build --release
+```
 
-within the Rsure directory.  The ``--release`` flag is important,
+within the Rsure directory.  The `--release` flag is important,
 otherwise the performance is poor.  You can install or link to
-``./target/release/rsure`` for the executable.  It may also be possible
-to use ``cargo install`` to install sure directly.
+`./target/release/rsure` for the executable.  It may also be possible
+to use `cargo install` to install sure directly.
 
-Basic usage
-===========
+## Basic usage
 
 Change to a directory you wish to keep integrity for, for example, my
-home directory::
+home directory:
 
-    $ cd
-    $ rsure scan
+```shell
+$ cd
+$ rsure scan
+```
 
 This will scan the filesystem (possibly showing progress), and leave a
-``2sure.dat.gz`` (the 2sure is historical, FreeVeracity used a name
+`2sure.dat.gz` (the 2sure is historical, FreeVeracity used a name
 starting with a 0, and having the digit makes it near the beginning of
 a directory listing).  You can view this file if you'd like.  The
 format is somewhat readable.
 
-Then you can do::
+Then you can do:
 
-    $ rsure check
+```shell
+$ rsure check
+```
 
 to verify the directory.  This will show any differences.  If you back
-up this file with your data, you can run ``rsure`` after a restore to
+up this file with your data, you can run `rsure` after a restore to
 check if the backup is correct.
 
-Later, you can run::
+Later, you can run:
 
-    $ rsure update
+```shell
+$ rsure update
+```
 
-which will update the ``2sure.dat.gz`` file with the new data.  Rust
+which will update the `2sure.dat.gz` file with the new data.  Rust
 uses a "weave" format to hold multiple revisions efficiently in the
 same file.  The update command will refresh the hashes of any files
-that have changed.  After this, you can run:::
+that have changed.  After this, you can run:
 
-    $ rsure signoff
+```shell
+$ rsure signoff
+```
 
 to compare the old scan with the current, and report on what has
 changed between them.
