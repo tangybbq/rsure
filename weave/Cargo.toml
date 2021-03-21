@@ -1,6 +1,6 @@
 [package]
 name = "weave"
-version = "0.2.3"
+version = "0.3.0"
 authors = ["davidb"]
 description = """
 Weave delta file storage.  Inspired by the storage format of SCCS,
