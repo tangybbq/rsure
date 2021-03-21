@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.og/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.9.3]
+
+### Changed
+
+- This release has no code changes, and is merely a version bump to
+  properly tag this and release to [crates.io](https://crates.io/).
+
 ## [0.9.1]
 
 ### Changed
