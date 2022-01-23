@@ -55,6 +55,9 @@ pub enum Entry {
     /// A single line of plaintext from the weave.  `keep` indicates if the
     /// line should be included in the requested delta.
     Plain { text: String, keep: bool },
+
+    /// A control message.  Doesn't currently contain any data, which can be added later if needed.
+    Control,
 }
 
 /// A Parser is used to process a weave file, extracting either everything, or only a specific
@@ -458,11 +461,11 @@ impl<B: BufRead> Iterator for PullParser<B> {
         let linebytes = line.as_bytes();
 
         if linebytes.len() < 4 {
-            panic!("TODO: Handle short control lines");
+            return Some(Ok(Entry::Control));
         }
 
         if linebytes[1] != b'I' && linebytes[1] != b'D' && linebytes[1] != b'E' {
-            panic!("TODO: Handle unrecognized control lines");
+            return Some(Ok(Entry::Control));
         };
 
         // TODO: Don't panic, but fail.

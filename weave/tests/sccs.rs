@@ -233,17 +233,18 @@ impl Gen {
 
         let fd = File::open(self.tdir.join("s.tfile")).unwrap();
         let lines = BufReader::new(fd).lines();
-        let dsink = Rc::new(RefCell::new(DeltaSink { nums: vec![] }));
-        {
-            let mut parser = Parser::new_raw(lines, dsink.clone(), num + 1).unwrap();
-            match parser.parse_to(0) {
-                Ok(0) => (),
-                Ok(_) => panic!("Unexpected stop of parser"),
-                Err(e) => panic!("Parser error: {:?}", e),
+        let mut nums: Vec<usize> = vec![];
+        for node in PullParser::new_raw(lines, num + 1).unwrap() {
+            match node.unwrap() {
+                Entry::Plain { text, keep } => {
+                    if keep {
+                        nums.push(text.parse::<usize>().unwrap());
+                    }
+                }
+                _ => (),
             }
         }
-
-        assert_eq!(data, &dsink.borrow().nums[..]);
+        assert_eq!(data, nums);
     }
 
     fn weave_check_one(&self, num: usize, data: &[usize]) {

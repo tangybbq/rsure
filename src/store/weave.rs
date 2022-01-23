@@ -14,7 +14,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use weave::{
-    self, DeltaWriter, NamingConvention, NewWeave, NullSink, Parser, PullParser, SimpleNaming,
+    self, DeltaWriter, NamingConvention, NewWeave, PullParser, SimpleNaming,
 };
 
 pub struct WeaveStore {
@@ -31,7 +31,7 @@ impl WeaveStore {
 
 impl Store for WeaveStore {
     fn get_versions(&self) -> Result<Vec<StoreVersion>> {
-        let header = Parser::new(&self.naming, NullSink, 1)?.into_header();
+        let header = PullParser::new(&self.naming, 1)?.into_header();
         let mut versions: Vec<_> = header
             .deltas
             .iter()

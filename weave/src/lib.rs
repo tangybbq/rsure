@@ -49,7 +49,7 @@ pub struct WriterInfo {
 
 /// Read the header from a weave file.
 pub fn read_header(naming: &dyn NamingConvention) -> Result<Header> {
-    Ok(Parser::new(naming, NullSink, 1)?.into_header())
+    Ok(PullParser::new(naming, 1)?.into_header())
 }
 
 /// Retrieve the last delta in the weave file.  Will panic if the weave file is malformed and
