@@ -63,8 +63,3 @@ pub fn get_last_delta(naming: &dyn NamingConvention) -> Result<usize> {
         .max()
         .expect("at least one delta in weave file"))
 }
-
-/// A null sink that does nothing, useful for parsing the header.
-pub struct NullSink;
-
-impl Sink for NullSink {}

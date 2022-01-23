@@ -10,16 +10,14 @@ extern crate tempdir;
 extern crate weave;
 
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::env;
 use std::fs::{remove_file, File};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
-use std::rc::Rc;
 use tempdir::TempDir;
-use weave::{DeltaWriter, Entry, NewWeave, Parser, PullParser, Result, SimpleNaming, Sink};
+use weave::{DeltaWriter, Entry, NewWeave, PullParser, Result, SimpleNaming, Sink};
 
 /// Number of iterations to make.  Note that the default check is greater than O(n^2) so the test
 /// will run very long if this is increased too much.
@@ -250,17 +248,19 @@ impl Gen {
     fn weave_check_one(&self, num: usize, data: &[usize]) {
         let fd = File::open(self.tdir.join("sample.weave")).unwrap();
         let lines = BufReader::new(fd).lines();
-        let dsink = Rc::new(RefCell::new(DeltaSink { nums: vec![] }));
-        {
-            let mut parser = Parser::new_raw(lines, dsink.clone(), num + 1).unwrap();
-            match parser.parse_to(0) {
-                Ok(0) => (),
-                Ok(_) => panic!("Unexpected stop of parser"),
-                Err(e) => panic!("Parser error: {:?}", e),
+        let mut nums: Vec<usize> = vec![];
+        for node in PullParser::new_raw(lines, num + 1).unwrap() {
+            match node.unwrap() {
+                Entry::Plain { text, keep } => {
+                    if keep {
+                        nums.push(text.parse::<usize>().unwrap());
+                    }
+                }
+                _ => (),
             }
         }
 
-        assert_eq!(data, &dsink.borrow().nums[..]);
+        assert_eq!(data, nums);
     }
 
     fn weave_check_pull(&self, num: usize, data: &[usize]) {
