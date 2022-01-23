@@ -1,5 +1,5 @@
 # Shell configuration to build rsure.
-{ pkgs ? import <unstable> {} }:
+{ pkgs ? import <nixos> {} }:
 let
   lib = pkgs.lib;
   stdenv = pkgs.stdenv;
@@ -28,9 +28,10 @@ pkgs.mkShell {
     pkgs.pkgconfig
     pkgs.sqlite.dev
 
-    pkgs.cargo
-    pkgs.clippy
-    pkgs.rustfmt
+    # pkgs.cargo
+    # pkgs.clippy
+    # pkgs.rustfmt
+    # pkgs.cargo-bloat
 
     cssc
   ];
