@@ -327,7 +327,7 @@ trait Successful {
 impl Successful for ExitStatus {
     fn expect_success(&self, msg: &str) {
         if !self.success() {
-            panic!(msg.to_string());
+            panic!("{}", msg.to_string());
         }
     }
 }
