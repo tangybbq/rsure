@@ -10,7 +10,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::{header::Header, Error, NamingConvention, Parser, Result, Sink, WriterInfo};
+use crate::{header::Header, Entry, Error, NamingConvention, Parser, PullParser, Result, Sink, WriterInfo};
 
 /// A DeltaWriter is used to write a new delta.  Data should be written to the writer, and then the
 /// `close` method called to update the weave file with the new delta.
@@ -56,16 +56,18 @@ impl<'n> DeltaWriter<'n> {
 
         // Extract the base delta to a file.
 
-        let (base_name, base_file) = nc.temp_file()?;
+        let (base_name, mut base_file) = nc.temp_file()?;
         let mut header = {
-            let dsync = RevWriter {
-                dest: BufWriter::new(base_file),
-            };
-            let mut parser = Parser::new(nc, dsync, base)?;
-            match parser.parse_to(0) {
-                Ok(0) => (),
-                Ok(_) => panic!("Unexpected stop of parser"),
-                Err(e) => return Err(e),
+            let mut parser = PullParser::new(nc, base)?;
+            for node in &mut parser {
+                match node? {
+                    Entry::Plain { text, keep } => {
+                        if keep {
+                            writeln!(base_file, "{}", text)?;
+                        }
+                    }
+                    _ => (),
+                }
             }
             parser.into_header()
         };
