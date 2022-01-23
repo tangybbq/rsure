@@ -1,9 +1,9 @@
-/// The sure stream.
-///
-/// The sure stream represents a linearization of a SureTree.  By keeping
-/// representations as iterators across SureNodes instead of keeping an
-/// entire tree in memory, we can process larger filesystem trees, using
-/// temporary space on the hard disk instead of using memory.
+//! The sure stream.
+//!
+//! The sure stream represents a linearization of a SureTree.  By keeping
+//! representations as iterators across SureNodes instead of keeping an
+//! entire tree in memory, we can process larger filesystem trees, using
+//! temporary space on the hard disk instead of using memory.
 use crate::{suretree::AttMap, Error, Result};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use std::{
