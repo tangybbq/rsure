@@ -11,7 +11,7 @@ use std::{
     io::{stdout, Write},
     sync::Mutex,
 };
-use time::{get_time, Duration, Timespec};
+use time::{Duration, OffsetDateTime};
 
 // The Rust logging system (log crate) only allows a single logger to be
 // logged once.  If we want to capture this, it has to be done before any
@@ -23,7 +23,7 @@ struct State {
     message: String,
 
     // When we next expect to update the message.
-    next_update: Timespec,
+    next_update: OffsetDateTime,
 
     // Set to true if the logging system has been initialized.
     is_logging: bool,
@@ -54,11 +54,11 @@ pub fn log_init() {
 }
 
 // There are two update intervals, depending on whether we are logging.
-fn update_interval(is_logging: bool) -> Timespec {
+fn update_interval(is_logging: bool) -> OffsetDateTime {
     if is_logging {
-        get_time() + Duration::milliseconds(250)
+        OffsetDateTime::now_utc() + Duration::milliseconds(250)
     } else {
-        get_time() + Duration::seconds(5)
+        OffsetDateTime::now_utc() + Duration::seconds(5)
     }
 }
 
@@ -103,7 +103,7 @@ impl State {
     /// update message would be slower than the possible system call needed
     /// to determine the current time.
     fn need_update(&self) -> bool {
-        get_time() >= self.next_update
+        OffsetDateTime::now_utc() >= self.next_update
     }
 }
 
