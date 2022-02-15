@@ -37,7 +37,7 @@ time = "0.1"
 weave = { path = "weave", version = "0.3.0" }
 
 # This will go away
-env_logger = "0.8"
+env_logger = "0.9"
 
 [[bin]]
 name = "rsure"
