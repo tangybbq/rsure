@@ -28,7 +28,7 @@ log = "0.4.6"  # 0.4.6 needed to fix problem with named macro imports.
 # rsure-naming = { path = "naming", version = "0.1.0" }
 num_cpus = "1.10"
 openssl = "0.10"
-regex = "1.4"
+regex = "1.5"
 rusqlite = "0.24"
 structopt = "0.3"
 tempdir = "0.3"
