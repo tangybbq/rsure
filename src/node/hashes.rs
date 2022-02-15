@@ -10,7 +10,7 @@ use crate::{
 use crossbeam::channel::{bounded, Sender};
 use data_encoding::HEXLOWER;
 use log::{debug, error};
-use rusqlite::{types::ToSql, Connection, NO_PARAMS};
+use rusqlite::{types::ToSql, Connection};
 use std::{
     cmp::Ordering,
     io::Write,
@@ -197,7 +197,7 @@ impl<'a, S: Source> HashUpdater<'a, S> {
             "CREATE TABLE hashes (
                 id INTEGER PRIMARY KEY,
                 hash BLOB)",
-            NO_PARAMS,
+            [],
         )?;
 
         Ok((conn, tmp.into_cleaner()?))
@@ -242,7 +242,7 @@ impl<S: Source> HashMerger<S> {
             .conn
             .prepare("SELECT id, hash FROM hashes ORDER BY id")?;
         let mut hash_iter = stmt
-            .query_map(NO_PARAMS, |row| {
+            .query_map([], |row| {
                 Ok(HashInfo {
                     id: row.get(0)?,
                     hash: row.get(1)?,
