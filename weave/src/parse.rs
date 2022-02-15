@@ -60,33 +60,20 @@ pub enum Entry {
     Control,
 }
 
-/// A Parser is used to process a weave file, extracting either everything, or only a specific
-/// delta.
+/// A Parser is used to process a weave file.  This is a wrapper around the pull parser that
+/// invokes a push parser.
 pub struct Parser<S: Sink, B> {
-    /// The lines of the input.
-    source: Lines<B>,
+    /// The pull parser.
+    pull: PullParser<B>,
 
     /// The sink to be given each line record in the weave file.
     sink: Rc<RefCell<S>>,
 
-    /// The desired delta to retrieve, which affects the parse_to call as well as the `keep`
-    /// argument passed to the sink's `plain` call.
-    delta: usize,
-
-    /// The delta state is kept sorted with the newest (largest) delta at element 0.
-    delta_state: Vec<OneDelta>,
-
-    /// A pending input line kept from the last invocation.
+    /// A single pending line, kept from the last invocation.
     pending: Option<String>,
 
-    /// Indicates that we are currently "keeping" lines.
-    keeping: bool,
-
-    /// The line number indicator.
+    /// Tracking the line number.
     lineno: usize,
-
-    /// The header extracted from the file.
-    header: Header,
 }
 
 impl<S: Sink> Parser<S, BufReader<Box<dyn Read>>> {
@@ -112,27 +99,17 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
     /// and aiming for the specified `delta`.  This is not the intended constructor, normal users
     /// should use `new`.  (This is public, for testing).
     pub fn new_raw(
-        mut source: Lines<B>,
+        source: Lines<B>,
         sink: Rc<RefCell<S>>,
         delta: usize,
     ) -> Result<Parser<S, B>> {
-        if let Some(line) = source.next() {
-            let line = line?;
-            let header = Header::decode(&line)?;
-
-            Ok(Parser {
-                source,
-                sink,
-                delta,
-                delta_state: vec![],
-                pending: None,
-                keeping: false,
-                lineno: 0,
-                header,
-            })
-        } else {
-            Err(Error::EmptyWeave)
-        }
+        let pull = PullParser::new_raw(source, delta)?;
+        Ok(Parser {
+            pull,
+            sink,
+            pending: None,
+            lineno: 0,
+        })
     }
 
     /// Run the parser until we either reach the given line number, or the end of the weave.  Lines
@@ -140,148 +117,55 @@ impl<S: Sink, B: BufRead> Parser<S, B> {
     /// the input.  Returns Ok(0) for the end of input, Ok(n) for stopping at line n (which should
     /// always be the same as the passed in lineno, or Err if there is an error.
     pub fn parse_to(&mut self, lineno: usize) -> Result<usize> {
-        // Handle any pending input line.
-        if let Some(pending) = mem::replace(&mut self.pending, None) {
-            self.sink.borrow_mut().plain(&pending, self.keeping)?;
+        // Handle any pending input line.  Pending lines only happen while keeping.
+        if let Some(text) = mem::replace(&mut self.pending, None) {
+            self.sink.borrow_mut().plain(&text, true)?;
         }
 
         loop {
-            // Get the next input line, finishing if we are done.
-            let line = match self.source.next() {
-                None => return Ok(0),
-                Some(line) => line?,
-            };
-
-            info!("line: {:?}", line);
-
-            // Detect the first character, without borrowing.
-            let textual = match line.bytes().next() {
-                None => true,
-                Some(ch) if ch != b'\x01' => true,
-                _ => false,
-            };
-
-            if textual {
-                // Textual line.  Count line numbers for the lines we're keeping.
-                if self.keeping {
-                    self.lineno += 1;
-                    if self.lineno == lineno {
-                        // This is the desired stopping point, hold onto this line, and return to
-                        // the caller.
-                        self.pending = Some(line);
-                        return Ok(lineno);
+            match self.pull.next() {
+                Some(Ok(Entry::Plain { text, keep })) => {
+                    if keep {
+                        self.lineno += 1;
+                        if self.lineno == lineno {
+                            // This is the desired stopping point, hold onto this line, and return
+                            // to the caller.
+                            self.pending = Some(text);
+                            return Ok(lineno);
+                        }
                     }
+
+                    self.sink.borrow_mut().plain(&text, keep)?;
                 }
-
-                // Otherwise, call the Sink, and continue.
-                info!("textual: keeping={}", self.keeping);
-                self.sink.borrow_mut().plain(&line, self.keeping)?;
-                continue;
-            }
-
-            let linebytes = line.as_bytes();
-
-            // At this point, all should be control lines.  Skip any that are too short.
-            if linebytes.len() < 4 {
-                continue;
-            }
-
-            // Ignore control lines other than the insert/delete/end lines.
-            if linebytes[1] != b'I' && linebytes[1] != b'D' && linebytes[1] != b'E' {
-                continue;
-            }
-
-            let this_delta: usize = line[3..].parse()?;
-
-            match linebytes[1] {
-                b'E' => {
-                    self.sink.borrow_mut().end(this_delta)?;
-                    self.pop(this_delta);
+                Some(Ok(Entry::Insert { delta })) => {
+                    self.sink.borrow_mut().insert(delta)?;
                 }
-                b'I' => {
-                    self.sink.borrow_mut().insert(this_delta)?;
-
-                    // Do this insert if this insert is at least as old as the requested delta.
-                    if self.delta >= this_delta {
-                        self.push(this_delta, StateMode::Keep);
-                    } else {
-                        self.push(this_delta, StateMode::Skip);
-                    }
+                Some(Ok(Entry::Delete { delta })) => {
+                    self.sink.borrow_mut().delete(delta)?;
                 }
-                b'D' => {
-                    self.sink.borrow_mut().delete(this_delta)?;
-
-                    // Do this delete if this delete is newer than current.  If not, don't account
-                    // for it.
-                    if self.delta >= this_delta {
-                        self.push(this_delta, StateMode::Skip);
-                    } else {
-                        self.push(this_delta, StateMode::Next);
-                    }
+                Some(Ok(Entry::End { delta })) => {
+                    self.sink.borrow_mut().end(delta)?;
                 }
-                _ => unreachable!(),
+                Some(Ok(Entry::Control)) => (),
+                Some(Err(err)) => {
+                    return Err(err);
+                }
+                None => {
+                    return Ok(0);
+                }
             }
-
-            self.update_keep();
         }
     }
 
-    /// Remove the given numbered state.
-    fn pop(&mut self, delta: usize) {
-        // The binary search is reversed, so the largest are first.
-        let pos = match self
-            .delta_state
-            .binary_search_by(|ent| delta.cmp(&ent.delta))
-        {
-            Ok(pos) => pos,
-            Err(_) => unreachable!(),
-        };
-
-        self.delta_state.remove(pos);
-    }
-
-    /// Add a new state.  It will be inserted in the proper place in the array, based on the delta
-    /// number.
-    fn push(&mut self, delta: usize, mode: StateMode) {
-        match self
-            .delta_state
-            .binary_search_by(|ent| delta.cmp(&ent.delta))
-        {
-            Ok(_) => panic!("Duplicate state in push"),
-            Err(pos) => self.delta_state.insert(pos, OneDelta { delta, mode }),
-        }
-    }
-
-    /// Update the keep field, based on the current state.
-    fn update_keep(&mut self) {
-        info!("Update: {:?}", self.delta_state);
-        for st in &self.delta_state {
-            match st.mode {
-                StateMode::Keep => {
-                    self.keeping = true;
-                    return;
-                }
-                StateMode::Skip => {
-                    self.keeping = false;
-                    return;
-                }
-                _ => (),
-            }
-        }
-
-        // This shouldn't be reached if there are any more context lines, but we may get here when
-        // we reach the end of the input.
-        self.keeping = false;
-    }
 
     /// Get the header read from this weave file.
     pub fn get_header(&self) -> &Header {
-        &self.header
+        &self.pull.header
     }
 
     /// Consume the parser, returning the header.
     pub fn into_header(self) -> Header {
-        self.header
+        self.pull.into_header()
     }
 
     /// Get a copy of the sink.
