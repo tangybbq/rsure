@@ -23,8 +23,8 @@ chrono = { version = "0.4", features = ["serde"] }
 flate2 = "1.0"
 
 [dev-dependencies]
-env_logger = "0.6"
-rand = "0.7"
+env_logger = "0.9"
+rand = "0.8"
 tempdir = "0.3"
 
 # Optimize the tests so they don't take too long

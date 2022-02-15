@@ -116,8 +116,8 @@ impl Gen {
     /// Perform a somewhat random modification of the data.  Choose some range of the numbers and
     /// reverse them.
     fn shuffle(&mut self) {
-        let a = self.rand.gen_range(0, self.nums.len());
-        let b = self.rand.gen_range(0, self.nums.len());
+        let a = self.rand.gen_range(0..self.nums.len());
+        let b = self.rand.gen_range(0..self.nums.len());
 
         let (a, b) = if a <= b { (a, b) } else { (b, a) };
         self.nums[a..b].reverse();
