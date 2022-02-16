@@ -89,10 +89,24 @@ impl ScanIterator {
     fn push_dir(&mut self, path: &Path) -> Result<()> {
         let mut entries = vec![];
 
-        for entry in fs::read_dir(path)? {
-            let entry = entry?;
-            entries.push(entry);
-        }
+        match fs::read_dir(path) {
+            Ok(dir) => {
+                for entry in dir {
+                    let entry = match entry {
+                        Ok(ent) => ent,
+                        Err(err) => {
+                            error!("Unable to read from dir: {:?} ({})", path, err);
+                            break;
+                        }
+                    };
+                    entries.push(entry);
+                }
+            }
+            Err(e) => {
+                // Warn about the issue, but otherwise continue, with just an empty directory.
+                error!("Unable to read dir: {:?} ({})", path, e);
+            }
+        };
 
         // Sort by inode first.  This helps performance on some filesystems
         // (such as ext4).
