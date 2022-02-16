@@ -61,12 +61,12 @@ enum Command {
 }
 
 #[allow(dead_code)]
-fn main() {
+fn main() -> Result<()> {
     log_init();
 
     let opt = Opt::from_args();
 
-    let store = parse_store(&opt.file).unwrap();
+    let store = parse_store(&opt.file)?;
 
     let mut tags = decode_tags(Some(opt.tag.iter().map(|x| x.as_str())));
 
@@ -80,31 +80,33 @@ fn main() {
 
     match &opt.command {
         Command::Scan => {
-            rsure::update(&opt.dir, &*store, false, &tags).unwrap();
+            rsure::update(&opt.dir, &*store, false, &tags)?;
         }
         Command::Update => {
-            rsure::update(&opt.dir, &*store, true, &tags).unwrap();
+            rsure::update(&opt.dir, &*store, true, &tags)?;
         }
         Command::Check { ignore } => {
             let ignore: Vec<_> = ignore.iter().map(|x| x.as_str()).collect();
-            run_check(&*store, &opt, latest, &ignore).unwrap();
+            run_check(&*store, &opt, latest, &ignore)?;
         }
         Command::Signoff { ignore } => {
             let ignore: Vec<_> = ignore.iter().map(|x| x.as_str()).collect();
-            let old_tree = store.load_iter(Version::Prior).unwrap();
-            let new_tree = store.load_iter(Version::Latest).unwrap();
+            let old_tree = store.load_iter(Version::Prior)?;
+            let new_tree = store.load_iter(Version::Latest)?;
             println!("signoff {}", opt.file);
-            rsure::compare_trees(old_tree, new_tree, &Path::new(&opt.dir), &ignore).unwrap();
+            rsure::compare_trees(old_tree, new_tree, &Path::new(&opt.dir), &ignore)?;
         }
         Command::Show => {
             println!("show {}", opt.file);
-            show_tree(&*store).unwrap();
+            show_tree(&*store)?;
         }
         Command::List => {
-            let version = store.get_versions().unwrap();
+            let version = store.get_versions()?;
             dump_versions(&version);
         }
     }
+
+    Ok(())
 }
 
 fn run_check(store: &dyn Store, opt: &Opt, latest: Version, ignore: &[&str]) -> Result<()> {
