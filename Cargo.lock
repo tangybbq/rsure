@@ -541,7 +541,7 @@ dependencies = [
 
 [[package]]
 name = "rsure"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "chrono",
  "crossbeam",
@@ -777,7 +777,7 @@ checksum = "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
 
 [[package]]
 name = "weave"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "flate2",

@@ -1,6 +1,6 @@
 [package]
 name = "rsure"
-version = "0.9.3"
+version = "0.9.4"
 authors = ["David Brown <davidb@davidb.org>"]
 description = """
 Rsure captures hashes and metadata about a tree of files, and can
@@ -34,7 +34,7 @@ structopt = "0.3"
 tempdir = "0.3"
 thiserror = "1.0"
 time = "0.3"
-weave = { path = "weave", version = "0.3.0" }
+weave = { path = "weave", version = "0.3.1" }
 
 # This will go away
 env_logger = "0.9"
