@@ -1,6 +1,6 @@
 //! Weave parsing
 
-use crate::{header::Header, Error, NamingConvention, Result};
+use crate::{header::Header, Error, NamingConvention, Compression, Result};
 use flate2::read::GzDecoder;
 use log::info;
 use std::{
@@ -83,11 +83,14 @@ impl<S: Sink> Parser<S, BufReader<Box<dyn Read>>> {
         sink: S,
         delta: usize,
     ) -> Result<Parser<S, BufReader<Box<dyn Read>>>> {
-        let rd = if naming.is_compressed() {
-            let fd = File::open(naming.main_file())?;
-            Box::new(GzDecoder::new(fd)) as Box<dyn Read>
-        } else {
-            Box::new(File::open(naming.main_file())?) as Box<dyn Read>
+        let rd = match naming.compression() {
+            Compression::Plain => {
+                Box::new(File::open(naming.main_file())?) as Box<dyn Read>
+            }
+            Compression::Gzip => {
+                let fd = File::open(naming.main_file())?;
+                Box::new(GzDecoder::new(fd)) as Box<dyn Read>
+            }
         };
         let lines = BufReader::new(rd).lines();
         Parser::new_raw(lines, Rc::new(RefCell::new(sink)), delta)
@@ -227,11 +230,14 @@ impl PullParser<BufReader<Box<dyn Read>>> {
         naming: &dyn NamingConvention,
         delta: usize,
     ) -> Result<PullParser<BufReader<Box<dyn Read>>>> {
-        let rd = if naming.is_compressed() {
-            let fd = File::open(naming.main_file())?;
-            Box::new(GzDecoder::new(fd)) as Box<dyn Read>
-        } else {
-            Box::new(File::open(naming.main_file())?) as Box<dyn Read>
+        let rd = match naming.compression() {
+            Compression::Plain => {
+                Box::new(File::open(naming.main_file())?) as Box<dyn Read>
+            }
+            Compression::Gzip => {
+                let fd = File::open(naming.main_file())?;
+                Box::new(GzDecoder::new(fd)) as Box<dyn Read>
+            }
         };
         let lines = BufReader::new(rd).lines();
         PullParser::new_raw(lines, delta)

@@ -43,6 +43,7 @@ pub use crate::{
     header::{DeltaInfo, Header},
     naming::NamingConvention,
     naming::SimpleNaming,
+    naming::Compression,
     newweave::NewWeave,
     parse::{Entry, Parser, PullParser, Sink},
 };

@@ -16,15 +16,16 @@ use std::{
 use weave::{
     self, DeltaWriter, NamingConvention, NewWeave, PullParser, SimpleNaming,
 };
+pub use weave::Compression;
 
 pub struct WeaveStore {
     naming: SimpleNaming,
 }
 
 impl WeaveStore {
-    pub fn new<P: AsRef<Path>>(path: P, base: &str, compressed: bool) -> WeaveStore {
+    pub fn new<P: AsRef<Path>>(path: P, base: &str, compression: Compression) -> WeaveStore {
         WeaveStore {
-            naming: SimpleNaming::new(path, base, "dat", compressed),
+            naming: SimpleNaming::new(path, base, "dat", compression),
         }
     }
 }

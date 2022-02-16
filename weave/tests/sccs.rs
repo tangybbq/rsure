@@ -17,7 +17,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use tempdir::TempDir;
-use weave::{DeltaWriter, Entry, NewWeave, PullParser, Result, SimpleNaming, Sink};
+use weave::{Compression, DeltaWriter, Entry, NewWeave, PullParser, Result, SimpleNaming, Sink};
 
 /// Number of iterations to make.  Note that the default check is greater than O(n^2) so the test
 /// will run very long if this is increased too much.
@@ -283,7 +283,7 @@ impl Gen {
     fn new_weave(&mut self) {
         let mut tags = BTreeMap::new();
         tags.insert("name", "initial");
-        let nc = SimpleNaming::new(&self.tdir, "sample", "weave", false);
+        let nc = SimpleNaming::new(&self.tdir, "sample", "weave", Compression::Plain);
         let mut nw = NewWeave::new(&nc, tags.into_iter()).unwrap();
         for i in &self.nums {
             writeln!(&mut nw, "{}", i).unwrap();
@@ -295,7 +295,7 @@ impl Gen {
         let name_value = format!("{}", base + 1);
         let mut tags = BTreeMap::new();
         tags.insert("name", name_value.as_str());
-        let nc = SimpleNaming::new(&self.tdir, "sample", "weave", false);
+        let nc = SimpleNaming::new(&self.tdir, "sample", "weave", Compression::Plain);
         let mut delta = DeltaWriter::new(&nc, tags.into_iter(), base).unwrap();
         for i in &self.nums {
             writeln!(&mut delta, "{}", i).unwrap();

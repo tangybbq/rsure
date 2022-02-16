@@ -12,6 +12,7 @@ use std::{
 mod weave;
 
 pub use self::weave::WeaveStore;
+use self::weave::Compression;
 
 /// Tags are just key/value pairs.  Both key and value should be printable strings.
 pub type StoreTags = BTreeMap<String, String>;
@@ -115,7 +116,7 @@ pub fn parse_store(text: &str) -> Result<Box<dyn Store>> {
     // If we're given an existing directory, construct a store directly from it.
     // TODO: Look in the directory to see what might be there.
     if p.is_dir() {
-        return Ok(Box::new(WeaveStore::new(p.to_path_buf(), "2sure", true)));
+        return Ok(Box::new(WeaveStore::new(p.to_path_buf(), "2sure", Compression::Gzip)));
     }
 
     // Otherwise, try to get the parent.  If it seems to be empty, use the current directory as the
@@ -144,15 +145,15 @@ pub fn parse_store(text: &str) -> Result<Box<dyn Store>> {
         None => panic!("Path came from string, yet is no longer UTF-8"),
     };
 
-    let (base, compressed) = if let Some(core_name) = base.strip_suffix(".gz") {
-        (core_name, true)
+    let (base, compression) = if let Some(core_name) = base.strip_suffix(".gz") {
+        (core_name, Compression::Gzip)
     } else {
-        (base, false)
+        (base, Compression::Plain)
     };
 
     // Check for weave format.
     if let Some(base) = base.strip_suffix(".weave") {
-        return Ok(Box::new(WeaveStore::new(dir, base, compressed)));
+        return Ok(Box::new(WeaveStore::new(dir, base, compression)));
     }
 
     // Strip off known suffixes.
@@ -162,5 +163,5 @@ pub fn parse_store(text: &str) -> Result<Box<dyn Store>> {
         base
     };
 
-    Ok(Box::new(WeaveStore::new(dir, base, compressed)))
+    Ok(Box::new(WeaveStore::new(dir, base, compression)))
 }

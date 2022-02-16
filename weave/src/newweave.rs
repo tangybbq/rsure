@@ -8,6 +8,8 @@ use std::{
 };
 
 use crate::{header::Header, Error, NamingConvention, Result, WriterInfo};
+#[allow(unused)]
+use crate::Compression;
 
 /// A builder for a new weave file.  The data should be written as a writer.  Closing the weaver
 /// will finish up the write and move the new file into place.  If the weaver is just dropped, the
@@ -84,7 +86,7 @@ fn try_tag() {
     for i in 1..100 {
         tags.insert(format!("key{}", i), format!("This is the {}th value", i));
     }
-    let nc = SimpleNaming::new(".", "tags", "weave", false);
+    let nc = SimpleNaming::new(".", "tags", "weave", Compression::Gzip);
     let t2 = tags.iter().map(|(k, v)| (k.as_ref(), v.as_ref()));
     let mut wr = NewWeave::new(&nc, t2).unwrap();
     writeln!(&mut wr, "This is the only line in the file").unwrap();
