@@ -199,6 +199,10 @@ pub struct PullIterator<B> {
 }
 */
 
+/// The pull parser is the intended way of reading from weave files.  After opening a particular
+/// delta with [`PullParser::new`], the parser can be used as an iterator, to return [`Entry`] values.  In
+/// particular, the entries for [`Entry::Plain`] where `keep` is true will be the lines of the
+/// weave that comprise the expected delta.
 pub struct PullParser<B> {
     /// The lines of the input.
     source: Lines<B>,

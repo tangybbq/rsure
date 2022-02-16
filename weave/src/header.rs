@@ -8,7 +8,9 @@ use std::{collections::BTreeMap, io::Write};
 
 use crate::{Error, Result};
 
-/// The header placed at the beginning of the each weave file.
+/// The header placed at the beginning of the each weave file.  The deltas correspond with the
+/// deltas checked in.  Note that the value passed to [`crate::PullParser::new`] should be the `number`
+/// field of [`DeltaInfo`] and not the index in the `deltas` vec.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Header {
     pub version: usize,

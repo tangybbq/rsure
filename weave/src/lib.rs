@@ -1,7 +1,9 @@
-//! Implement Weave deltas, inspired by SCCS.
+//! Weave deltas, inspired by SCCS.
 //!
-//! Although not much remains of the SCCS revision control system, it's "weave" delta format turns
-//! out to be a good way of representing multiple versions of data that differ only in parts.
+//! The [SCCS](https://en.wikipedia.org/wiki/Source_Code_Control_System) revision control system is
+//! one of the oldest source code management systems (1973).  Although many of its concepts are
+//! quite dated in these days of git, the underlying "weave" delta format it used turns out to be a
+//! good way of representing multiple versions of data that differ only in parts.
 //!
 //! This package implements a weave-based storage of "plain text", where plain text consists of
 //! lines of UTF-8 printable characters separated by a newline.
@@ -12,12 +14,19 @@
 //! the main body of the weaved file, that which describes inserts and deletes is the same, and
 //! allows us to test this version by comparing with the storage of sccs.
 //!
-//! Writing an initial weave works as a regular file writer.  The file itself has a small amount of
-//! surrounding meta-data, but is otherwise mostly just the contents of the initial file.
+//! Weave files are written using [`NewWeave`], which works like a regular file writer.  The file
+//! itself has a small amount of surrounding metadata, but is otherwise mostly just the contents of
+//! the initial file.
 //!
-//! Adding a delta to a weave file requires extracting a base version that the delta will be made
-//! against (the base does not need to be the tip version, allowing for branches).  This crate will
-//! need to make several temporary files.
+//! Adding a delta to a weave file is done with the [`DeltaWriter`].  This is also written to, as a
+//! regular file, and then [`DeltaWriter::close`] method will extract a base revision and use the
+//! `diff` command to write a new version of the weave.  The `close` method will make several
+//! temporary files in the process.
+//!
+//! The weave data is stored using a [`NamingConvention`], a trait that manages a related
+//! collection of files, and temp files.  [`SimpleNaming`] is a basic representation of this that
+//! has a base name, a backup file, and some temporary files.  The data in the file can be
+//! compressed.
 
 #![warn(bare_trait_objects)]
 
