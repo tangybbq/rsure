@@ -9,7 +9,7 @@ changed.  It supports incremental updates, and includes an standalone
 executable for scanning and checking trees.
 """
 license = "MIT"
-readme = "README.rst"
+readme = "README.md"
 repository = "https://github.com/d3zd3z/rsure"
 edition = "2018"
 
