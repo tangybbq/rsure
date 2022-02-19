@@ -46,6 +46,8 @@ pub trait NamingConvention {
                 Box::new(BufWriter::new(file)) as Box<dyn Write>,
             Compression::Gzip =>
                 Box::new(GzEncoder::new(file, flate2::Compression::default())) as Box<dyn Write>,
+            Compression::Zstd =>
+                Box::new(zstd::Encoder::new(file, 3)?.auto_finish()) as Box<dyn Write>,
         };
         Ok(WriterInfo { name, writer })
     }
@@ -56,6 +58,7 @@ pub trait NamingConvention {
 pub enum Compression {
     Plain,
     Gzip,
+    Zstd,
 }
 
 /// The SimpleNaming is a NamingConvention that has a basename, with the main file having a
@@ -92,6 +95,7 @@ impl SimpleNaming {
             match compression {
                 Compression::Plain => "",
                 Compression::Gzip => ".gz",
+                Compression::Zstd => ".zstd",
             },
         );
         self.path.join(name)

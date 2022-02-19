@@ -91,6 +91,10 @@ impl<S: Sink> Parser<S, BufReader<Box<dyn Read>>> {
                 let fd = File::open(naming.main_file())?;
                 Box::new(GzDecoder::new(fd)) as Box<dyn Read>
             }
+            Compression::Zstd => {
+                let fd = File::open(naming.main_file())?;
+                Box::new(zstd::Decoder::new(fd)?) as Box<dyn Read>
+            }
         };
         let lines = BufReader::new(rd).lines();
         Parser::new_raw(lines, Rc::new(RefCell::new(sink)), delta)
@@ -237,6 +241,10 @@ impl PullParser<BufReader<Box<dyn Read>>> {
             Compression::Gzip => {
                 let fd = File::open(naming.main_file())?;
                 Box::new(GzDecoder::new(fd)) as Box<dyn Read>
+            }
+            Compression::Zstd => {
+                let fd = File::open(naming.main_file())?;
+                Box::new(zstd::Decoder::new(fd)?) as Box<dyn Read>
             }
         };
         let lines = BufReader::new(rd).lines();

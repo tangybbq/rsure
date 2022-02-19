@@ -147,6 +147,8 @@ pub fn parse_store(text: &str) -> Result<Box<dyn Store>> {
 
     let (base, compression) = if let Some(core_name) = base.strip_suffix(".gz") {
         (core_name, Compression::Gzip)
+    } else if let Some(core_name) = base.strip_suffix(".zstd") {
+        (core_name, Compression::Zstd)
     } else {
         (base, Compression::Plain)
     };

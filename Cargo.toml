@@ -35,6 +35,7 @@ tempdir = "0.3"
 thiserror = "1.0"
 time = "0.3"
 weave = { path = "weave", version = "0.4.0-dev" }
+zstd = "0.10"
 
 # This will go away
 env_logger = "0.9"
